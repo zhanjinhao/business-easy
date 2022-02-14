@@ -14,13 +14,17 @@ public class BEStringUtil {
         throw new BEUtilException("工具类不可实例化！");
     }
 
-    public static String expandWithZero(String str, int expectLength) {
+    public static String expandWithSpecifiedChar(String str, char specifiedChar, int expectLength) {
         int length = str.length();
         StringBuilder zero = new StringBuilder();
         for (int i = length; i < expectLength; i++) {
-            zero.append("0");
+            zero.append(specifiedChar);
         }
         return zero.append(str).toString();
+    }
+
+    public static String expandWithZero(String str, int expectLength) {
+        return expandWithSpecifiedChar(str, '0', expectLength);
     }
 
     public static String join(String separator, String... values) {
