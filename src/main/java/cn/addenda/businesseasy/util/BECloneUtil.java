@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.util.Collection;
 
 /**
  * @Author ISJINHAO
@@ -28,6 +29,28 @@ public class BECloneUtil {
             return (T) ois.readObject();
         } catch (IOException | ClassNotFoundException e) {
             throw new BEUtilException("克隆对象出错！", e);
+        }
+    }
+
+    public static <T extends Serializable> Collection<T> cloneByJDKSerialization(Collection<T> obj) {
+        if (obj == null) {
+            return null;
+        }
+        Collection<T> newList = newInstance((Class<Collection<T>>) obj.getClass());
+        if (obj.isEmpty()) {
+            return newList;
+        }
+        for (T next : obj) {
+            newList.add(cloneByJDKSerialization(next));
+        }
+        return newList;
+    }
+
+    private static <T extends Serializable> Collection<T> newInstance(Class<Collection<T>> collection) {
+        try {
+            return collection.newInstance();
+        } catch (InstantiationException | IllegalAccessException e) {
+            throw new BEUtilException("反射生成集合对象失败！", e);
         }
     }
 
