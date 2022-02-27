@@ -14,7 +14,7 @@ public class TransactionHelper extends TransactionAspectSupport {
     /**
      * 最简单的事务控制场景（当发生任何异常（Exception.class）都回滚事务），
      */
-    public <T> T doTransaction(TransactionExecutor<T> executor) {
+    public Object doTransaction(TransactionExecutor executor) {
         return doTransaction(Exception.class, executor);
     }
 
@@ -22,7 +22,7 @@ public class TransactionHelper extends TransactionAspectSupport {
     /**
      * 较上一个场景，该场景可以指定针对特定的异常类型发生事务回滚
      */
-    public <T> T doTransaction(Class<? extends Throwable> rollbackFor, TransactionExecutor<T> executor) {
+    public Object doTransaction(Class<? extends Throwable> rollbackFor, TransactionExecutor executor) {
         TransactionAttribute transactionAttribute = TransactionAttributeBuilder.newBuilder().rollbackFor(rollbackFor).build();
         return doTransaction(transactionAttribute, executor);
     }
@@ -30,14 +30,14 @@ public class TransactionHelper extends TransactionAspectSupport {
     /**
      * 最复杂的场景，需要手动指定所有的事务控制参数。
      */
-    public <T> T doTransaction(TransactionAttribute txAttr, TransactionExecutor<T> executor) {
+    public Object doTransaction(TransactionAttribute txAttr, TransactionExecutor executor) {
         return _process(txAttr, executor);
     }
 
-    private <T> T _process(TransactionAttribute txAttr, TransactionExecutor<T> executor) {
+    private Object _process(TransactionAttribute txAttr, TransactionExecutor executor) {
         TransactionHelperAttributeSource.setTransactionAttribute(txAttr);
         try {
-            return (T) invokeWithinTransaction(extractMethod(executor), executor.getClass(), new InvocationCallback() {
+            return invokeWithinTransaction(extractMethod(executor), executor.getClass(), new InvocationCallback() {
                 @Override
                 public Object proceedWithInvocation() throws Throwable {
                     return executor.process();
@@ -45,10 +45,12 @@ public class TransactionHelper extends TransactionAspectSupport {
             });
         } catch (Throwable e) {
             throw new BEUtilException("事务在TransactionHelper内执行失败！", e);
+        } finally {
+            TransactionHelperAttributeSource.clear();
         }
     }
 
-    private <T> Method extractMethod(TransactionExecutor<T> executor) {
+    private Method extractMethod(TransactionExecutor executor) {
         Method[] methods = executor.getClass().getMethods();
         for (Method method : methods) {
             if ("process".equals(method.getName()) && method.getParameterCount() == 0) {
@@ -58,9 +60,13 @@ public class TransactionHelper extends TransactionAspectSupport {
         throw new BEUtilException("找不到 TransactionExecutor#process() 方法。");
     }
 
-    public interface TransactionExecutor<T> {
+    public interface TransactionExecutor {
+        Object process() throws Throwable;
+    }
 
-        T process();
+
+    public interface VoidTransactionExecutor {
+        void process() throws Throwable;
     }
 
 }

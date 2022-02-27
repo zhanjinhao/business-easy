@@ -21,4 +21,8 @@ public class TransactionHelperAttributeSource implements TransactionAttributeSou
         transactionAttributeThreadLocal.set(transactionAttribute);
     }
 
+    public static void clear() {
+        transactionAttributeThreadLocal.remove();
+    }
+
 }
