@@ -19,14 +19,14 @@ public class BEDateUtil {
     private static final ZoneId defaultZoneId;
 
     static {
-        String property = System.getProperty("business.easy.timezone");
+        String property = System.getProperty("businesseasy.timezone");
         if (property == null || property.length() == 0) {
             defaultZoneId = ZoneId.systemDefault();
         } else {
             try {
                 defaultZoneId = ZoneId.of(property);
             } catch (Exception e) {
-                throw new BEUtilException("初始化BEDateUtil#defaultZoneId出错，business.easy.timezone value:" + property);
+                throw new BEUtilException("初始化BEDateUtil#defaultZoneId出错，businesseasy.timezone value:" + property);
             }
         }
     }

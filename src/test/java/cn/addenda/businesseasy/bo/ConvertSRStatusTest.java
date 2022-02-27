@@ -26,7 +26,7 @@ public class ConvertSRStatusTest {
     }
 
     private static class TestAnnotated {
-        @ConvertSRStatus(errorToDispatch = {"1:2", "3:4"})
+        @ConvertSRStatus()
         public void testMethod() {
 
         }
