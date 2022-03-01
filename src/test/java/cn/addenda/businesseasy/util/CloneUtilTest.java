@@ -1,7 +1,5 @@
-package cn.addenda.businesseasy.bo;
+package cn.addenda.businesseasy.util;
 
-import cn.addenda.businesseasy.util.BEArrayUtil;
-import cn.addenda.businesseasy.util.BECloneUtil;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Set;

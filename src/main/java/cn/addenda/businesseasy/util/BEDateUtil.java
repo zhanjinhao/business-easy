@@ -71,7 +71,7 @@ public class BEDateUtil {
         if (zoneId == null) {
             zoneId = defaultZoneId;
         }
-        Instant instant = Instant.ofEpochMilli(timestamp * 1000);
+        Instant instant = Instant.ofEpochMilli(timestamp);
         return LocalDateTime.ofInstant(instant, zoneId);
     }
 

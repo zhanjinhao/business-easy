@@ -1,10 +1,6 @@
-package cn.addenda.businesseasy.bo;
+package cn.addenda.businesseasy.result;
 
-/**
- * @Author ISJINHAO
- * @Date 2022/2/11 11:43
- */
-public enum SRStatus {
+public enum ServiceResultStatus {
 
     // 成功
     SUCCESS,
@@ -17,5 +13,4 @@ public enum SRStatus {
 
     // 状态ErrorMsg定，需要调用方判断ErrorMsg
     DISPATCH
-
 }

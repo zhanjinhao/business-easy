@@ -1,4 +1,4 @@
-package cn.addenda.businesseasy.dto;
+package cn.addenda.businesseasy.result;
 
 import java.io.Serializable;
 
@@ -28,6 +28,12 @@ public class ControllerResult<T> implements Serializable {
     public ControllerResult(boolean success, T result) {
         this.success = success;
         this.result = result;
+    }
+
+    public ControllerResult(ServiceResult<T> serviceResult) {
+        this.success = serviceResult.getServiceResultStatus().equals(ServiceResultStatus.SUCCESS);
+        this.result = serviceResult.getResult();
+        this.errorMsg = serviceResult.getErrorMsg();
     }
 
     public String getRequestId() {
