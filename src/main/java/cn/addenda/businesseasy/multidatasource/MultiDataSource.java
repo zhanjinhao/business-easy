@@ -15,30 +15,25 @@ import java.util.Map;
  */
 public class MultiDataSource extends AbstractRoutingDataSource {
 
-    private static final ThreadLocal<String> dataSourceThreadLocal = new ThreadLocal<>();
-
     private Map<String, MultiDataSourceEntry> datasourceHolderMap = new HashMap();
 
     private SlaveDataSourceSelector slaveDataSourceSelector = new RandomSlaveDataSourceSelector();
 
     @Override
     protected Object determineCurrentLookupKey() {
-        return dataSourceThreadLocal.get();
-    }
-
-    public static void setCurDataSource(String dataSourceName, String mode) {
-        dataSourceThreadLocal.set(dataSourceName + "." + mode);
-    }
-
-    public static void clearCurDataSource() {
-        dataSourceThreadLocal.remove();
+        throw new UnsupportedOperationException("使用多数据源时不应该执行此方法！");
     }
 
     @Override
     protected DataSource determineTargetDataSource() {
+        DataSource curActiveDataSource = DataSourceHolder.getActiveDataSource();
+        // 存在正在活跃的数据源的时候
+        if (curActiveDataSource != null) {
+            return curActiveDataSource;
+        }
         String key = null;
         try {
-            key = (String) determineCurrentLookupKey();
+            key = DataSourceHolder.getActiveDataSourceKey();
             // 但key为空的时候，即没有注解的时候，走默认的MASTER库
             if (key == null || key.length() == 0) {
                 return datasourceHolderMap.get(MultiDataSourceConstant.DEFAULT).getMaster();
@@ -46,10 +41,13 @@ public class MultiDataSource extends AbstractRoutingDataSource {
             String[] split = key.split("\\.");
             MultiDataSourceEntry multiDataSourceEntry = datasourceHolderMap.get(split[0]);
             if (MultiDataSourceConstant.MASTER.equals(split[1])) {
-                return multiDataSourceEntry.getMaster();
+                DataSource dataSource = multiDataSourceEntry.getMaster();
+                DataSourceHolder.setActiveDataSource(dataSource);
+                return dataSource;
             } else if (MultiDataSourceConstant.SLAVE.equals(split[1])) {
-                List<DataSource> slaves = multiDataSourceEntry.getSlaves();
-                return slaveDataSourceSelector.select(key, slaves);
+                DataSource dataSource = slaveDataSourceSelector.select(key, multiDataSourceEntry.getSlaves());
+                DataSourceHolder.setActiveDataSource(dataSource);
+                return dataSource;
             } else {
                 throw new BEUtilException("无法识别的多数据源模式，只能选择 MASTER 或者 SLAVE，当前：" + key);
             }
@@ -59,8 +57,6 @@ public class MultiDataSource extends AbstractRoutingDataSource {
             } else {
                 throw new BEUtilException("从配置的多数据源中获取数据源失败！当前key：" + key, e);
             }
-        } finally {
-            clearCurDataSource();
         }
     }
 

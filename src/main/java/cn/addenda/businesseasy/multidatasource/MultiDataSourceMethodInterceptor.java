@@ -12,13 +12,19 @@ import java.lang.reflect.Method;
  * @Date 2022/3/2 23:03
  */
 public class MultiDataSourceMethodInterceptor implements MethodInterceptor {
+
     @Override
     public Object invoke(MethodInvocation invocation) throws Throwable {
-        Method method = AopUtils.getMostSpecificMethod(invocation.getMethod(), invocation.getThis().getClass());
-        MultiDataSourceKey multiDataSourceKey = AnnotationUtils.findAnnotation(method, MultiDataSourceKey.class);
-        if (multiDataSourceKey != null) {
-            MultiDataSource.setCurDataSource(multiDataSourceKey.dataSourceName(), multiDataSourceKey.mode());
+        try {
+            Method method = AopUtils.getMostSpecificMethod(invocation.getMethod(), invocation.getThis().getClass());
+            MultiDataSourceKey multiDataSourceKey = AnnotationUtils.findAnnotation(method, MultiDataSourceKey.class);
+            if (multiDataSourceKey != null) {
+                DataSourceHolder.setActiveDataSourceKey(multiDataSourceKey.dataSourceName(), multiDataSourceKey.mode());
+            }
+            return invocation.proceed();
+        } finally {
+            DataSourceHolder.clear();
         }
-        return invocation.proceed();
     }
+
 }
