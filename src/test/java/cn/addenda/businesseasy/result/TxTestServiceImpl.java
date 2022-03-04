@@ -1,5 +1,7 @@
 package cn.addenda.businesseasy.result;
 
+import cn.addenda.businesseasy.multidatasource.MultiDataSourceConstant;
+import cn.addenda.businesseasy.multidatasource.MultiDataSourceKey;
 import cn.addenda.businesseasy.result.mapper.TxTestMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +16,7 @@ public class TxTestServiceImpl implements TxTestService {
     private TxTestMapper txTestMapper;
 
     @Override
+    @MultiDataSourceKey(mode = MultiDataSourceConstant.SLAVE)
     @ServiceResultConvertible(errorToSuccess = true, errorToFailed = false, exceptionClass = Exception.class)
     @Transactional(rollbackFor = Exception.class)
     public ServiceResult<Boolean> insert(TxTest txTest) {
