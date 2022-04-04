@@ -10,7 +10,7 @@ import java.util.Properties;
  * @Author ISJINHAO
  * @Date 2022/3/2 19:28
  */
-public class StringResolverUtil implements EmbeddedValueResolverAware {
+public class ValueResolverUtil implements EmbeddedValueResolverAware {
 
     private static final String DOLLAR_PREFIX = "${";
     private static final String DOLLAR_SUFFIX = "}";
@@ -23,15 +23,15 @@ public class StringResolverUtil implements EmbeddedValueResolverAware {
 
     private StringValueResolver stringValueResolver;
 
-    public static String resolverPlaceholderByDollarHelper(String str, Properties properties) {
+    public static String resolveDollarPlaceholder(String str, Properties properties) {
         return dollarHelper.replacePlaceholders(str, properties);
     }
 
-    public static String resolverPlaceholderByHashHelper(String str, Properties properties) {
+    public static String resolveHashPlaceholder(String str, Properties properties) {
         return hashHelper.replacePlaceholders(str, properties);
     }
 
-    public String resolverPlaceholderByDollarHelper(String str) {
+    public String resolveDollarPlaceholder(String str) {
         return dollarHelper.replacePlaceholders(str, new PropertyPlaceholderHelper.PlaceholderResolver() {
             @Override
             public String resolvePlaceholder(String placeholderName) {
@@ -40,7 +40,7 @@ public class StringResolverUtil implements EmbeddedValueResolverAware {
         });
     }
 
-    public String replacePlaceholdersByHashHelper(String str) {
+    public String resolveHashPlaceholder(String str) {
         return hashHelper.replacePlaceholders(str, new PropertyPlaceholderHelper.PlaceholderResolver() {
             @Override
             public String resolvePlaceholder(String placeholderName) {
