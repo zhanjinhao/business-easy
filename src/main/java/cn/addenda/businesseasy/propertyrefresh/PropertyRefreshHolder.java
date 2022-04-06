@@ -98,11 +98,15 @@ public class PropertyRefreshHolder {
         this.beanType = beanType;
     }
 
+    public String getFieldName() {
+        return field == null ? null : field.getName();
+    }
+
     @Override
     public String toString() {
         return "PropertyRefreshHolder{" +
                 "beanName='" + beanName + '\'' +
-                ", field=" + field +
+                ", field=" + getFieldName() +
                 ", expression='" + expression + '\'' +
                 ", oldValue=" + oldValue +
                 ", newValue=" + newValue +
