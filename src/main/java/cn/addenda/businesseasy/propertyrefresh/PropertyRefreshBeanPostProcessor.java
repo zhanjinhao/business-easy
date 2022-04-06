@@ -1,5 +1,6 @@
 package cn.addenda.businesseasy.propertyrefresh;
 
+import cn.addenda.businesseasy.concurrent.SimpleNamedThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -20,6 +21,7 @@ import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -137,7 +139,7 @@ public class PropertyRefreshBeanPostProcessor implements ApplicationListener<Con
         fillPropertyRefreshHolder();
         initBeanExpressionResolver();
 
-        scheduledExecutorService = Executors.newScheduledThreadPool(threadSizes);
+        scheduledExecutorService = Executors.newScheduledThreadPool(threadSizes, new SimpleNamedThreadFactory("business-easy: propertyrefresh"));
         Set<Map.Entry<String, List<PropertyRefreshHolder>>> entries = listenedFieldMap.entrySet();
         for (Map.Entry<String, List<PropertyRefreshHolder>> entry : entries) {
             List<PropertyRefreshHolder> propertyRefreshHolderList = entry.getValue();
@@ -186,8 +188,7 @@ public class PropertyRefreshBeanPostProcessor implements ApplicationListener<Con
     }
 
     private void initBeanExpressionResolver() {
-        DefaultListableBeanFactory beanFactory = (DefaultListableBeanFactory) applicationContext.getAutowireCapableBeanFactory();
-        this.defaultListableBeanFactory = beanFactory;
+        this.defaultListableBeanFactory = (DefaultListableBeanFactory) applicationContext.getAutowireCapableBeanFactory();
     }
 
     private void fillPropertyRefreshHolder() {
