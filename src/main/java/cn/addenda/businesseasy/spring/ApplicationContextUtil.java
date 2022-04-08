@@ -1,6 +1,5 @@
 package cn.addenda.businesseasy.spring;
 
-import cn.addenda.businesseasy.util.BEUtilException;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
@@ -68,7 +67,7 @@ public class ApplicationContextUtil implements ApplicationContextAware {
             DefaultListableBeanFactory defaultListableBeanFactory = (DefaultListableBeanFactory) beanFactory;
             defaultListableBeanFactory.registerSingleton(object.getClass().getName(), object);
         } else {
-            throw new BEUtilException("只有DefaultListableBeanFactory支持动态注册bean，当前是：" + beanFactory.getClass());
+            throw new SpringException("只有DefaultListableBeanFactory支持动态注册bean，当前是：" + beanFactory.getClass());
         }
     }
 

@@ -1,6 +1,5 @@
 package cn.addenda.businesseasy.transaction;
 
-import cn.addenda.businesseasy.util.BEUtilException;
 import java.lang.reflect.Method;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import org.springframework.transaction.interceptor.TransactionAttribute;
@@ -44,7 +43,7 @@ public class TransactionHelper extends TransactionAspectSupport {
                 }
             });
         } catch (Throwable e) {
-            throw new BEUtilException("事务在TransactionHelper内执行失败！", e);
+            throw new TransactionException("事务在TransactionHelper内执行失败！", e);
         } finally {
             TransactionHelperAttributeSource.clear();
         }
@@ -57,7 +56,7 @@ public class TransactionHelper extends TransactionAspectSupport {
                 return method;
             }
         }
-        throw new BEUtilException("找不到 TransactionExecutor#process() 方法。");
+        throw new TransactionException("找不到 TransactionExecutor#process() 方法。");
     }
 
     public interface TransactionExecutor {

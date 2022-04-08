@@ -1,7 +1,5 @@
 package cn.addenda.businesseasy.multidatasource;
 
-import cn.addenda.businesseasy.util.BEUtilException;
-
 import javax.sql.DataSource;
 
 /**
@@ -23,7 +21,7 @@ public class DataSourceHolder {
             String key = dataSourceName + "." + mode;
             // key不一样的话报错！
             if (!curActiveDataSourceKey.equals(key)) {
-                throw new BEUtilException("一个事务中只能使用一个数据源，curActiveDataSourceKey：" + curActiveDataSourceKey + "，key：" + key + "。");
+                throw new MultiDataSourceException("一个事务中只能使用一个数据源，curActiveDataSourceKey：" + curActiveDataSourceKey + "，key：" + key + "。");
             }
             // key一样的话什么都不做
             else {

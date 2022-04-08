@@ -1,6 +1,5 @@
 package cn.addenda.businesseasy.result;
 
-import cn.addenda.businesseasy.util.BEUtilException;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.slf4j.Logger;
@@ -44,7 +43,7 @@ public class ServiceResultMethodInterceptor implements MethodInterceptor {
                     logger.error("", throwable);
                     return objectServiceResult;
                 } else {
-                    throw new BEUtilException("ServiceResultConvertible 的 errorToSuccess ^ errorToFailed 需要为true。");
+                    throw new ResultException("ServiceResultConvertible 的 errorToSuccess ^ errorToFailed 需要为true。");
                 }
             } else {
                 throw throwable;

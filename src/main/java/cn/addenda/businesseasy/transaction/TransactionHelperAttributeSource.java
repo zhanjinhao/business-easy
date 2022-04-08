@@ -5,7 +5,7 @@ import org.springframework.transaction.interceptor.TransactionAttribute;
 import org.springframework.transaction.interceptor.TransactionAttributeSource;
 
 /**
- * @author 01395265
+ * @author ISJINHAO
  * @date 2022/2/27
  */
 public class TransactionHelperAttributeSource implements TransactionAttributeSource {

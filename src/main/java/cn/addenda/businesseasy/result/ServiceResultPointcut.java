@@ -1,6 +1,5 @@
 package cn.addenda.businesseasy.result;
 
-import cn.addenda.businesseasy.util.BEUtilException;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.aop.support.StaticMethodMatcherPointcut;
 import org.springframework.core.annotation.AnnotationUtils;
@@ -23,10 +22,10 @@ public class ServiceResultPointcut extends StaticMethodMatcherPointcut {
                 if (annotation.errorToSuccess() ^ annotation.errorToFailed()) {
                     return true;
                 } else {
-                    throw new BEUtilException("errorToSuccess ^ errorToFailed 需要为 true");
+                    throw new ResultException("errorToSuccess ^ errorToFailed 需要为 true");
                 }
             } else {
-                throw new BEUtilException("标注 ServiceResultConvertible 注解的方法的返回值需要为 cn.addenda.businesseasy.result.ServiceResult");
+                throw new ResultException("标注 ServiceResultConvertible 注解的方法的返回值需要为 cn.addenda.businesseasy.result.ServiceResult");
             }
         }
 

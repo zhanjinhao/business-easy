@@ -1,6 +1,5 @@
 package cn.addenda.businesseasy.multidatasource;
 
-import cn.addenda.businesseasy.util.BEUtilException;
 import org.springframework.jdbc.datasource.lookup.AbstractRoutingDataSource;
 
 import javax.sql.DataSource;
@@ -21,7 +20,7 @@ public class MultiDataSource extends AbstractRoutingDataSource {
 
     @Override
     protected Object determineCurrentLookupKey() {
-        throw new UnsupportedOperationException("使用多数据源时不应该执行此方法！");
+        throw new MultiDataSourceException("MultiDataSource#determineCurrentLookupKey是不受支持的操作！", new UnsupportedOperationException("使用多数据源时不应该执行此方法！"));
     }
 
     @Override
@@ -49,13 +48,13 @@ public class MultiDataSource extends AbstractRoutingDataSource {
                 DataSourceHolder.setActiveDataSource(dataSource);
                 return dataSource;
             } else {
-                throw new BEUtilException("无法识别的多数据源模式，只能选择 MASTER 或者 SLAVE，当前：" + key);
+                throw new MultiDataSourceException("无法识别的多数据源模式，只能选择 MASTER 或者 SLAVE，当前：" + key);
             }
         } catch (Exception e) {
-            if (BEUtilException.class.equals(e.getClass())) {
+            if (MultiDataSourceException.class.equals(e.getClass())) {
                 throw e;
             } else {
-                throw new BEUtilException("从配置的多数据源中获取数据源失败！当前key：" + key, e);
+                throw new MultiDataSourceException("从配置的多数据源中获取数据源失败！当前key：" + key, e);
             }
         }
     }

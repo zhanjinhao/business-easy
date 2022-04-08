@@ -15,10 +15,14 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 /**
- * @author 01395265
+ * @author ISJINHAO
  * @date 2021/5/18
  */
 public class BEMemoryPageUtils {
+
+    private BEMemoryPageUtils() {
+        throw new BEUtilException("工具类不可实例化！");
+    }
 
     enum SqlOrder {
         ASC("ASC"), DESC("DESC");
@@ -175,7 +179,7 @@ public class BEMemoryPageUtils {
         Set<Entry<String, SqlOrder>> entries = orderRulesMap.entrySet();
         for (Entry<String, SqlOrder> entry : entries) {
             if (!declaredFieldNames.contains(entry.getKey())) {
-                throw new RuntimeException("排序字段不是集合属性。集合属性：" + BEJsonUtil.objectToString(declaredFieldNames) + ", 当前字段：" + entry.getKey());
+                throw new BEUtilException("排序字段不是集合属性。集合属性：" + BEJsonUtil.objectToString(declaredFieldNames) + ", 当前字段：" + entry.getKey());
             }
         }
     }
@@ -253,10 +257,10 @@ public class BEMemoryPageUtils {
         Class<?> leftClass = o1.getClass();
         Class<?> rightClass = o2.getClass();
         if (!leftClass.equals(rightClass)) {
-            throw new RuntimeException("the classes of two object need equal! but now the left is : " + leftClass + ", the right is : " + rightClass);
+            throw new BEUtilException("the classes of two object need equal! but now the left is : " + leftClass + ", the right is : " + rightClass);
         }
         if (!Comparable.class.isAssignableFrom(leftClass)) {
-            throw new RuntimeException("please make sure the field to invoke compareTo method is a subtype of Comparator");
+            throw new BEUtilException("please make sure the field to invoke compareTo method is a subtype of Comparator");
         }
         return (Integer) compareTo.invoke(o1, o2);
     }

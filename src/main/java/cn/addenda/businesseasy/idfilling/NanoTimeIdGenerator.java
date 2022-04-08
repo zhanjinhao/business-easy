@@ -1,7 +1,5 @@
 package cn.addenda.businesseasy.idfilling;
 
-import cn.addenda.businesseasy.idfilling.IdGenerator;
-
 /**
  * @Author ISJINHAO
  * @Date 2022/2/4 14:38

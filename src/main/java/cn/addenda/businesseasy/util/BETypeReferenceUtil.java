@@ -7,7 +7,7 @@ import java.lang.reflect.Type;
 import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl;
 
 /**
- * @author 01395265
+ * @author ISJINHAO
  * @date 2022/2/14
  */
 public class BETypeReferenceUtil {

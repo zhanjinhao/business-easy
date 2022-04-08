@@ -1,7 +1,6 @@
 package cn.addenda.businesseasy.fieldfilling.typehandler;
 
 import cn.addenda.businesseasy.fieldfilling.FiledFillingException;
-import cn.addenda.businesseasy.fieldfilling.FiledFillingException;
 import org.apache.ibatis.type.BaseTypeHandler;
 import org.apache.ibatis.type.JdbcType;
 import org.apache.ibatis.type.MappedJdbcTypes;

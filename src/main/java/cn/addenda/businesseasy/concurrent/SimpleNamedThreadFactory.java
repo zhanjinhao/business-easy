@@ -1,10 +1,10 @@
-
 package cn.addenda.businesseasy.concurrent;
 
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
+ * copy from apache-dubbo, simplify its implementation.
  * InternalThreadFactory.
  */
 public class SimpleNamedThreadFactory implements ThreadFactory {

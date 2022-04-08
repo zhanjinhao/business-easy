@@ -76,7 +76,7 @@ public class BEJsonUtil {
         try {
             return objectMapper.writeValueAsString(input);
         } catch (JsonProcessingException e) {
-            throw new BEUtilException("Json转换异常[Object to String].", 50000);
+            throw new BEUtilException("Json转换异常[Object to String].");
         }
     }
 

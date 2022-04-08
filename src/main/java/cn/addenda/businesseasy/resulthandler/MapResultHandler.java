@@ -31,9 +31,7 @@ public class MapResultHandler<T> implements ResultHandler<Map<T, T>> {
     }
 
     public MapResultHandler(boolean fifo, boolean trimNull) {
-        this.repeatedValid = true;
-        this.fifo = fifo;
-        this.trimNull = trimNull;
+        this(true, fifo, trimNull);
     }
 
     public MapResultHandler(boolean repeatedValid) {

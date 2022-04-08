@@ -7,7 +7,7 @@ import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 /**
- * @author 01395265
+ * @author ISJINHAO
  * @date 2022/2/27
  */
 public class TransactionHelperTest {

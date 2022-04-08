@@ -1,7 +1,6 @@
 package cn.addenda.businesseasy.fieldfilling.sql;
 
 import cn.addenda.businesseasy.fieldfilling.FiledFillingException;
-import cn.addenda.businesseasy.fieldfilling.sql.CurdAddComparisonConditionVisitor;
 import cn.addenda.ro.grammar.ast.CurdParser;
 import cn.addenda.ro.grammar.ast.CurdParserFactory;
 import cn.addenda.ro.grammar.ast.create.Insert;
