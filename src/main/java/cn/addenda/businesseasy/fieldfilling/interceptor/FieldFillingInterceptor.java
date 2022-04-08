@@ -4,7 +4,7 @@ import cn.addenda.businesseasy.fieldfilling.FieldFillingContext;
 import cn.addenda.businesseasy.fieldfilling.FiledFillingException;
 import cn.addenda.businesseasy.fieldfilling.annotation.FieldFillingForReading;
 import cn.addenda.businesseasy.fieldfilling.annotation.FieldFillingForWriting;
-import cn.addenda.businesseasy.fieldfilling.sql.SqlUtil;
+import cn.addenda.businesseasy.fieldfilling.sql.FieldFillingSqlUtil;
 import cn.addenda.businesseasy.util.AnnotationUtil;
 import cn.addenda.ro.grammar.ast.statement.Curd;
 import cn.addenda.ro.grammar.ast.statement.Literal;
@@ -94,7 +94,7 @@ public class FieldFillingInterceptor implements Interceptor {
         if (fieldFillingForWriting == null) {
             return sql;
         }
-        String deleteLogically = SqlUtil.deleteLogically(sql, null, null);
+        String deleteLogically = FieldFillingSqlUtil.deleteLogically(sql, null, null);
         return processUpdate(deleteLogically, fieldFillingForWriting);
     }
 
@@ -109,7 +109,7 @@ public class FieldFillingInterceptor implements Interceptor {
         entryMap.put("modify_time", new Literal(new Token(TokenType.NUMBER, fieldFillingContext.getModifyTime())));
         entryMap.put("remark", new Literal(new Token(TokenType.STRING, fieldFillingContext.getRemark())));
         fieldFillingContext.removeCache();
-        return SqlUtil.updateAddEntry(sql, entryMap);
+        return FieldFillingSqlUtil.updateAddEntry(sql, entryMap);
     }
 
     private String processInsert(String sql, FieldFillingForWriting fieldFillingForWriting) {
@@ -124,7 +124,7 @@ public class FieldFillingInterceptor implements Interceptor {
         entryMap.put("del_fg", new Literal(new Token(TokenType.NUMBER, 0)));
         entryMap.put("remark", new Literal(new Token(TokenType.STRING, fieldFillingContext.getRemark())));
         fieldFillingContext.removeCache();
-        return SqlUtil.insertAddEntry(sql, entryMap);
+        return FieldFillingSqlUtil.insertAddEntry(sql, entryMap);
     }
 
     private String processSelect(String sql, FieldFillingForReading fieldFillingForReading) {
@@ -132,24 +132,24 @@ public class FieldFillingInterceptor implements Interceptor {
             return sql;
         }
         if (fieldFillingForReading.allTableNameAvailableFg()) {
-            return SqlUtil.selectAddComparison(sql, null);
+            return FieldFillingSqlUtil.selectAddComparison(sql, null);
         }
 
         String availableTableNames = fieldFillingForReading.availableTableNames();
         boolean independent = fieldFillingForReading.independent();
         if (independent) {
             if (availableTableNames == null || availableTableNames.length() == 0) {
-                return SqlUtil.selectAddComparison(sql, null, new HashSet<>());
+                return FieldFillingSqlUtil.selectAddComparison(sql, null, new HashSet<>());
             }
             Set<String> collect = Arrays.stream(availableTableNames.split(",")).collect(Collectors.toSet());
-            return SqlUtil.selectAddComparison(sql, null, collect);
+            return FieldFillingSqlUtil.selectAddComparison(sql, null, collect);
         } else {
             if (availableTableNames == null || availableTableNames.length() == 0) {
-                return SqlUtil.selectAddComparison(sql, null, globalAvailableTableNameSet);
+                return FieldFillingSqlUtil.selectAddComparison(sql, null, globalAvailableTableNameSet);
             }
             Set<String> collect = Arrays.stream(availableTableNames.split(",")).collect(Collectors.toSet());
             globalAvailableTableNameSet.addAll(collect);
-            return SqlUtil.selectAddComparison(sql, null, globalAvailableTableNameSet);
+            return FieldFillingSqlUtil.selectAddComparison(sql, null, globalAvailableTableNameSet);
         }
     }
 

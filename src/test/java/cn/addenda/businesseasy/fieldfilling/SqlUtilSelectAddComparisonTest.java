@@ -1,6 +1,6 @@
 package cn.addenda.businesseasy.fieldfilling;
 
-import cn.addenda.businesseasy.fieldfilling.sql.SqlUtil;
+import cn.addenda.businesseasy.fieldfilling.sql.FieldFillingSqlUtil;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -234,13 +234,13 @@ public class SqlUtilSelectAddComparisonTest {
             tableNameSet.add("tab4");
             tableNameSet.add("table_listnames");
 
-            System.out.println(SqlUtil.selectAddComparison(sqls[i], null, tableNameSet));
+            System.out.println(FieldFillingSqlUtil.selectAddComparison(sqls[i], null, tableNameSet));
         }
     }
 
     public static void test2() {
         for (int i = 0; i < sqls.length; i++) {
-            String s = SqlUtil.selectAddComparison(sqls[i], null);
+            String s = FieldFillingSqlUtil.selectAddComparison(sqls[i], null);
             System.out.println(s);
         }
     }

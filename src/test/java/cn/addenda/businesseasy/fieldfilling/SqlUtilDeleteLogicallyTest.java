@@ -1,6 +1,6 @@
 package cn.addenda.businesseasy.fieldfilling;
 
-import cn.addenda.businesseasy.fieldfilling.sql.SqlUtil;
+import cn.addenda.businesseasy.fieldfilling.sql.FieldFillingSqlUtil;
 
 /**
  * @Author ISJINHAO
@@ -19,7 +19,7 @@ public class SqlUtilDeleteLogicallyTest {
     public static void main(String[] args) {
 
         for (int i = 0; i < sqls.length; i++) {
-            String s = SqlUtil.deleteLogically(sqls[i], null, null);
+            String s = FieldFillingSqlUtil.deleteLogically(sqls[i], null, null);
             System.out.println(s);
         }
     }

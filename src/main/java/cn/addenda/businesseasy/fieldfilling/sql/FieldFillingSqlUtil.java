@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
  * @Author ISJINHAO
  * @Date 2022/1/26 18:01
  */
-public class SqlUtil {
+public class FieldFillingSqlUtil {
 
     private static final Identifier defaultDeleteColumn = new Identifier(new Token(TokenType.IDENTIFIER, "del_fg"));
     private static final Literal defaultDeleteFlag = new Literal(new Token(TokenType.NUMBER, 1));
