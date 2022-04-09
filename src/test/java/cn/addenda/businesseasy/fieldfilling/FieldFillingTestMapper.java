@@ -13,7 +13,7 @@ import java.util.List;
  */
 public interface FieldFillingTestMapper {
 
-    @FieldFillingForReading(allTableNameAvailableFg = true, independent = true, availableTableNames =
+    @FieldFillingForReading(allTableNameAvailable = true, independent = true, availableTableNames =
             "T_DISPATCH_FLIGHT_RELEASE,SCORE,RELEASE,ts_role,STUDENT,dual,t1,A,tab2,tab3,tab4,table_listnames")
     List<TUser> selectTest();
 

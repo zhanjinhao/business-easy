@@ -10,7 +10,7 @@ public @interface FieldFillingForReading {
     /**
      * 此属性为true时，independent 和 availableTableNames 会被覆盖为 true 和 ""。
      */
-    boolean allTableNameAvailableFg() default false;
+    boolean allTableNameAvailable() default false;
 
     String availableTableNames() default "";
 

@@ -12,7 +12,10 @@ import cn.addenda.ro.grammar.lexical.token.Token;
 import cn.addenda.ro.grammar.lexical.token.TokenType;
 import org.apache.ibatis.cache.CacheKey;
 import org.apache.ibatis.executor.Executor;
-import org.apache.ibatis.mapping.*;
+import org.apache.ibatis.mapping.BoundSql;
+import org.apache.ibatis.mapping.MappedStatement;
+import org.apache.ibatis.mapping.SqlCommandType;
+import org.apache.ibatis.mapping.SqlSource;
 import org.apache.ibatis.plugin.*;
 import org.apache.ibatis.reflection.MetaObject;
 import org.apache.ibatis.reflection.SystemMetaObject;
@@ -131,7 +134,7 @@ public class FieldFillingInterceptor implements Interceptor {
         if (fieldFillingForReading == null) {
             return sql;
         }
-        if (fieldFillingForReading.allTableNameAvailableFg()) {
+        if (fieldFillingForReading.allTableNameAvailable()) {
             return FieldFillingSqlUtil.selectAddComparison(sql, null);
         }
 
