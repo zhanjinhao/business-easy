@@ -98,6 +98,10 @@ public class PropertyRefreshBeanPostProcessor implements ApplicationListener<Con
                 // valuePresent is present and propertyRefreshPresent is present now
                 // -----------------------------------------------------------
 
+                if (!PropertyRefreshListener.class.isAssignableFrom(beanType)) {
+                    throw new PropertyRefreshException(beanType + "存在字段被注释了@PropertyFresh，此类需要实现 PropertyRefreshListener接口 并实 现doPropertyRefresh()。");
+                }
+
                 List<PropertyRefreshHolder> propertyRefreshHolderList =
                         listenedFieldMap.computeIfAbsent(beanName, beanName -> new ArrayList<>());
 
@@ -136,7 +140,7 @@ public class PropertyRefreshBeanPostProcessor implements ApplicationListener<Con
     @Override
     public void onApplicationEvent(ContextRefreshedEvent event) {
         fillPropertyRefreshHolder();
-        initBeanExpressionResolver();
+        initBeanFactory();
 
         scheduledExecutorService = Executors.newScheduledThreadPool(threadSizes, new SimpleNamedThreadFactory("business-easy: propertyrefresh"));
         Set<Map.Entry<String, List<PropertyRefreshHolder>>> entries = listenedFieldMap.entrySet();
@@ -186,7 +190,7 @@ public class PropertyRefreshBeanPostProcessor implements ApplicationListener<Con
         }
     }
 
-    private void initBeanExpressionResolver() {
+    private void initBeanFactory() {
         this.defaultListableBeanFactory = (DefaultListableBeanFactory) applicationContext.getAutowireCapableBeanFactory();
     }
 
