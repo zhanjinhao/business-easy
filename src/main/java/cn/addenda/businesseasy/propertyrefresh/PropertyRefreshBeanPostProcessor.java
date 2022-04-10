@@ -12,6 +12,8 @@ import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.support.MergedBeanDefinitionPostProcessor;
 import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.context.*;
+import org.springframework.context.event.ApplicationContextEvent;
+import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.core.Ordered;
 import org.springframework.util.ReflectionUtils;
@@ -29,7 +31,7 @@ import java.util.concurrent.TimeUnit;
  * @Author ISJINHAO
  * @Date 2022/4/3 11:00
  */
-public class PropertyRefreshBeanPostProcessor implements ApplicationListener<ContextRefreshedEvent>, MergedBeanDefinitionPostProcessor, ApplicationEventPublisherAware, ApplicationContextAware, Ordered {
+public class PropertyRefreshBeanPostProcessor implements ApplicationListener<ApplicationContextEvent>, MergedBeanDefinitionPostProcessor, ApplicationEventPublisherAware, ApplicationContextAware, Ordered {
 
     private static final Logger logger = LoggerFactory.getLogger("cn.addenda.businesseasy.propertyrefresh.PropertyRefreshBeanPostProcessor");
 
@@ -138,56 +140,63 @@ public class PropertyRefreshBeanPostProcessor implements ApplicationListener<Con
     }
 
     @Override
-    public void onApplicationEvent(ContextRefreshedEvent event) {
-        fillPropertyRefreshHolder();
-        initBeanFactory();
+    public void onApplicationEvent(ApplicationContextEvent event) {
+        if (ContextRefreshedEvent.class.isAssignableFrom(event.getClass())) {
+            fillPropertyRefreshHolder();
+            initBeanFactory();
 
-        scheduledExecutorService = Executors.newScheduledThreadPool(threadSizes, new SimpleNamedThreadFactory("business-easy: propertyrefresh"));
-        Set<Map.Entry<String, List<PropertyRefreshHolder>>> entries = listenedFieldMap.entrySet();
-        for (Map.Entry<String, List<PropertyRefreshHolder>> entry : entries) {
-            List<PropertyRefreshHolder> propertyRefreshHolderList = entry.getValue();
-            propertyRefreshHolderList.forEach(holder -> scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-                @Override
-                public void run() {
-                    Object value;
-                    try {
-                        DependencyDescriptor desc = new DependencyDescriptor(holder.getField(), false);
-                        desc.setContainingClass(holder.getBeanType());
-                        Set<String> autowiredBeanNames = new LinkedHashSet<>(1);
-                        TypeConverter typeConverter = defaultListableBeanFactory.getTypeConverter();
-                        value = defaultListableBeanFactory.resolveDependency(desc, holder.getBeanName(), autowiredBeanNames, typeConverter);
-                    } catch (Exception e) {
-                        throw new PropertyRefreshException("cannot resolve value from applicationContext, " + holder.getField(), e);
+            scheduledExecutorService = Executors.newScheduledThreadPool(threadSizes, new SimpleNamedThreadFactory("business-easy: propertyrefresh"));
+            Set<Map.Entry<String, List<PropertyRefreshHolder>>> entries = listenedFieldMap.entrySet();
+            for (Map.Entry<String, List<PropertyRefreshHolder>> entry : entries) {
+                List<PropertyRefreshHolder> propertyRefreshHolderList = entry.getValue();
+                propertyRefreshHolderList.forEach(holder -> scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+                    @Override
+                    public void run() {
+                        Object value;
+                        try {
+                            DependencyDescriptor desc = new DependencyDescriptor(holder.getField(), false);
+                            desc.setContainingClass(holder.getBeanType());
+                            Set<String> autowiredBeanNames = new LinkedHashSet<>(1);
+                            TypeConverter typeConverter = defaultListableBeanFactory.getTypeConverter();
+                            value = defaultListableBeanFactory.resolveDependency(desc, holder.getBeanName(), autowiredBeanNames, typeConverter);
+                        } catch (Exception e) {
+                            throw new PropertyRefreshException("cannot resolve value from applicationContext, " + holder.getField(), e);
+                        }
+
+                        holder.setOldValue(holder.getNewValue());
+                        holder.setNewValue(value);
+                        doPublish(holder);
                     }
 
-                    holder.setOldValue(holder.getNewValue());
-                    holder.setNewValue(value);
-                    doPublish(holder);
-                }
-
-                private void doPublish(PropertyRefreshHolder holder) {
-                    Object oldValue = holder.getOldValue();
-                    Object newValue = holder.getNewValue();
-                    if (oldValue == null) {
-                        if (null != newValue) {
-                            logger.info("property changed! beanName: {}, field: {}, expression: {}, beanType: {}, oldValue: {}, newValue: {}",
-                                    holder.getBeanName(), holder.getField(), holder.getExpression(), holder.getBeanType(), holder.getOldValue(), holder.getNewValue());
-                            applicationEventPublisher.publishEvent(new PropertyRefreshEvent(holder));
+                    private void doPublish(PropertyRefreshHolder holder) {
+                        Object oldValue = holder.getOldValue();
+                        Object newValue = holder.getNewValue();
+                        if (oldValue == null) {
+                            if (null != newValue) {
+                                logger.info("property changed! beanName: {}, field: {}, expression: {}, beanType: {}, oldValue: {}, newValue: {}",
+                                        holder.getBeanName(), holder.getField(), holder.getExpression(), holder.getBeanType(), holder.getOldValue(), holder.getNewValue());
+                                applicationEventPublisher.publishEvent(new PropertyRefreshEvent(holder));
+                            } else {
+                                logger.debug("property do not change! {}", holder);
+                            }
                         } else {
-                            logger.debug("property do not change! {}", holder);
-                        }
-                    } else {
-                        if (!oldValue.equals(newValue)) {
-                            logger.info("property changed! beanName: {}, field: {}, expression: {}, beanType: {}, oldValue: {}, newValue: {}",
-                                    holder.getBeanName(), holder.getField(), holder.getExpression(), holder.getBeanType(), holder.getOldValue(), holder.getNewValue());
-                            applicationEventPublisher.publishEvent(new PropertyRefreshEvent(holder));
-                        } else {
-                            logger.debug("property do not change! {}", holder);
+                            if (!oldValue.equals(newValue)) {
+                                logger.info("property changed! beanName: {}, field: {}, expression: {}, beanType: {}, oldValue: {}, newValue: {}",
+                                        holder.getBeanName(), holder.getField(), holder.getExpression(), holder.getBeanType(), holder.getOldValue(), holder.getNewValue());
+                                applicationEventPublisher.publishEvent(new PropertyRefreshEvent(holder));
+                            } else {
+                                logger.debug("property do not change! {}", holder);
+                            }
                         }
                     }
-                }
-            }, holder.getDelay(), holder.getDelay(), TimeUnit.SECONDS));
+                }, holder.getDelay(), holder.getDelay(), TimeUnit.SECONDS));
+            }
+        } else if (ContextClosedEvent.class.isAssignableFrom(event.getClass())) {
+            if (scheduledExecutorService != null && !scheduledExecutorService.isShutdown()) {
+                scheduledExecutorService.shutdown();
+            }
         }
+
     }
 
     private void initBeanFactory() {
