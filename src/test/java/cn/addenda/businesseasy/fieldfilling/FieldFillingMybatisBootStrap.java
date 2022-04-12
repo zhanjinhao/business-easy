@@ -18,9 +18,9 @@ import java.util.List;
 public class FieldFillingMybatisBootStrap {
 
     public static void main(String[] args) {
-//        testInsert();
+        testInsert();
 //        testDelete();
-        testSelect();
+//        testSelect();
 //        testInsertTypeHandlerTest();
     }
 
@@ -58,7 +58,7 @@ public class FieldFillingMybatisBootStrap {
                 DefaultFieldFillingContext.setRemark("system");
                 FieldFillingTestMapper studentMapper = sqlSession.getMapper(FieldFillingTestMapper.class);
                 for (int i = 6; i < 7; i++) {
-                    studentMapper.insertTest(new TUser("addenda" + i, "zhanjinhao"));
+                    studentMapper.insertTest(new TUser("addenda" + i, "zhanjinhao", LocalDateTime.now()));
                 }
                 sqlSession.commit();
             } finally {
@@ -81,7 +81,7 @@ public class FieldFillingMybatisBootStrap {
                 DefaultFieldFillingContext.setCreateUser("system");
                 DefaultFieldFillingContext.setRemark("system");
                 FieldFillingTestMapper studentMapper = sqlSession.getMapper(FieldFillingTestMapper.class);
-                TUser zhanjinhao = new TUser("addendaTh", "zhanjinhao");
+                TUser zhanjinhao = new TUser("addendaTh", "zhanjinhao", LocalDateTime.now());
                 zhanjinhao.setCreateTime(LocalDateTime.now().plusYears(-1));
                 zhanjinhao.setDelFg((byte) 0);
                 studentMapper.insertTypeHandlerTest(zhanjinhao);

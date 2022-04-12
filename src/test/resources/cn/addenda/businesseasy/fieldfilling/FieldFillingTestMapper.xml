@@ -24,8 +24,8 @@
     </update>
 
     <insert id="insertTest">
-        insert into t_user(user_id, user_name)
-        values (#{tUser.userId}, #{tUser.userName})
+        insert into t_user(user_id, user_name, birthday)
+        values (#{tUser.userId}, #{tUser.userName}, #{tUser.birthday})
     </insert>
 
     <insert id="insertTypeHandlerTest">
