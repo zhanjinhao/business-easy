@@ -1,16 +1,13 @@
 package cn.addenda.businesseasy.cdc;
 
-import org.apache.ibatis.executor.BatchExecutor;
-import org.apache.ibatis.executor.CachingExecutor;
+import cn.addenda.businesseasy.util.MybatisUtil;
 import org.apache.ibatis.executor.Executor;
-import org.apache.ibatis.executor.SimpleExecutor;
 import org.apache.ibatis.executor.parameter.ParameterHandler;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.mapping.SqlCommandType;
 import org.apache.ibatis.plugin.*;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -93,7 +90,7 @@ public class CdcInterceptor implements Interceptor {
 
         Executor executor = (Executor) invocation.getTarget();
         ChangeEntity changeEntity = new ChangeEntity(tableName, sql, LocalDateTime.now());
-        if (isSimpleExecutor(executor)) {
+        if (MybatisUtil.isSimpleExecutor(executor)) {
             // SimpleExecutor 场景下，在 update 时 insert change。
             Connection connection = retrieveConnection(executor);
             try (PreparedStatement preparedStatement = connection.prepareStatement(INSERT_ENTITY_SQL)) {
@@ -109,26 +106,6 @@ public class CdcInterceptor implements Interceptor {
             ChangeHolder.addCdcEntity(changeEntity);
         }
 
-    }
-
-    private boolean isSimpleExecutor(Executor executor) {
-        if (executor instanceof SimpleExecutor) {
-            return true;
-        }
-        if (executor instanceof BatchExecutor) {
-            return false;
-        }
-        if (executor instanceof CachingExecutor) {
-            try {
-                Field delegate = CachingExecutor.class.getDeclaredField("delegate");
-                delegate.setAccessible(true);
-                Object o = delegate.get(executor);
-                return isSimpleExecutor((Executor) o);
-            } catch (IllegalAccessException | NoSuchFieldException e) {
-                throw new CdcException("无法从 CachingExecutor 中获取到 delegate。当前Executor: " + executor.getClass() + ".", e);
-            }
-        }
-        throw new CdcException("只支持 SimpleExecutor 和 BatchExecutor! 当前是：" + executor.getClass() + ".");
     }
 
     /**

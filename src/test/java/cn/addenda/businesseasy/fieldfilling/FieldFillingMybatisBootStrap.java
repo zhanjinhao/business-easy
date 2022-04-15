@@ -2,6 +2,7 @@ package cn.addenda.businesseasy.fieldfilling;
 
 import cn.addenda.businesseasy.pojo.TUser;
 import org.apache.ibatis.io.Resources;
+import org.apache.ibatis.session.ExecutorType;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.session.SqlSessionFactoryBuilder;
@@ -18,10 +19,43 @@ import java.util.List;
 public class FieldFillingMybatisBootStrap {
 
     public static void main(String[] args) {
-        testInsert();
+//        testInsert();
+        testBatchInsert();
 //        testDelete();
 //        testSelect();
 //        testInsertTypeHandlerTest();
+    }
+
+    private static void testBatchInsert() {
+        String resource = "cn/addenda/businesseasy/fieldfilling/mybatis-config-fieldfilling.xml";
+        Reader reader;
+        try {
+            reader = Resources.getResourceAsReader(resource);
+            SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(reader);
+            SqlSession sqlSession = sqlSessionFactory.openSession(ExecutorType.BATCH);
+
+            try {
+                DefaultFieldFillingContext.setCreateUser("addenda");
+                DefaultFieldFillingContext.setModifyUser("addenda");
+                DefaultFieldFillingContext.setRemark("system");
+                FieldFillingTestMapper studentMapper = sqlSession.getMapper(FieldFillingTestMapper.class);
+                for (int i = 0; i < 2; i++) {
+                    studentMapper.insertTest(new TUser("addenda" + i, "zhanjinhao", LocalDateTime.now()));
+                }
+
+                sqlSession.flushStatements();
+
+                for (int i = 2; i < 4; i++) {
+                    studentMapper.insertTest(new TUser("addenda" + i, "zhanjinhao", LocalDateTime.now()));
+                }
+
+                sqlSession.commit();
+            } finally {
+                sqlSession.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private static void testDelete() {

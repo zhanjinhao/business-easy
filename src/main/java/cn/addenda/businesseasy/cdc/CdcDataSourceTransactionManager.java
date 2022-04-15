@@ -1,5 +1,9 @@
 package cn.addenda.businesseasy.cdc;
 
+import org.apache.ibatis.session.SqlSessionFactory;
+import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.jdbc.datasource.ConnectionHolder;
@@ -22,13 +26,17 @@ import java.util.stream.Collectors;
  * @Author ISJINHAO
  * @Date 2022/4/9 21:48
  */
-public class CdcDataSourceTransactionManager extends DataSourceTransactionManager implements ApplicationListener<ContextRefreshedEvent> {
+public class CdcDataSourceTransactionManager extends DataSourceTransactionManager implements ApplicationListener<ContextRefreshedEvent>, ApplicationContextAware {
 
     private List<ChangeSync> changeSyncList;
 
     private int batchSize = 100;
 
     private final Set<String> tableNameSet = new HashSet<>();
+
+    private ApplicationContext applicationContext;
+
+    private SqlSessionFactory sqlSessionFactory;
 
     public CdcDataSourceTransactionManager() {
     }
@@ -51,6 +59,35 @@ public class CdcDataSourceTransactionManager extends DataSourceTransactionManage
         }
     }
 
+//    @Override
+//    protected void prepareForCommit(DefaultTransactionStatus status) {
+//        super.prepareForCommit(status);
+//        // 可能有人不知道在 batch 操作之后需要调用 flushStatements()。
+//        // 这里再提交事务之前检测一次，如果线程里存的有就帮它flush。
+//        List<ChangeEntity> changeEntityList = ChangeHolder.getChangeEntityList();
+//        if (changeEntityList != null && !changeEntityList.isEmpty()) {
+//
+//            // 进行到这一步 sqlSession 还没释放。
+//            // sqlSession 的释放在 org.mybatis.spring.SqlSessionUtils.SqlSessionSynchronization.beforeCompletion。
+//            SqlSessionHolder holder = (SqlSessionHolder) TransactionSynchronizationManager.getResource(sqlSessionFactory);
+//            holder.getSqlSession().flushStatements();
+//
+//            // 这个方法不应该会抛出异常的. so I assume it can execute successfully.
+//            Connection connection = retrieveConnectionFromStatus(status);
+//
+//            try {
+//                CdcInterceptor.insertBatchChange(connection, changeEntityList);
+//            } catch (Exception e) {
+//                try {
+//                    connection.rollback();
+//                } catch (SQLException ex) {
+//                    logger.error("rollback 失败!", ex);
+//                }
+//                logger.error("事务完成前 batch insert change 失败！", e);
+//            }
+//        }
+//    }
+
     /**
      * 触发CDC SYNC。
      *
@@ -58,28 +95,6 @@ public class CdcDataSourceTransactionManager extends DataSourceTransactionManage
      */
     @Override
     protected void doCommit(DefaultTransactionStatus status) {
-        // 可能有人不知道在 batch 操作之后需要调用 flushStatements() 和 commit()，
-        // 这里再提交事务之前检测一次，如果线程里存的有
-        List<ChangeEntity> changeEntityList = ChangeHolder.getChangeEntityList();
-        if (changeEntityList != null && !changeEntityList.isEmpty()) {
-
-            // 进行到这一步 sqlSession 已经被释放了。
-
-            // 这个方法不应该会抛出异常的. so I assume it can execute successfully.
-            Connection connection = retrieveConnectionFromStatus(status);
-
-            try {
-                CdcInterceptor.insertBatchChange(connection, changeEntityList);
-            } catch (Exception e) {
-                try {
-                    connection.rollback();
-                } catch (SQLException ex) {
-                    logger.error("rollback 失败!", ex);
-                }
-                logger.error("事务完成前 batch insert change 失败！", e);
-            }
-        }
-
         super.doCommit(status);
 
         // --------------------------------------------------
@@ -146,7 +161,11 @@ public class CdcDataSourceTransactionManager extends DataSourceTransactionManage
         }
         CdcInterceptor.clearTableSet();
         CdcInterceptor.addTableSet(tableNameSet);
-
+        sqlSessionFactory = applicationContext.getBean(SqlSessionFactory.class);
     }
 
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        this.applicationContext = applicationContext;
+    }
 }

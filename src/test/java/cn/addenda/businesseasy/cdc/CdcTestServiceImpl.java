@@ -41,11 +41,10 @@ public class CdcTestServiceImpl implements CdcTestService {
 
         // 这个方法会将当前 sqlSession 注册到 Spring Tx 上下文中，在事务提交之前，会自动进行 connection.flush，
         // 所以即使 tUser3 之后没有显示调用 flush 语句，依然会将数据写入数据库。
-        SqlSession sqlSession = SqlSessionUtils.getSqlSession(sqlSessionFactory, ExecutorType.BATCH, null);
-
+//        SqlSession sqlSession = SqlSessionUtils.getSqlSession(sqlSessionFactory, ExecutorType.BATCH, null);
 
         // 使用如下方式 sqlSession 不会注册到 Spring Tx 上下文中。
-//        SqlSession sqlSession = sqlSessionFactory.openSession(ExecutorType.BATCH);
+        SqlSession sqlSession = sqlSessionFactory.openSession(ExecutorType.BATCH);
 
         CdcTestMapper mapper = sqlSession.getMapper(CdcTestMapper.class);
 

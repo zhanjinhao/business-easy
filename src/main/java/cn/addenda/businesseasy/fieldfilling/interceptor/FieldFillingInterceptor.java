@@ -6,6 +6,7 @@ import cn.addenda.businesseasy.fieldfilling.annotation.FieldFillingForReading;
 import cn.addenda.businesseasy.fieldfilling.annotation.FieldFillingForWriting;
 import cn.addenda.businesseasy.fieldfilling.sql.FieldFillingSqlUtil;
 import cn.addenda.businesseasy.util.AnnotationUtil;
+import cn.addenda.businesseasy.util.MybatisUtil;
 import cn.addenda.ro.grammar.ast.statement.Curd;
 import cn.addenda.ro.grammar.ast.statement.Literal;
 import cn.addenda.ro.grammar.lexical.token.Token;
@@ -38,8 +39,9 @@ import java.util.stream.Collectors;
                 args = {MappedStatement.class, Object.class, RowBounds.class, ResultHandler.class, CacheKey.class, BoundSql.class}),
         @Signature(type = Executor.class, method = "query",
                 args = {MappedStatement.class, Object.class, RowBounds.class, ResultHandler.class}),
-        @Signature(type = Executor.class, method = "update",
-                args = {MappedStatement.class, Object.class})
+        @Signature(type = Executor.class, method = "update", args = {MappedStatement.class, Object.class}),
+        @Signature(type = Executor.class, method = "flushStatements", args = {}),
+        @Signature(type = Executor.class, method = "commit", args = {boolean.class})
 })
 public class FieldFillingInterceptor implements Interceptor {
 
@@ -51,6 +53,15 @@ public class FieldFillingInterceptor implements Interceptor {
 
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
+
+        Method method = invocation.getMethod();
+        String name = method.getName();
+        if ("flushStatements".equals(name) || "commit".equals(name)) {
+            Object proceed = invocation.proceed();
+            fieldFillingContext.removeCache();
+            return proceed;
+        }
+
         Object[] args = invocation.getArgs();
         MappedStatement ms = (MappedStatement) args[0];
         Object parameterObject = args[1];
@@ -59,27 +70,35 @@ public class FieldFillingInterceptor implements Interceptor {
 
         BoundSql boundSql = ms.getBoundSql(parameterObject);
         String oldSql = boundSql.getSql();
-        String newSql;
-        SqlCommandType sqlCommandType = ms.getSqlCommandType();
-        if (SqlCommandType.SELECT.equals(sqlCommandType)) {
-            FieldFillingForReading fieldFillingForReading = extractAnnotation(msId, FieldFillingForReading.class);
-            newSql = processSelect(oldSql, fieldFillingForReading);
-        } else if (SqlCommandType.INSERT.equals(sqlCommandType)) {
-            FieldFillingForWriting fieldFillingForWriting = extractAnnotation(msId, FieldFillingForWriting.class);
-            newSql = processInsert(oldSql, fieldFillingForWriting);
-        } else if (SqlCommandType.UPDATE.equals(sqlCommandType)) {
-            FieldFillingForWriting fieldFillingForWriting = extractAnnotation(msId, FieldFillingForWriting.class);
-            newSql = processUpdate(oldSql, fieldFillingForWriting);
-        } else if (SqlCommandType.DELETE.equals(sqlCommandType)) {
-            FieldFillingForWriting fieldFillingForWriting = extractAnnotation(msId, FieldFillingForWriting.class);
-            newSql = processDelete(oldSql, fieldFillingForWriting);
-        } else {
-            throw new FiledFillingException("无法识别的Mybatis SqlCommandType：" + sqlCommandType);
-        }
+
+        Executor executor = (Executor) invocation.getTarget();
+
+        String newSql = processSql(oldSql, ms, MybatisUtil.isSimpleExecutor(executor));
+
         if (!oldSql.replaceAll("\\s+", "").equals(newSql.replaceAll("\\s+", ""))) {
             resetSql2Invocation(invocation, newSql);
         }
         return invocation.proceed();
+    }
+
+    private String processSql(String oldSql, MappedStatement ms, boolean clearCache) {
+        SqlCommandType sqlCommandType = ms.getSqlCommandType();
+        String msId = ms.getId();
+        if (SqlCommandType.SELECT.equals(sqlCommandType)) {
+            FieldFillingForReading fieldFillingForReading = extractAnnotation(msId, FieldFillingForReading.class);
+            return processSelect(oldSql, fieldFillingForReading);
+        } else if (SqlCommandType.INSERT.equals(sqlCommandType)) {
+            FieldFillingForWriting fieldFillingForWriting = extractAnnotation(msId, FieldFillingForWriting.class);
+            return processInsert(oldSql, fieldFillingForWriting, clearCache);
+        } else if (SqlCommandType.UPDATE.equals(sqlCommandType)) {
+            FieldFillingForWriting fieldFillingForWriting = extractAnnotation(msId, FieldFillingForWriting.class);
+            return processUpdate(oldSql, fieldFillingForWriting, clearCache);
+        } else if (SqlCommandType.DELETE.equals(sqlCommandType)) {
+            FieldFillingForWriting fieldFillingForWriting = extractAnnotation(msId, FieldFillingForWriting.class);
+            return processDelete(oldSql, fieldFillingForWriting, clearCache);
+        } else {
+            throw new FiledFillingException("无法识别的Mybatis SqlCommandType：" + sqlCommandType);
+        }
     }
 
     private <T> T extractAnnotation(String msId, Class<T> tClazz) {
@@ -93,40 +112,64 @@ public class FieldFillingInterceptor implements Interceptor {
         }
     }
 
-    private String processDelete(String sql, FieldFillingForWriting fieldFillingForWriting) {
+    private String processDelete(String sql, FieldFillingForWriting fieldFillingForWriting, boolean clearCache) {
         if (fieldFillingForWriting == null) {
             return sql;
         }
         String deleteLogically = FieldFillingSqlUtil.deleteLogically(sql, null, null);
-        return processUpdate(deleteLogically, fieldFillingForWriting);
+        return processUpdate(deleteLogically, fieldFillingForWriting, clearCache);
     }
 
-    private String processUpdate(String sql, FieldFillingForWriting fieldFillingForWriting) {
+    private String processUpdate(String sql, FieldFillingForWriting fieldFillingForWriting, boolean clearCache) {
         if (fieldFillingForWriting == null) {
             return sql;
         }
         String fillingContextClazzName = fieldFillingForWriting.fieldFillingContextClazzName();
         FieldFillingContext fieldFillingContext = getFieldFillingContext(fillingContextClazzName);
         Map<String, Curd> entryMap = new LinkedHashMap<>();
-        entryMap.put("modify_user", new Literal(new Token(TokenType.STRING, fieldFillingContext.getModifyUser())));
+        String modifyUser = fieldFillingContext.getModifyUser();
+        if (modifyUser != null) {
+            entryMap.put("modify_user", new Literal(new Token(TokenType.STRING, modifyUser)));
+        } else {
+            entryMap.put("modify_user", new Literal(new Token(TokenType.NULL, "null")));
+        }
         entryMap.put("modify_time", new Literal(new Token(TokenType.NUMBER, fieldFillingContext.getModifyTime())));
-        entryMap.put("remark", new Literal(new Token(TokenType.STRING, fieldFillingContext.getRemark())));
-        fieldFillingContext.removeCache();
+        String remark = fieldFillingContext.getRemark();
+        if (remark != null) {
+            entryMap.put("remark", new Literal(new Token(TokenType.STRING, remark)));
+        } else {
+            entryMap.put("remark", new Literal(new Token(TokenType.NULL, "null")));
+        }
+        if (clearCache) {
+            fieldFillingContext.removeCache();
+        }
         return FieldFillingSqlUtil.updateAddEntry(sql, entryMap);
     }
 
-    private String processInsert(String sql, FieldFillingForWriting fieldFillingForWriting) {
+    private String processInsert(String sql, FieldFillingForWriting fieldFillingForWriting, boolean clearCache) {
         if (fieldFillingForWriting == null) {
             return sql;
         }
         String fillingContextClazzName = fieldFillingForWriting.fieldFillingContextClazzName();
         FieldFillingContext fieldFillingContext = getFieldFillingContext(fillingContextClazzName);
         Map<String, Curd> entryMap = new LinkedHashMap<>();
-        entryMap.put("create_user", new Literal(new Token(TokenType.STRING, fieldFillingContext.getCreateUser())));
+        String createUser = fieldFillingContext.getCreateUser();
+        if (createUser != null) {
+            entryMap.put("create_user", new Literal(new Token(TokenType.STRING, fieldFillingContext.getCreateUser())));
+        } else {
+            entryMap.put("create_user", new Literal(new Token(TokenType.NULL, "null")));
+        }
         entryMap.put("create_time", new Literal(new Token(TokenType.NUMBER, fieldFillingContext.getCreateTime())));
         entryMap.put("del_fg", new Literal(new Token(TokenType.NUMBER, 0)));
-        entryMap.put("remark", new Literal(new Token(TokenType.STRING, fieldFillingContext.getRemark())));
-        fieldFillingContext.removeCache();
+        String remark = fieldFillingContext.getRemark();
+        if (remark != null) {
+            entryMap.put("remark", new Literal(new Token(TokenType.STRING, remark)));
+        } else {
+            entryMap.put("remark", new Literal(new Token(TokenType.NULL, "null")));
+        }
+        if (clearCache) {
+            fieldFillingContext.removeCache();
+        }
         return FieldFillingSqlUtil.insertAddEntry(sql, entryMap);
     }
 
