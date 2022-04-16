@@ -28,6 +28,8 @@ import java.util.stream.Collectors;
  */
 public class CdcDataSourceTransactionManager extends DataSourceTransactionManager implements ApplicationListener<ContextRefreshedEvent>, ApplicationContextAware {
 
+    private CdcLockManager cdcLockManager;
+
     private List<ChangeSync> changeSyncList;
 
     private int batchSize = 100;
@@ -106,7 +108,7 @@ public class CdcDataSourceTransactionManager extends DataSourceTransactionManage
         DataSource dataSource = getDataSource();
         Connection connection = DataSourceUtils.getConnection(dataSource);
         if (!CollectionUtils.isEmpty(changeSyncList) && !CollectionUtils.isEmpty(tableNameSet)) {
-            CdcSyncDelegate.cdcSync(connection, batchSize, changeSyncList, tableNameSet);
+            CdcSyncDelegate.cdcSync(connection, batchSize, changeSyncList, tableNameSet, cdcLockManager);
         }
     }
 
@@ -131,6 +133,10 @@ public class CdcDataSourceTransactionManager extends DataSourceTransactionManage
 
     public void setTableNameSet(Set<String> tableNameSet) {
         this.tableNameSet.addAll(tableNameSet);
+    }
+
+    public void setCdcLockManager(CdcLockManager cdcLockManager) {
+        this.cdcLockManager = cdcLockManager;
     }
 
     @Override

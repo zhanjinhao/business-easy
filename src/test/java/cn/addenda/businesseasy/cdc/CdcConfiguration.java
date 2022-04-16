@@ -74,6 +74,7 @@ public class CdcConfiguration implements EmbeddedValueResolverAware {
         cdcDataSourceTransactionManager.setBatchSize(2);
         cdcDataSourceTransactionManager.setTableNameSet(new HashSet<>(Arrays.asList("t_user", "t_course")));
         cdcDataSourceTransactionManager.setChangeSyncList(changeSyncList);
+        cdcDataSourceTransactionManager.setCdcLockManager(new MonolithicCdcLockManager());
         return cdcDataSourceTransactionManager;
     }
 

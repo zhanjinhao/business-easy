@@ -76,50 +76,58 @@ public class CdcSyncDelegate {
         return changeEntityList;
     }
 
-    public static void cdcSync(Connection connection, int batchSize, List<ChangeSync> changeSyncList, Set<String> tableNameSet) {
+    public static void cdcSync(Connection connection, int batchSize, List<ChangeSync> changeSyncList,
+                               Set<String> tableNameSet, CdcLockManager cdcLockManager) {
         for (String tableName : tableNameSet) {
-            logger.info("start sync, table : {}", tableName);
-
-            for (ChangeSync changeSync : changeSyncList) {
-                String syncName = changeSync.getName();
-                logger.info("start sync, table : {}, syncName : {}", tableName, syncName);
-
-                long next = queryNext(connection, tableName, syncName);
-                // 查询 next 失败时，continue 到下一个 sync
-                if (next == -1) {
-                    continue;
-                }
-
-                // now, we get next for <tableName, syncName>.
-                boolean needContinue;
-                do {
-                    needContinue = false;
-                    List<ChangeEntity> changeEntityList = queryChangeEntity(connection, tableName, next, batchSize);
-                    if (!changeEntityList.isEmpty()) {
-                        needContinue = (changeEntityList.size() == batchSize);
-
-                        // sync方法抛出了异常不再继续同步
-                        try {
-                            changeSync.sync(Collections.unmodifiableList(changeEntityList));
-                        } catch (Exception e) {
-                            logger.error("sync change failed. tableName : {}, syncName : {}, next : {}", tableName, syncName, next, e);
-                            break;
-                        }
-
-                        // updateNext方法失败不再继续同步
-                        next = changeEntityList.get(changeEntityList.size() - 1).getId() + 1;
-                        try {
-                            updateNext(connection, tableName, syncName, next);
-                        } catch (Exception e) {
-                            logger.error("update sync record next failed. tableName : {}, syncName : {}, next : {}", tableName, syncName, next, e);
-                            break;
-                        }
-                    }
-                } while (needContinue);
-
-                logger.info("end sync, table : {}, syncName : {}", tableName, syncName);
+            if (!cdcLockManager.tryLock(tableName)) {
+                logger.info("There is another instance is syncing table : {}" + tableName + ", current instance aborts.");
+                continue;
             }
 
+            logger.info("start sync, table : {}", tableName);
+            try {
+                for (ChangeSync changeSync : changeSyncList) {
+                    String syncName = changeSync.getName();
+                    logger.info("start sync, table : {}, syncName : {}", tableName, syncName);
+
+                    long next = queryNext(connection, tableName, syncName);
+                    // 查询 next 失败时，continue 到下一个 sync
+                    if (next == -1) {
+                        continue;
+                    }
+
+                    // now, we get next for <tableName, syncName>.
+                    boolean needContinue;
+                    do {
+                        needContinue = false;
+                        List<ChangeEntity> changeEntityList = queryChangeEntity(connection, tableName, next, batchSize);
+                        if (!changeEntityList.isEmpty()) {
+                            needContinue = (changeEntityList.size() == batchSize);
+
+                            // sync方法抛出了异常不再继续同步
+                            try {
+                                changeSync.sync(Collections.unmodifiableList(changeEntityList));
+                            } catch (Exception e) {
+                                logger.error("sync change failed. tableName : {}, syncName : {}, next : {}", tableName, syncName, next, e);
+                                break;
+                            }
+
+                            // updateNext方法失败不再继续同步
+                            next = changeEntityList.get(changeEntityList.size() - 1).getId() + 1;
+                            try {
+                                updateNext(connection, tableName, syncName, next);
+                            } catch (Exception e) {
+                                logger.error("update sync record next failed. tableName : {}, syncName : {}, next : {}", tableName, syncName, next, e);
+                                break;
+                            }
+                        }
+                    } while (needContinue);
+
+                    logger.info("end sync, table : {}, syncName : {}", tableName, syncName);
+                }
+            } finally {
+                cdcLockManager.releaseLock(tableName);
+            }
             logger.info("end sync table : {}", tableName);
         }
     }
