@@ -73,6 +73,16 @@ Spring提供的注解 @Transactional 能很好地帮助我们解决方法级别�
 事务模块提供了简单易用的手动事务，完全兼容@Transactional。
 
 
+## cdc
+
+业务上有时候需要将表数据的变更推送至另外的服务，常用的方式是引入阿里的 cancel，但是对于小公司和项目来说，成本太高，
+所以就开发了嵌入式的cdc实现，并且保证了日志的有序性。
+
+
+## propertyRefresh
+
+Spring外部化配置是不能被@Value注解刷新的。此模块为了刷新@Value注解而开发。采用Event的方式是为了解决property值的可重复读问题。
+
 # 依赖
 SQL解析器是个人开发的，运行此项目需要加入依赖。
 地址：https://github.com/zhanjinhao/relational-operations。
