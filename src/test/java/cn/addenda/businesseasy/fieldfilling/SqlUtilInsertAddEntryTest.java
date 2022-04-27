@@ -1,6 +1,6 @@
 package cn.addenda.businesseasy.fieldfilling;
 
-import cn.addenda.businesseasy.fieldfilling.sql.FieldFillingSqlUtil;
+import cn.addenda.businesseasy.util.BESqlUtil;
 import cn.addenda.ro.grammar.ast.statement.Curd;
 import cn.addenda.ro.grammar.ast.statement.Function;
 import cn.addenda.ro.grammar.ast.statement.Literal;
@@ -51,7 +51,7 @@ public class SqlUtilInsertAddEntryTest {
             entryMap.put("create_time", new Function(new Token(TokenType.IDENTIFIER, "now")));
             entryMap.put("del_fg", new Literal(new Token(TokenType.NUMBER, 0)));
             entryMap.put("remark", new Literal(new Token(TokenType.STRING, "zhanjinhao")));
-            System.out.println(FieldFillingSqlUtil.insertAddEntry(sqls[i], entryMap));
+            System.out.println(BESqlUtil.insertAddEntry(sqls[i], entryMap));
         }
     }
 

@@ -1,5 +1,6 @@
-package cn.addenda.businesseasy.cdc;
+package cn.addenda.businesseasy.cdc.sync;
 
+import cn.addenda.businesseasy.cdc.domain.ChangeEntity;
 import java.util.List;
 
 public interface ChangeSync {

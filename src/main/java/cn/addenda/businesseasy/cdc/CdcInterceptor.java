@@ -1,6 +1,8 @@
 package cn.addenda.businesseasy.cdc;
 
-import cn.addenda.businesseasy.util.MybatisUtil;
+import cn.addenda.businesseasy.cdc.domain.ChangeEntity;
+import cn.addenda.businesseasy.util.BEMybatisUtil;
+import cn.addenda.businesseasy.util.BESqlUtil;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.executor.parameter.ParameterHandler;
 import org.apache.ibatis.mapping.BoundSql;
@@ -68,7 +70,7 @@ public class CdcInterceptor implements Interceptor {
         BoundSql boundSql = ms.getBoundSql(args[1]);
         String sql = boundSql.getSql();
 
-        String tableName = CdcSqlUtil.extractDmlTableName(sql);
+        String tableName = BESqlUtil.extractDmlTableName(sql);
         if (!TABLE_SET.contains(tableName)) {
             return;
         }
@@ -90,7 +92,7 @@ public class CdcInterceptor implements Interceptor {
 
         Executor executor = (Executor) invocation.getTarget();
         ChangeEntity changeEntity = new ChangeEntity(tableName, sql, LocalDateTime.now());
-        if (MybatisUtil.isSimpleExecutor(executor)) {
+        if (BEMybatisUtil.isSimpleExecutor(executor)) {
             // SimpleExecutor 场景下，在 update 时 insert change。
             Connection connection = retrieveConnection(executor);
             try (PreparedStatement preparedStatement = connection.prepareStatement(INSERT_ENTITY_SQL)) {

@@ -1,4 +1,4 @@
-package cn.addenda.businesseasy.cdc;
+package cn.addenda.businesseasy.cdc.domain;
 
 import java.time.LocalDateTime;
 

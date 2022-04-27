@@ -1,5 +1,8 @@
 package cn.addenda.businesseasy.cdc;
 
+import cn.addenda.businesseasy.cdc.lock.CdcLockManager;
+import cn.addenda.businesseasy.cdc.sync.CdcSyncDelegate;
+import cn.addenda.businesseasy.cdc.sync.ChangeSync;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;

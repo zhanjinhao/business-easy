@@ -1,5 +1,9 @@
-package cn.addenda.businesseasy.cdc;
+package cn.addenda.businesseasy.cdc.sync;
 
+import cn.addenda.businesseasy.cdc.CdcException;
+import cn.addenda.businesseasy.cdc.domain.ChangeEntity;
+import cn.addenda.businesseasy.cdc.domain.SyncRecordEntity;
+import cn.addenda.businesseasy.cdc.lock.CdcLockManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,10 +81,10 @@ public class CdcSyncDelegate {
     }
 
     public static void cdcSync(Connection connection, int batchSize, List<ChangeSync> changeSyncList,
-                               Set<String> tableNameSet, CdcLockManager cdcLockManager) {
+        Set<String> tableNameSet, CdcLockManager cdcLockManager) {
         for (String tableName : tableNameSet) {
             if (!cdcLockManager.tryLock(tableName)) {
-                logger.info("There is another instance is syncing table : {}" + tableName + ", current instance aborts.");
+                logger.info("There is another instance is syncing table : {}, current instance aborts.", tableName);
                 continue;
             }
 

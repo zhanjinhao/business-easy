@@ -4,9 +4,9 @@ import cn.addenda.businesseasy.fieldfilling.FieldFillingContext;
 import cn.addenda.businesseasy.fieldfilling.FiledFillingException;
 import cn.addenda.businesseasy.fieldfilling.annotation.FieldFillingForReading;
 import cn.addenda.businesseasy.fieldfilling.annotation.FieldFillingForWriting;
-import cn.addenda.businesseasy.fieldfilling.sql.FieldFillingSqlUtil;
+import cn.addenda.businesseasy.util.BEMybatisUtil;
+import cn.addenda.businesseasy.util.BESqlUtil;
 import cn.addenda.businesseasy.util.AnnotationUtil;
-import cn.addenda.businesseasy.util.MybatisUtil;
 import cn.addenda.ro.grammar.ast.statement.Curd;
 import cn.addenda.ro.grammar.ast.statement.Literal;
 import cn.addenda.ro.grammar.lexical.token.Token;
@@ -35,19 +35,19 @@ import java.util.stream.Collectors;
  * @Date 2022/2/3 17:25
  */
 @Intercepts({
-        @Signature(type = Executor.class, method = "query",
-                args = {MappedStatement.class, Object.class, RowBounds.class, ResultHandler.class, CacheKey.class, BoundSql.class}),
-        @Signature(type = Executor.class, method = "query",
-                args = {MappedStatement.class, Object.class, RowBounds.class, ResultHandler.class}),
-        @Signature(type = Executor.class, method = "update", args = {MappedStatement.class, Object.class}),
-        @Signature(type = Executor.class, method = "flushStatements", args = {}),
-        @Signature(type = Executor.class, method = "commit", args = {boolean.class})
+    @Signature(type = Executor.class, method = "query",
+        args = {MappedStatement.class, Object.class, RowBounds.class, ResultHandler.class, CacheKey.class, BoundSql.class}),
+    @Signature(type = Executor.class, method = "query",
+        args = {MappedStatement.class, Object.class, RowBounds.class, ResultHandler.class}),
+    @Signature(type = Executor.class, method = "update", args = {MappedStatement.class, Object.class}),
+    @Signature(type = Executor.class, method = "flushStatements", args = {}),
+    @Signature(type = Executor.class, method = "commit", args = {boolean.class})
 })
 public class FieldFillingInterceptor implements Interceptor {
 
-    private static final String defaultFieldFillingContextName = "defaultFieldFillingContext";
+    private static final String DEFAULT_FIELD_FILLING_CONTEXT_NAME = "defaultFieldFillingContext";
 
-    private FieldFillingContext fieldFillingContext;
+    private FieldFillingContext defaultFieldFillingContext;
 
     private final Set<String> globalAvailableTableNameSet = new HashSet<>();
 
@@ -58,7 +58,7 @@ public class FieldFillingInterceptor implements Interceptor {
         String name = method.getName();
         if ("flushStatements".equals(name) || "commit".equals(name)) {
             Object proceed = invocation.proceed();
-            fieldFillingContext.removeCache();
+            defaultFieldFillingContext.removeCache();
             return proceed;
         }
 
@@ -73,7 +73,7 @@ public class FieldFillingInterceptor implements Interceptor {
 
         Executor executor = (Executor) invocation.getTarget();
 
-        String newSql = processSql(oldSql, ms, MybatisUtil.isSimpleExecutor(executor));
+        String newSql = processSql(oldSql, ms, BEMybatisUtil.isSimpleExecutor(executor));
 
         if (!oldSql.replaceAll("\\s+", "").equals(newSql.replaceAll("\\s+", ""))) {
             resetSql2Invocation(invocation, newSql);
@@ -116,7 +116,7 @@ public class FieldFillingInterceptor implements Interceptor {
         if (fieldFillingForWriting == null) {
             return sql;
         }
-        String deleteLogically = FieldFillingSqlUtil.deleteLogically(sql, null, null);
+        String deleteLogically = BESqlUtil.deleteLogically(sql, null, null);
         return processUpdate(deleteLogically, fieldFillingForWriting, clearCache);
     }
 
@@ -143,7 +143,7 @@ public class FieldFillingInterceptor implements Interceptor {
         if (clearCache) {
             fieldFillingContext.removeCache();
         }
-        return FieldFillingSqlUtil.updateAddEntry(sql, entryMap);
+        return BESqlUtil.updateAddEntry(sql, entryMap);
     }
 
     private String processInsert(String sql, FieldFillingForWriting fieldFillingForWriting, boolean clearCache) {
@@ -170,7 +170,7 @@ public class FieldFillingInterceptor implements Interceptor {
         if (clearCache) {
             fieldFillingContext.removeCache();
         }
-        return FieldFillingSqlUtil.insertAddEntry(sql, entryMap);
+        return BESqlUtil.insertAddEntry(sql, entryMap);
     }
 
     private String processSelect(String sql, FieldFillingForReading fieldFillingForReading) {
@@ -178,24 +178,24 @@ public class FieldFillingInterceptor implements Interceptor {
             return sql;
         }
         if (fieldFillingForReading.allTableNameAvailable()) {
-            return FieldFillingSqlUtil.selectAddComparison(sql, null);
+            return BESqlUtil.selectAddComparison(sql, null);
         }
 
         String availableTableNames = fieldFillingForReading.availableTableNames();
         boolean independent = fieldFillingForReading.independent();
         if (independent) {
             if (availableTableNames == null || availableTableNames.length() == 0) {
-                return FieldFillingSqlUtil.selectAddComparison(sql, null, new HashSet<>());
+                return BESqlUtil.selectAddComparison(sql, null, new HashSet<>());
             }
             Set<String> collect = Arrays.stream(availableTableNames.split(",")).collect(Collectors.toSet());
-            return FieldFillingSqlUtil.selectAddComparison(sql, null, collect);
+            return BESqlUtil.selectAddComparison(sql, null, collect);
         } else {
             if (availableTableNames == null || availableTableNames.length() == 0) {
-                return FieldFillingSqlUtil.selectAddComparison(sql, null, globalAvailableTableNameSet);
+                return BESqlUtil.selectAddComparison(sql, null, globalAvailableTableNameSet);
             }
             Set<String> collect = Arrays.stream(availableTableNames.split(",")).collect(Collectors.toSet());
             globalAvailableTableNameSet.addAll(collect);
-            return FieldFillingSqlUtil.selectAddComparison(sql, null, globalAvailableTableNameSet);
+            return BESqlUtil.selectAddComparison(sql, null, globalAvailableTableNameSet);
         }
     }
 
@@ -206,10 +206,10 @@ public class FieldFillingInterceptor implements Interceptor {
 
     @Override
     public void setProperties(Properties properties) {
-        if (properties.containsKey(defaultFieldFillingContextName)) {
-            String defaultFieldFillingContext = (String) properties.get(defaultFieldFillingContextName);
+        if (properties.containsKey(DEFAULT_FIELD_FILLING_CONTEXT_NAME)) {
+            String defaultFieldFillingContextNameValue = (String) properties.get(DEFAULT_FIELD_FILLING_CONTEXT_NAME);
             if (defaultFieldFillingContext != null) {
-                fieldFillingContext = newInstance(defaultFieldFillingContext);
+                this.defaultFieldFillingContext = newInstance(defaultFieldFillingContextNameValue);
             }
         }
     }
@@ -223,7 +223,7 @@ public class FieldFillingInterceptor implements Interceptor {
             Method[] methods = aClass.getMethods();
             for (Method method : methods) {
                 if (method.getName().equals("getInstance") && Modifier.isStatic(method.getModifiers()) &&
-                        method.getParameterCount() == 0 && FieldFillingContext.class.isAssignableFrom(method.getReturnType())) {
+                    method.getParameterCount() == 0 && FieldFillingContext.class.isAssignableFrom(method.getReturnType())) {
                     return (FieldFillingContext) method.invoke(null);
                 }
             }
@@ -238,12 +238,13 @@ public class FieldFillingInterceptor implements Interceptor {
      */
     private FieldFillingContext getFieldFillingContext(String clazzName) {
         if (clazzName == null || clazzName.length() == 0) {
-            return fieldFillingContext;
+            return defaultFieldFillingContext;
         }
         return newInstance(clazzName);
     }
 
     private static class BoundSqlSqlSource implements SqlSource {
+
         private final BoundSql boundSql;
 
         public BoundSqlSqlSource(BoundSql boundSql) {
@@ -282,7 +283,7 @@ public class FieldFillingInterceptor implements Interceptor {
 
     private MappedStatement newMappedStatement(MappedStatement ms, SqlSource newSqlSource) {
         MappedStatement.Builder builder =
-                new MappedStatement.Builder(ms.getConfiguration(), ms.getId(), newSqlSource, ms.getSqlCommandType());
+            new MappedStatement.Builder(ms.getConfiguration(), ms.getId(), newSqlSource, ms.getSqlCommandType());
         builder.resource(ms.getResource());
         builder.fetchSize(ms.getFetchSize());
         builder.statementType(ms.getStatementType());

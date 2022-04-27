@@ -1,4 +1,6 @@
-package cn.addenda.businesseasy.cdc;
+package cn.addenda.businesseasy.cdc.lock;
+
+import cn.addenda.businesseasy.cdc.lock.CdcLockManager;
 
 /**
  * 单体应用的 LockManager

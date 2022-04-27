@@ -1,5 +1,8 @@
 package cn.addenda.businesseasy.cdc;
 
+import cn.addenda.businesseasy.cdc.lock.MonolithicCdcLockManager;
+import cn.addenda.businesseasy.cdc.sync.ChangeSync;
+import cn.addenda.businesseasy.cdc.sync.LogChangeSync;
 import cn.addenda.businesseasy.multidatasource.MultiDataSource;
 import cn.addenda.businesseasy.multidatasource.MultiDataSourceConstant;
 import cn.addenda.businesseasy.multidatasource.MultiDataSourceEntry;

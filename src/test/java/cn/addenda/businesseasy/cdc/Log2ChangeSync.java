@@ -1,5 +1,8 @@
 package cn.addenda.businesseasy.cdc;
 
+import cn.addenda.businesseasy.cdc.domain.ChangeEntity;
+import cn.addenda.businesseasy.cdc.sync.ChangeSync;
+import cn.addenda.businesseasy.cdc.sync.LogChangeSync;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

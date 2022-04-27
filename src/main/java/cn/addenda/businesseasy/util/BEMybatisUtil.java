@@ -1,6 +1,5 @@
 package cn.addenda.businesseasy.util;
 
-import cn.addenda.businesseasy.cdc.CdcException;
 import org.apache.ibatis.executor.BatchExecutor;
 import org.apache.ibatis.executor.CachingExecutor;
 import org.apache.ibatis.executor.Executor;
@@ -12,9 +11,9 @@ import java.lang.reflect.Field;
  * @Author ISJINHAO
  * @Date 2022/4/15 18:28
  */
-public class MybatisUtil {
+public class BEMybatisUtil {
 
-    private MybatisUtil() {
+    private BEMybatisUtil() {
     }
 
     public static boolean isSimpleExecutor(Executor executor) {
