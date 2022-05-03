@@ -1,6 +1,6 @@
 package cn.addenda.businesseasy.idfilling;
 
-import cn.addenda.businesseasy.fieldfilling.annotation.FieldFillingForWriting;
+import cn.addenda.businesseasy.fieldfilling.annotation.DMLFieldFilling;
 import cn.addenda.businesseasy.pojo.TCourse;
 import org.apache.ibatis.annotations.Param;
 
@@ -12,10 +12,10 @@ import java.util.List;
  */
 public interface IdFillingTestMapper {
 
-    @FieldFillingForWriting
+    @DMLFieldFilling
     void testInsert(@Param("tCourse") TCourse tCourse);
 
-    @FieldFillingForWriting
+    @DMLFieldFilling
     void testInsertBatch(@Param("tCourses") List<TCourse> tCourseList);
 
 }

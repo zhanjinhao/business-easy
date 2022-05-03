@@ -1,7 +1,7 @@
 package cn.addenda.businesseasy.fieldfilling;
 
-import cn.addenda.businesseasy.fieldfilling.annotation.FieldFillingForReading;
-import cn.addenda.businesseasy.fieldfilling.annotation.FieldFillingForWriting;
+import cn.addenda.businesseasy.fieldfilling.annotation.DQLFieldFilling;
+import cn.addenda.businesseasy.fieldfilling.annotation.DMLFieldFilling;
 import cn.addenda.businesseasy.pojo.TUser;
 import org.apache.ibatis.annotations.Param;
 
@@ -13,19 +13,19 @@ import java.util.List;
  */
 public interface FieldFillingTestMapper {
 
-    @FieldFillingForReading(allTableNameAvailable = true, independent = true, availableTableNames =
+    @DQLFieldFilling(allTableNameAvailable = true, independent = true, availableTableNames =
             "T_DISPATCH_FLIGHT_RELEASE,SCORE,RELEASE,ts_role,STUDENT,dual,t1,A,tab2,tab3,tab4,table_listnames")
     List<TUser> selectTest();
 
     int insertTypeHandlerTest(@Param("tUser") TUser tUser);
 
-    @FieldFillingForWriting
+    @DMLFieldFilling
     int updateTest();
 
-    @FieldFillingForWriting
+    @DMLFieldFilling
     int insertTest(@Param("tUser") TUser tUser);
 
-    @FieldFillingForWriting
+    @DMLFieldFilling
     int deleteTest(@Param("userId") String userId);
 
 }

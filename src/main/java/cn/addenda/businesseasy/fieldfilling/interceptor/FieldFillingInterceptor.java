@@ -2,8 +2,8 @@ package cn.addenda.businesseasy.fieldfilling.interceptor;
 
 import cn.addenda.businesseasy.fieldfilling.FieldFillingContext;
 import cn.addenda.businesseasy.fieldfilling.FiledFillingException;
-import cn.addenda.businesseasy.fieldfilling.annotation.FieldFillingForReading;
-import cn.addenda.businesseasy.fieldfilling.annotation.FieldFillingForWriting;
+import cn.addenda.businesseasy.fieldfilling.annotation.DQLFieldFilling;
+import cn.addenda.businesseasy.fieldfilling.annotation.DMLFieldFilling;
 import cn.addenda.businesseasy.util.BEMybatisUtil;
 import cn.addenda.businesseasy.util.BESqlUtil;
 import cn.addenda.businesseasy.util.AnnotationUtil;
@@ -85,17 +85,17 @@ public class FieldFillingInterceptor implements Interceptor {
         SqlCommandType sqlCommandType = ms.getSqlCommandType();
         String msId = ms.getId();
         if (SqlCommandType.SELECT.equals(sqlCommandType)) {
-            FieldFillingForReading fieldFillingForReading = extractAnnotation(msId, FieldFillingForReading.class);
-            return processSelect(oldSql, fieldFillingForReading);
+            DQLFieldFilling DQLFieldFilling = extractAnnotation(msId, DQLFieldFilling.class);
+            return processSelect(oldSql, DQLFieldFilling);
         } else if (SqlCommandType.INSERT.equals(sqlCommandType)) {
-            FieldFillingForWriting fieldFillingForWriting = extractAnnotation(msId, FieldFillingForWriting.class);
-            return processInsert(oldSql, fieldFillingForWriting, clearCache);
+            DMLFieldFilling DMLFieldFilling = extractAnnotation(msId, DMLFieldFilling.class);
+            return processInsert(oldSql, DMLFieldFilling, clearCache);
         } else if (SqlCommandType.UPDATE.equals(sqlCommandType)) {
-            FieldFillingForWriting fieldFillingForWriting = extractAnnotation(msId, FieldFillingForWriting.class);
-            return processUpdate(oldSql, fieldFillingForWriting, clearCache);
+            DMLFieldFilling DMLFieldFilling = extractAnnotation(msId, DMLFieldFilling.class);
+            return processUpdate(oldSql, DMLFieldFilling, clearCache);
         } else if (SqlCommandType.DELETE.equals(sqlCommandType)) {
-            FieldFillingForWriting fieldFillingForWriting = extractAnnotation(msId, FieldFillingForWriting.class);
-            return processDelete(oldSql, fieldFillingForWriting, clearCache);
+            DMLFieldFilling DMLFieldFilling = extractAnnotation(msId, DMLFieldFilling.class);
+            return processDelete(oldSql, DMLFieldFilling, clearCache);
         } else {
             throw new FiledFillingException("无法识别的Mybatis SqlCommandType：" + sqlCommandType);
         }
@@ -112,19 +112,19 @@ public class FieldFillingInterceptor implements Interceptor {
         }
     }
 
-    private String processDelete(String sql, FieldFillingForWriting fieldFillingForWriting, boolean clearCache) {
-        if (fieldFillingForWriting == null) {
+    private String processDelete(String sql, DMLFieldFilling DMLFieldFilling, boolean clearCache) {
+        if (DMLFieldFilling == null) {
             return sql;
         }
         String deleteLogically = BESqlUtil.deleteLogically(sql, null, null);
-        return processUpdate(deleteLogically, fieldFillingForWriting, clearCache);
+        return processUpdate(deleteLogically, DMLFieldFilling, clearCache);
     }
 
-    private String processUpdate(String sql, FieldFillingForWriting fieldFillingForWriting, boolean clearCache) {
-        if (fieldFillingForWriting == null) {
+    private String processUpdate(String sql, DMLFieldFilling DMLFieldFilling, boolean clearCache) {
+        if (DMLFieldFilling == null) {
             return sql;
         }
-        String fillingContextClazzName = fieldFillingForWriting.fieldFillingContextClazzName();
+        String fillingContextClazzName = DMLFieldFilling.fieldFillingContextClazzName();
         FieldFillingContext fieldFillingContext = getFieldFillingContext(fillingContextClazzName);
         Map<String, Curd> entryMap = new LinkedHashMap<>();
         String modifyUser = fieldFillingContext.getModifyUser();
@@ -146,11 +146,11 @@ public class FieldFillingInterceptor implements Interceptor {
         return BESqlUtil.updateAddEntry(sql, entryMap);
     }
 
-    private String processInsert(String sql, FieldFillingForWriting fieldFillingForWriting, boolean clearCache) {
-        if (fieldFillingForWriting == null) {
+    private String processInsert(String sql, DMLFieldFilling DMLFieldFilling, boolean clearCache) {
+        if (DMLFieldFilling == null) {
             return sql;
         }
-        String fillingContextClazzName = fieldFillingForWriting.fieldFillingContextClazzName();
+        String fillingContextClazzName = DMLFieldFilling.fieldFillingContextClazzName();
         FieldFillingContext fieldFillingContext = getFieldFillingContext(fillingContextClazzName);
         Map<String, Curd> entryMap = new LinkedHashMap<>();
         String createUser = fieldFillingContext.getCreateUser();
@@ -173,16 +173,16 @@ public class FieldFillingInterceptor implements Interceptor {
         return BESqlUtil.insertAddEntry(sql, entryMap);
     }
 
-    private String processSelect(String sql, FieldFillingForReading fieldFillingForReading) {
-        if (fieldFillingForReading == null) {
+    private String processSelect(String sql, DQLFieldFilling DQLFieldFilling) {
+        if (DQLFieldFilling == null) {
             return sql;
         }
-        if (fieldFillingForReading.allTableNameAvailable()) {
+        if (DQLFieldFilling.allTableNameAvailable()) {
             return BESqlUtil.selectAddComparison(sql, null);
         }
 
-        String availableTableNames = fieldFillingForReading.availableTableNames();
-        boolean independent = fieldFillingForReading.independent();
+        String availableTableNames = DQLFieldFilling.availableTableNames();
+        boolean independent = DQLFieldFilling.independent();
         if (independent) {
             if (availableTableNames == null || availableTableNames.length() == 0) {
                 return BESqlUtil.selectAddComparison(sql, null, new HashSet<>());

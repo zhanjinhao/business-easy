@@ -5,7 +5,7 @@ import java.lang.annotation.*;
 @Inherited
 @Target({ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface FieldFillingForWriting {
+public @interface DMLFieldFilling {
 
     String fieldFillingContextClazzName() default "";
 
