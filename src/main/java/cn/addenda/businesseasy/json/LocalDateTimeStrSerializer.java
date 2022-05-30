@@ -7,17 +7,18 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 
 /**
  * @author ISJINHAO
  * @date 2021/9/13
  */
-public class DateTimeTsSerializer extends JsonSerializer<LocalDateTime> {
+public class LocalDateTimeStrSerializer extends JsonSerializer<LocalDateTime> {
+
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
 
     @Override
     public void serialize(LocalDateTime localDateTime, JsonGenerator jgen, SerializerProvider provider) throws IOException, JsonProcessingException {
-        jgen.writeNumber(localDateTime.toEpochSecond(ZoneOffset.of("+8")) * 1000);
+        jgen.writeString(DATE_TIME_FORMATTER.format(localDateTime));
     }
-
 }

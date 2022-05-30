@@ -15,7 +15,7 @@ import java.time.ZoneId;
  * @author ISJINHAO
  * @date 2021/11/8
  */
-public class DateTimeTsDeSerializer extends JsonDeserializer<LocalDateTime> {
+public class LocalDateTimeTsDeSerializer extends JsonDeserializer<LocalDateTime> {
 
     @Override
     public LocalDateTime deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException, JsonProcessingException {
