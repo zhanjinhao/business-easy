@@ -16,11 +16,11 @@ import java.util.Calendar;
  * @Author ISJINHAO
  * @Date 2022/4/13 12:00
  */
-public class ParameterPreparedStatement implements PreparedStatement {
+public class SqlCapturePreparedStatement implements PreparedStatement {
 
     private String plainSql;
 
-    public ParameterPreparedStatement(String parameterizedSql) {
+    public SqlCapturePreparedStatement(String parameterizedSql) {
         plainSql = parameterizedSql;
     }
 

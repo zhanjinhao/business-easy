@@ -77,13 +77,13 @@ public class CdcInterceptor implements Interceptor {
 
         // 不走 interceptor ...
         ParameterHandler parameterHandler = ms.getLang().createParameterHandler(ms, boundSql.getParameterObject(), boundSql);
-        ParameterPreparedStatement parameterPreparedStatement = new ParameterPreparedStatement(sql);
+        SqlCapturePreparedStatement sqlCapturePreparedStatement = new SqlCapturePreparedStatement(sql);
         try {
-            parameterHandler.setParameters(parameterPreparedStatement);
+            parameterHandler.setParameters(sqlCapturePreparedStatement);
         } catch (Exception e) {
             throw new CdcException("生成明文SQL时出错！", e);
         }
-        sql = parameterPreparedStatement.getPlainSql();
+        sql = sqlCapturePreparedStatement.getPlainSql();
 
         // do not format sql here.
         // I want to remove the blank char in sql, use:  `sql = sql.replaceAll("\\s+", " ")`
