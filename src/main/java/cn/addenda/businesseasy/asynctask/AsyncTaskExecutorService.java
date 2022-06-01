@@ -1,14 +1,13 @@
 package cn.addenda.businesseasy.asynctask;
 
+import cn.addenda.businesseasy.concurrent.SimpleNamedThreadFactory;
 import cn.addenda.businesseasy.util.BEArrayUtil;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -136,28 +135,6 @@ public class AsyncTaskExecutorService {
             log.info("{} execute time : {} .", name, (System.currentTimeMillis() - start));
             return apply;
         };
-    }
-
-    /**
-     * copy from apache-dubbo, simplify its implementation.
-     * InternalThreadFactory.
-     */
-    public static class SimpleNamedThreadFactory implements ThreadFactory {
-
-        private final String mPrefix;
-
-        public SimpleNamedThreadFactory(String mPrefix) {
-            this.mPrefix = mPrefix;
-        }
-
-        private final AtomicInteger mThreadNum = new AtomicInteger(1);
-
-        @Override
-        public Thread newThread(Runnable runnable) {
-            String name = mPrefix + "-" + mThreadNum.getAndIncrement();
-            return new Thread(runnable, name);
-        }
-
     }
 
 }
