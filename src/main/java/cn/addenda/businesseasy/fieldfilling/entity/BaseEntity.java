@@ -18,6 +18,7 @@ public abstract class BaseEntity {
 
     private String remark;
 
+    // todo: 表类型不变，pojo类型 改为 boolean
     private byte delFg;
 
     public String getCreateUser() {
