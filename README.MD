@@ -86,3 +86,6 @@ Spring外部化配置是不能被@Value注解刷新的。此模块为了刷新@V
 # 依赖
 SQL解析器是个人开发的，运行此项目需要加入依赖。
 地址：https://github.com/zhanjinhao/relational-operations。
+
+# todo
+DistributedLock Aspect.
