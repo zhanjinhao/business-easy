@@ -89,3 +89,4 @@ SQL解析器是个人开发的，运行此项目需要加入依赖。
 
 # todo
 DistributedLock Aspect.
+cdc增加区分row模式和statement模式
