@@ -1,14 +1,12 @@
 package cn.addenda.businesseasy.pojo;
 
-import cn.addenda.businesseasy.fieldfilling.entity.BaseEntity;
-
 import java.time.LocalDateTime;
 
 /**
  * @Author ISJINHAO
  * @Date 2022/2/4 16:07
  */
-public class TUser extends BaseEntity {
+public class TUser {
 
     private String userId;
 
