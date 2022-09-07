@@ -58,7 +58,7 @@ public class CdcConnection implements Connection {
     @Override
     public void close() throws SQLException {
         this.txActive = false;
-        delegate.rollback();
+        delegate.close();
     }
 
     @Override
