@@ -6,17 +6,15 @@ import java.util.List;
  * @author addenda
  * @datetime 2022/8/27 17:31
  */
-public class SqlHolder {
+public class CdcContext {
     private final String parameterizedSql;
     private final List<String> executableSqlList;
-    private final String tableName;
-    private final String keyColumn;
+    private final TableConfig tableConfig;
 
-    public SqlHolder(String parameterizedSql, List<String> executableSqlList, String tableName, String keyColumn) {
+    public CdcContext(String parameterizedSql, List<String> executableSqlList, TableConfig tableConfig) {
         this.parameterizedSql = parameterizedSql;
         this.executableSqlList = executableSqlList;
-        this.tableName = tableName;
-        this.keyColumn = keyColumn;
+        this.tableConfig = tableConfig;
     }
 
     public String getParameterizedSql() {
@@ -28,11 +26,19 @@ public class SqlHolder {
     }
 
     public String getTableName() {
-        return tableName;
+        return tableConfig.getTableName();
     }
 
     public String getKeyColumn() {
-        return keyColumn;
+        return tableConfig.getKeyColumn();
+    }
+
+    public boolean checkTableMode(String mode) {
+        if (tableConfig == null) {
+            return false;
+        }
+        List<String> cdcModeList = tableConfig.getCdcModeList();
+        return cdcModeList.contains(mode);
     }
 
 }

@@ -1,5 +1,6 @@
 package cn.addenda.businesseasy.cdc;
 
+import cn.addenda.businesseasy.cdc.sql.SqlUtils;
 import cn.addenda.businesseasy.util.BEArrayUtil;
 import cn.addenda.ro.grammar.lexical.scan.DefaultScanner;
 import cn.addenda.ro.grammar.lexical.scan.TokenSequence;
@@ -11,11 +12,6 @@ import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
-import java.text.SimpleDateFormat;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -27,13 +23,6 @@ import java.util.List;
 public class CdcPreparedStatement extends AbstractCdcStatement<PreparedStatement> implements PreparedStatement {
 
     private static final String CDC_PREPARE_STATEMENT_UNSUPPORTED_DATA_TYPE_REASON = " is unsupported data type in cdc! ";
-    private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT_THREAD_LOCAL = ThreadLocal.withInitial(() -> new SimpleDateFormat("yyyy-MM-dd"));
-    private static final ThreadLocal<SimpleDateFormat> TIME_FORMAT_THREAD_LOCAL = ThreadLocal.withInitial(() -> new SimpleDateFormat("HH:mm:ss"));
-    private static final ThreadLocal<SimpleDateFormat> DATETIME_FORMAT_THREAD_LOCAL = ThreadLocal.withInitial(() -> new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"));
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
-    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-    private static final String SINGLE_QUOTATION = "'";
 
     private final String tableName;
 
@@ -85,19 +74,19 @@ public class CdcPreparedStatement extends AbstractCdcStatement<PreparedStatement
 
     @Override
     public boolean execute() throws SQLException {
-        return ExecuteDelegateForCdc.execute(
+        return PsDelegate.execute(
                 connection.getDelegate(), this, newSqlHolder(getExecutableSql()), delegate::execute);
     }
 
     @Override
     public int executeUpdate() throws SQLException {
-        return ExecuteDelegateForCdc.execute(
+        return PsDelegate.execute(
                 connection.getDelegate(), this, newSqlHolder(getExecutableSql()), delegate::executeUpdate);
     }
 
     @Override
     public long executeLargeUpdate() throws SQLException {
-        return ExecuteDelegateForCdc.execute(
+        return PsDelegate.execute(
                 connection.getDelegate(), this, newSqlHolder(getExecutableSql()), delegate::executeLargeUpdate);
     }
 
@@ -120,27 +109,25 @@ public class CdcPreparedStatement extends AbstractCdcStatement<PreparedStatement
 
     @Override
     public int[] executeBatch() throws SQLException {
-        return ExecuteDelegateForCdc.execute(
+        return PsDelegate.execute(
                 connection.getDelegate(), this, newSqlHolder(executableSqlList), delegate::executeBatch);
     }
 
     @Override
     public long[] executeLargeBatch() throws SQLException {
-        return ExecuteDelegateForCdc.execute(
+        return PsDelegate.execute(
                 connection.getDelegate(), this, newSqlHolder(executableSqlList), delegate::executeLargeBatch);
     }
 
-    private SqlHolder newSqlHolder(String executableSql) {
+    private CdcContext newSqlHolder(String executableSql) {
         CdcDataSource cdcDataSource = connection.getCdcDataSource();
-        String keyColumn = cdcDataSource.tableKeyColumn(tableName);
-        return new SqlHolder(parameterizedSql, BEArrayUtil.asArrayList(executableSql), tableName, keyColumn);
+        return new CdcContext(parameterizedSql, BEArrayUtil.asArrayList(executableSql), cdcDataSource.getTableConfig(tableName));
     }
 
 
-    private SqlHolder newSqlHolder(List<String> executableSqlList) {
+    private CdcContext newSqlHolder(List<String> executableSqlList) {
         CdcDataSource cdcDataSource = connection.getCdcDataSource();
-        String keyColumn = cdcDataSource.tableKeyColumn(tableName);
-        return new SqlHolder(parameterizedSql, executableSqlList, tableName, keyColumn);
+        return new CdcContext(parameterizedSql, executableSqlList, cdcDataSource.getTableConfig(tableName));
     }
 
 
@@ -164,12 +151,14 @@ public class CdcPreparedStatement extends AbstractCdcStatement<PreparedStatement
 
     @Override
     public void setObject(int parameterIndex, Object x, SQLType targetSqlType) throws SQLException {
+        SqlUtils.assertDataType(x);
         delegate.setObject(parameterIndex, x, targetSqlType);
         parameterList.set(parameterIndex - 1, x);
     }
 
     @Override
     public void setObject(int parameterIndex, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLException {
+        SqlUtils.assertDataType(x);
         delegate.setObject(parameterIndex, x, targetSqlType, scaleOrLength);
         parameterList.set(parameterIndex - 1, x);
     }
@@ -248,12 +237,14 @@ public class CdcPreparedStatement extends AbstractCdcStatement<PreparedStatement
 
     @Override
     public void setObject(int parameterIndex, Object x, int targetSqlType) throws SQLException {
+        SqlUtils.assertDataType(x);
         delegate.setObject(parameterIndex, x, targetSqlType);
         parameterList.set(parameterIndex - 1, x);
     }
 
     @Override
     public void setObject(int parameterIndex, Object x) throws SQLException {
+        SqlUtils.assertDataType(x);
         delegate.setObject(parameterIndex, x);
         parameterList.set(parameterIndex - 1, x);
     }
@@ -296,35 +287,11 @@ public class CdcPreparedStatement extends AbstractCdcStatement<PreparedStatement
 
     @Override
     public void setObject(int parameterIndex, Object x, int targetSqlType, int scaleOrLength) throws SQLException {
+        SqlUtils.assertDataType(x);
         delegate.setObject(parameterIndex, x, targetSqlType, scaleOrLength);
         parameterList.set(parameterIndex - 1, x);
     }
 
-    private String doSetParamAsString(Object obj) {
-        if (obj == null) {
-            return "null";
-        } else if (obj instanceof Boolean) {
-            return Boolean.FALSE.equals(obj) ? "false" : "true";
-        } else if (obj instanceof Date) {
-            return SINGLE_QUOTATION + DATE_FORMAT_THREAD_LOCAL.get().format((Date) obj) + SINGLE_QUOTATION;
-        } else if (obj instanceof Time) {
-            return SINGLE_QUOTATION + TIME_FORMAT_THREAD_LOCAL.get().format((Time) obj) + SINGLE_QUOTATION;
-        } else if (obj instanceof Timestamp) {
-            return SINGLE_QUOTATION + DATETIME_FORMAT_THREAD_LOCAL.get().format((java.util.Date) obj) + SINGLE_QUOTATION;
-        } else if (obj instanceof java.util.Date) {
-            return SINGLE_QUOTATION + DATETIME_FORMAT_THREAD_LOCAL.get().format((java.util.Date) obj) + SINGLE_QUOTATION;
-        } else if (obj instanceof LocalDateTime) {
-            return SINGLE_QUOTATION + DATE_TIME_FORMATTER.format((LocalDateTime) obj) + SINGLE_QUOTATION;
-        } else if (obj instanceof LocalDate) {
-            return SINGLE_QUOTATION + DATE_FORMATTER.format((LocalDate) obj) + SINGLE_QUOTATION;
-        } else if (obj instanceof LocalTime) {
-            return SINGLE_QUOTATION + TIME_FORMATTER.format((LocalTime) obj) + SINGLE_QUOTATION;
-        } else if (obj instanceof String) {
-            return SINGLE_QUOTATION + obj + SINGLE_QUOTATION;
-        } else {
-            return obj.toString();
-        }
-    }
 
     public String getExecutableSql() {
         List<Token> source = tokenSequence.getSource();
@@ -334,14 +301,18 @@ public class CdcPreparedStatement extends AbstractCdcStatement<PreparedStatement
             TokenType type = token.getType();
             Object literal = token.getLiteral();
             if (TokenType.PARAMETER.equals(token.getType())) {
-                sql.append(" ").append(doSetParamAsString(parameterList.get(i)));
+                sql.append(" ").append(SqlUtils.parseObjectToString(parameterList.get(i)));
                 i++;
             } else if (TokenType.STRING.equals(type)) {
-                sql.append(" ").append(SINGLE_QUOTATION).append(literal).append(SINGLE_QUOTATION);
+                sql.append(" ").append(SqlUtils.SINGLE_QUOTATION).append(literal).append(SqlUtils.SINGLE_QUOTATION);
             } else if (TokenType.EOF.equals(type)) {
 
             } else {
-                sql.append(" ").append(literal);
+                // mysql 的函数 支持 now(), now( )写法，但是不支持 now (), now ( ) 写法。所以(前不留空格
+                if (!("(".equals(literal))) {
+                    sql.append(" ");
+                }
+                sql.append(literal);
             }
         }
         return sql.toString();

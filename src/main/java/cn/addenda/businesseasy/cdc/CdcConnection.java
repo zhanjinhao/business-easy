@@ -119,7 +119,7 @@ public class CdcConnection implements Connection {
         // 对于DML语句，如果表名被注册为需要进行CDC的表，使用CdcPreparedStatement
         if (!SqlUtils.isSelectSql(sql)) {
             String tableName = SqlUtils.extractTableNameFromDmlSql(sql);
-            if (cdcDataSource.tableNameContains(tableName)) {
+            if (cdcDataSource.tableContains(tableName)) {
                 assertAutoCommit();
                 txActive = true;
                 return new CdcPreparedStatement(tableName, sql, delegate, this);

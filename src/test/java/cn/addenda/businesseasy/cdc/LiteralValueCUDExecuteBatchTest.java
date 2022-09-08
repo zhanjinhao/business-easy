@@ -14,7 +14,7 @@ import java.sql.*;
  * @datetime 2022/9/4 18:23
  */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class CUDExecuteTest {
+public class LiteralValueCUDExecuteBatchTest {
 
     private Connection connection;
 
@@ -41,8 +41,18 @@ public class CUDExecuteTest {
         ps.setTimestamp(6, new Timestamp(System.currentTimeMillis()));
         ps.setFloat(7, 1.1f);
         ps.setDouble(8, 2.2d);
+        ps.addBatch();
+        ps.setLong(1, 2L);
+        ps.setInt(2, 3);
+        ps.setString(3, "4");
+        ps.setDate(4, new Date(System.currentTimeMillis()));
+        ps.setTime(5, new Time(System.currentTimeMillis()));
+        ps.setTimestamp(6, new Timestamp(System.currentTimeMillis()));
+        ps.setFloat(7, 2.2f);
+        ps.setDouble(8, 4.3d);
+        ps.addBatch();
 
-        ps.executeUpdate();
+        ps.executeBatch();
 
         connection.commit();
     }
@@ -56,8 +66,11 @@ public class CUDExecuteTest {
         ps.setTime(2, new Time(System.currentTimeMillis()));
         ps.setTimestamp(3, new Timestamp(System.currentTimeMillis()));
         ps.setLong(4, 1L);
+        ps.addBatch();
+        ps.setLong(4, 2L);
+        ps.addBatch();
 
-        ps.executeUpdate();
+        ps.executeBatch();
 
         connection.commit();
     }
@@ -67,8 +80,11 @@ public class CUDExecuteTest {
         PreparedStatement ps = connection.prepareStatement(
                 "delete from t_cdc_test  where long_d = ?");
         ps.setLong(1, 1L);
+        ps.addBatch();
+        ps.setLong(1, 2L);
+        ps.addBatch();
 
-        ps.executeUpdate();
+        ps.executeBatch();
 
         connection.commit();
     }

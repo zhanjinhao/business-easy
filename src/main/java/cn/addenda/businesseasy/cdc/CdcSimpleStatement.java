@@ -120,7 +120,7 @@ public class CdcSimpleStatement extends AbstractCdcStatement<Statement> {
             return;
         }
         String tableName = SqlUtils.extractTableNameFromDmlSql(sql);
-        if (connection.getCdcDataSource().tableNameContains(tableName)) {
+        if (connection.getCdcDataSource().tableContains(tableName)) {
             throw new CdcException(tableName + " has being registered as cdc table, please use java.sql.PreparedStatement to execute dml sql! ");
         }
     }

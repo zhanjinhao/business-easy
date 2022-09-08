@@ -6,8 +6,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Logger;
 
 /**
@@ -16,7 +15,7 @@ import java.util.logging.Logger;
  */
 public class CdcDataSource implements DataSource {
 
-    private final Map<String, String> tableMetaData = new HashMap<>(4);
+    private final Map<String, TableConfig> tableMetaData = new HashMap<>(4);
 
     private final DataSource delegate;
 
@@ -92,6 +91,7 @@ public class CdcDataSource implements DataSource {
         for (String table : split) {
             StringBuilder tableName = new StringBuilder();
             StringBuilder keyColumn = new StringBuilder();
+            List<String> cdcModeList = new ArrayList<>();
             boolean tableNameFg = true;
             for (int i = 0; i < table.length(); i++) {
                 char c = table.charAt(i);
@@ -107,17 +107,28 @@ public class CdcDataSource implements DataSource {
 
                 if (']' != c) {
                     keyColumn.append(c);
+                } else {
+                    String modesStr = table.substring(i + 1);
+                    if (modesStr.length() == 0) {
+                        cdcModeList.add(TableConfig.CM_ROW);
+                    } else {
+                        String[] modes = modesStr.split(",");
+                        cdcModeList.addAll(Arrays.asList(modes));
+                        break;
+                    }
                 }
             }
-            tableMetaData.put(tableName.toString(), keyColumn.toString());
+
+            tableMetaData.put(tableName.toString(),
+                    new TableConfig(tableName.toString(), keyColumn.toString(), cdcModeList));
         }
     }
 
-    public boolean tableNameContains(String tableName) {
+    public boolean tableContains(String tableName) {
         return tableMetaData.containsKey(tableName);
     }
 
-    public String tableKeyColumn(String tableName) {
+    public TableConfig getTableConfig(String tableName) {
         return tableMetaData.get(tableName);
     }
 

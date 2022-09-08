@@ -88,7 +88,7 @@ public class DBUtils {
         };
 
         CdcDataSource cdcDataSource = new CdcDataSource(dataSource);
-        cdcDataSource.setTableMetaData("t_cdc_test[id]");
+        cdcDataSource.setTableMetaData("t_cdc_test[id]s,r");
         return cdcDataSource;
     }
 
