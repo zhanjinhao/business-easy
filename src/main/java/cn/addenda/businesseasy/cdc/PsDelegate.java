@@ -16,7 +16,7 @@ public class PsDelegate {
     private PsDelegate() {
     }
 
-    public static <T> T execute(Connection connection, PreparedStatement ps, CdcContext cdcContext, StatementFunction<T> sf) throws SQLException {
+    public static <T> T execute(Connection connection, PreparedStatement ps, CdcContext cdcContext, PsInvocation<T> sf) throws SQLException {
         String sql = cdcContext.getParameterizedSql();
         if (SqlUtils.isInsertSql(sql)) {
             return executeInsert(connection, ps, cdcContext, sf);
@@ -34,7 +34,7 @@ public class PsDelegate {
      * @param cdcContext
      * @throws SQLException
      */
-    public static <T> T executeInsert(Connection connection, PreparedStatement ps, CdcContext cdcContext, StatementFunction<T> sf) throws SQLException {
+    public static <T> T executeInsert(Connection connection, PreparedStatement ps, CdcContext cdcContext, PsInvocation<T> sf) throws SQLException {
         T invoke = sf.invoke();
         List<String> executableSqlList = cdcContext.getExecutableSqlList();
         String keyColumn = cdcContext.getKeyColumn();
@@ -116,7 +116,7 @@ public class PsDelegate {
         }
     }
 
-    public static <T> T executeDelete(Connection connection, CdcContext cdcContext, StatementFunction<T> sf) throws SQLException {
+    public static <T> T executeDelete(Connection connection, CdcContext cdcContext, PsInvocation<T> sf) throws SQLException {
         String tableName = cdcContext.getTableName();
         String keyColumn = cdcContext.getKeyColumn();
         List<String> statementCdcSqlList = new ArrayList<>();
@@ -146,7 +146,7 @@ public class PsDelegate {
         return sf.invoke();
     }
 
-    public static <T> T executeUpdate(Connection connection, CdcContext cdcContext, StatementFunction<T> sf) throws SQLException {
+    public static <T> T executeUpdate(Connection connection, CdcContext cdcContext, PsInvocation<T> sf) throws SQLException {
         assertStableUpdateSql(cdcContext.getParameterizedSql(), cdcContext.getKeyColumn());
 
         T invoke = sf.invoke();
