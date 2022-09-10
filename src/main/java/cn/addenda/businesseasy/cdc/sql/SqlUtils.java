@@ -1,8 +1,7 @@
 package cn.addenda.businesseasy.cdc.sql;
 
 import cn.addenda.businesseasy.cdc.CdcException;
-import cn.addenda.ro.grammar.ast.CurdParser;
-import cn.addenda.ro.grammar.ast.CurdParserFactory;
+import cn.addenda.ro.grammar.ast.CurdUtils;
 import cn.addenda.ro.grammar.ast.create.Insert;
 import cn.addenda.ro.grammar.ast.create.InsertSelectRep;
 import cn.addenda.ro.grammar.ast.create.InsertSetRep;
@@ -87,8 +86,7 @@ public class SqlUtils {
         if (!isInsertSql(sql)) {
             throw new CdcException("only support insert sql. ");
         }
-        CurdParser curdParser = CurdParserFactory.createCurdParser(sql);
-        Insert insert = (Insert) curdParser.parse();
+        Insert insert = CurdUtils.parseInsert(sql);
         Curd insertRep = insert.getInsertRep();
         if (insertRep instanceof InsertSetRep) {
             InsertSetRep insertSetRep = (InsertSetRep) insertRep;
@@ -165,14 +163,13 @@ public class SqlUtils {
     }
 
     public static boolean checkStableUpdateSql(String sql, String keyColumn) {
-        CurdParser curdParser = CurdParserFactory.createCurdParser(sql);
-        Update update = (Update) curdParser.parse();
+        Update update = CurdUtils.parseUpdate(sql);
 
         // where 里的条件列
         WhereSeg whereSeg = (WhereSeg) update.getWhereSeg();
         Set<Token> conditionColumnList = new HashSet<>();
         if (whereSeg != null) {
-            conditionColumnList = whereSeg.accept(WhereSegConditionColumnVisitor.getInstance());
+            conditionColumnList = whereSeg.accept(WhereSegColumnVisitor.getInstance());
         }
         Set<String> updatedColumnNameLis = conditionColumnList
                 .stream().map(item -> String.valueOf(item.getLiteral())).collect(Collectors.toSet());
@@ -195,8 +192,7 @@ public class SqlUtils {
         }
 
         List<String> columnNameList = new ArrayList<>();
-        CurdParser curdParser = CurdParserFactory.createCurdParser(sql);
-        Curd parse = curdParser.parse();
+        Curd parse = CurdUtils.parse(sql);
         if (parse instanceof Insert) {
             Insert insert = (Insert) parse;
             Curd insertRep = insert.getInsertRep();
@@ -238,8 +234,7 @@ public class SqlUtils {
     }
 
     public static String insertInjectColumnValue(String sql, String keyColumn, Long firstResult) {
-        CurdParser curdParser = CurdParserFactory.createCurdParser(sql);
-        Insert insert = (Insert) curdParser.parse();
+        Insert insert = CurdUtils.parseInsert(sql);
         Curd insertRep = insert.getInsertRep();
         if (insertRep instanceof InsertSetRep) {
             InsertSetRep insertSetRep = (InsertSetRep) insertRep;
@@ -266,8 +261,7 @@ public class SqlUtils {
             throw new CdcException("only support insert and update sql. ");
         }
 
-        CurdParser curdParser = CurdParserFactory.createCurdParser(sql);
-        Curd parse = curdParser.parse();
+        Curd parse = CurdUtils.parse(sql);
         if (parse instanceof Insert) {
             Insert insert = (Insert) parse;
             Curd insertRep = insert.getInsertRep();

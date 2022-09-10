@@ -15,7 +15,7 @@
         <spring.version>5.3.22</spring.version>
         <lombok.version>1.18.22</lombok.version>
         <slf4j.version>1.7.36</slf4j.version>
-        <relational-operations-grammar.version>2.2.0</relational-operations-grammar.version>
+        <relational-operations-grammar.version>2.3.2-SNAPSHOT</relational-operations-grammar.version>
     </properties>
 
     <dependencies>

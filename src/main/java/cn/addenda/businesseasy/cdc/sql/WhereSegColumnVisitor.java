@@ -1,9 +1,8 @@
 package cn.addenda.businesseasy.cdc.sql;
 
 import cn.addenda.businesseasy.util.BEArrayUtil;
-import cn.addenda.ro.grammar.ast.CurdVisitor;
 import cn.addenda.ro.grammar.ast.expression.*;
-import cn.addenda.ro.grammar.ast.expression.visitor.ExpressionVisitorForDelegation;
+import cn.addenda.ro.grammar.ast.expression.visitor.ExpressionVisitor;
 import cn.addenda.ro.grammar.lexical.token.Token;
 
 import java.util.HashSet;
@@ -13,16 +12,20 @@ import java.util.Set;
  * @author addenda
  * @datetime 2022/9/4 13:41
  */
-public class WhereSegConditionColumnVisitor extends ExpressionVisitorForDelegation<Set<Token>> {
+public class WhereSegColumnVisitor extends ExpressionVisitor<Set<Token>> {
 
-    private static final WhereSegConditionColumnVisitor instance = new WhereSegConditionColumnVisitor(null);
+    private static final WhereSegColumnVisitor instance = new WhereSegColumnVisitor();
 
-    protected WhereSegConditionColumnVisitor(CurdVisitor<Set<Token>> client) {
-        super(client);
+    public static WhereSegColumnVisitor getInstance() {
+        return instance;
     }
 
-    public static WhereSegConditionColumnVisitor getInstance() {
-        return instance;
+    @Override
+    public Set<Token> visitInCondition(InCondition inCondition) {
+        Token in = inCondition.getIn();
+        Set<Token> tokenSet = new HashSet<>();
+        tokenSet.add(in);
+        return tokenSet;
     }
 
     @Override
