@@ -27,6 +27,8 @@ public class DefaultDataFormatterRegistry extends AbstractDataFormatterRegistry 
         addDataFormatter(new SqlTimeDataFormatter());
         addDataFormatter(new TimestampDataFormatter());
         addDataFormatter(new StringDataFormatter());
+        addDataFormatter(new OffsetDateTimeDataFormatter());
+        addDataFormatter(new ZonedDateTimeDataFormatter());
     }
 
 }

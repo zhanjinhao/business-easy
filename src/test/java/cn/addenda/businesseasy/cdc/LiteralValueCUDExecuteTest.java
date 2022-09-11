@@ -8,6 +8,8 @@ import org.junit.runners.MethodSorters;
 
 import javax.sql.DataSource;
 import java.sql.*;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 
 /**
  * @author addenda
@@ -38,7 +40,7 @@ public class LiteralValueCUDExecuteTest {
         ps.setString(3, "3");
         ps.setDate(4, new Date(System.currentTimeMillis()));
         ps.setTime(5, new Time(System.currentTimeMillis()));
-        ps.setTimestamp(6, new Timestamp(System.currentTimeMillis()));
+        ps.setObject(6, ZonedDateTime.now(ZoneId.of("America/New_York")));
         ps.setFloat(7, 1.1f);
         ps.setDouble(8, 2.2d);
 
