@@ -1,5 +1,7 @@
 package cn.addenda.businesseasy.cdc;
 
+import cn.addenda.businesseasy.cdc.format.DataFormatterRegistry;
+
 import java.util.List;
 
 /**
@@ -10,11 +12,13 @@ public class CdcContext {
     private final String parameterizedSql;
     private final List<String> executableSqlList;
     private final TableConfig tableConfig;
+    private final DataFormatterRegistry dataFormatterRegistry;
 
-    public CdcContext(String parameterizedSql, List<String> executableSqlList, TableConfig tableConfig) {
+    public CdcContext(String parameterizedSql, List<String> executableSqlList, TableConfig tableConfig, DataFormatterRegistry dataFormatterRegistry) {
         this.parameterizedSql = parameterizedSql;
         this.executableSqlList = executableSqlList;
         this.tableConfig = tableConfig;
+        this.dataFormatterRegistry = dataFormatterRegistry;
     }
 
     public String getParameterizedSql() {
@@ -31,6 +35,10 @@ public class CdcContext {
 
     public String getKeyColumn() {
         return tableConfig.getKeyColumn();
+    }
+
+    public DataFormatterRegistry getDataFormatterRegistry() {
+        return dataFormatterRegistry;
     }
 
     public boolean checkTableMode(String mode) {

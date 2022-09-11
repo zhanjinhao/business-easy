@@ -2,10 +2,12 @@ package cn.addenda.businesseasy.cdc;
 
 import cn.addenda.businesseasy.asynctask.BinaryResult;
 import cn.addenda.businesseasy.cdc.sql.SqlUtils;
+import cn.addenda.ro.grammar.lexical.token.Token;
 
 import java.math.BigInteger;
 import java.sql.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author addenda
@@ -13,28 +15,35 @@ import java.util.*;
  */
 public class PsDelegate {
 
-    private PsDelegate() {
+    private final CdcDataSource cdcDataSource;
+
+    private final CdcConnection cdcConnection;
+
+    private final PreparedStatement ps;
+
+    public PsDelegate(CdcDataSource cdcDataSource, CdcConnection cdcConnection, PreparedStatement ps) {
+        this.cdcDataSource = cdcDataSource;
+        this.cdcConnection = cdcConnection;
+        this.ps = ps;
     }
 
-    public static <T> T execute(Connection connection, PreparedStatement ps, CdcContext cdcContext, PsInvocation<T> sf) throws SQLException {
+    public <T> T execute(CdcContext cdcContext, PsInvocation<T> sf) throws SQLException {
         String sql = cdcContext.getParameterizedSql();
         if (SqlUtils.isInsertSql(sql)) {
-            return executeInsert(connection, ps, cdcContext, sf);
+            return executeInsert(cdcContext, sf);
         } else if (SqlUtils.isUpdateSql(sql)) {
-            return executeUpdate(connection, cdcContext, sf);
+            return executeUpdate(cdcContext, sf);
         } else if (SqlUtils.isDeleteSql(sql)) {
-            return executeDelete(connection, cdcContext, sf);
+            return executeDelete(cdcContext, sf);
         }
         throw new CdcException("Only support delete, insert, update sql. ");
     }
 
     /**
-     * @param connection
-     * @param ps
      * @param cdcContext
      * @throws SQLException
      */
-    public static <T> T executeInsert(Connection connection, PreparedStatement ps, CdcContext cdcContext, PsInvocation<T> sf) throws SQLException {
+    public <T> T executeInsert(CdcContext cdcContext, PsInvocation<T> sf) throws SQLException {
         T invoke = sf.invoke();
         List<String> executableSqlList = cdcContext.getExecutableSqlList();
         String keyColumn = cdcContext.getKeyColumn();
@@ -84,20 +93,23 @@ public class PsDelegate {
             if (cdcContext.checkTableMode(TableConfig.CM_ROW)) {
                 List<String> columnList = SqlUtils.extractNonLiteralColumnFromUpdateOrDeleteSql(executableSql);
                 if (!columnList.isEmpty()) {
-                    Map<String, Object> columnValueMap = queryColumnValueMap(connection, cdcContext, keyValue.getFirstResult(), columnList);
-                    executableSql = SqlUtils.UpdateOrInsertUpdateColumnValue(executableSql, columnValueMap);
+                    Map<String, Object> columnValueMap = queryColumnValueMap(cdcContext, keyValue.getFirstResult(), columnList);
+                    Map<String, Token> columnTokenMap = columnValueMap.entrySet()
+                            .stream()
+                            .collect(Collectors.toMap(Map.Entry::getKey, e -> cdcDataSource.getDataFormatterRegistry().parse(e.getValue())));
+                    executableSql = SqlUtils.UpdateOrInsertUpdateColumnValue(executableSql, columnTokenMap);
                 }
                 rowCdcSqlList.add(assembleCdcRecordSql(cdcContext.getTableName(), TableConfig.CM_ROW, executableSql));
             }
         }
-        executeCdcSql(connection, statementCdcSqlList);
-        executeCdcSql(connection, rowCdcSqlList);
+        executeCdcSql(cdcConnection.getDelegate(), statementCdcSqlList);
+        executeCdcSql(cdcConnection.getDelegate(), rowCdcSqlList);
 
         return invoke;
     }
 
-    private static Map<String, Object> queryColumnValueMap(Connection connection, CdcContext cdcContext, Long key, List<String> columnList) throws SQLException {
-        try (Statement statement = connection.createStatement()) {
+    private Map<String, Object> queryColumnValueMap(CdcContext cdcContext, Long key, List<String> columnList) throws SQLException {
+        try (Statement statement = cdcConnection.getDelegate().createStatement()) {
             Map<String, Object> map = new HashMap<>();
             String sql = "select "
                     + String.join(",", columnList) + " "
@@ -116,7 +128,7 @@ public class PsDelegate {
         }
     }
 
-    public static <T> T executeDelete(Connection connection, CdcContext cdcContext, PsInvocation<T> sf) throws SQLException {
+    public <T> T executeDelete(CdcContext cdcContext, PsInvocation<T> sf) throws SQLException {
         String tableName = cdcContext.getTableName();
         String keyColumn = cdcContext.getKeyColumn();
         List<String> statementCdcSqlList = new ArrayList<>();
@@ -129,7 +141,7 @@ public class PsDelegate {
             }
             // 对于ROW模式，需要记录下来具体删除的行。
             if (cdcContext.checkTableMode(TableConfig.CM_ROW)) {
-                try (Statement statement = connection.createStatement()) {
+                try (Statement statement = cdcConnection.getDelegate().createStatement()) {
                     // select 获取主键值：对于 DELETE 语句，select 先于 delete 执行，需要 for update 锁住数据
                     ResultSet resultSet = statement.executeQuery(
                             assembleSelectKeyValueSql(executableSql, tableName, keyColumn, true));
@@ -140,13 +152,13 @@ public class PsDelegate {
                 }
             }
         }
-        executeCdcSql(connection, statementCdcSqlList);
-        executeCdcSql(connection, rowCdcSqlList);
+        executeCdcSql(cdcConnection.getDelegate(), statementCdcSqlList);
+        executeCdcSql(cdcConnection.getDelegate(), rowCdcSqlList);
 
         return sf.invoke();
     }
 
-    public static <T> T executeUpdate(Connection connection, CdcContext cdcContext, PsInvocation<T> sf) throws SQLException {
+    public <T> T executeUpdate(CdcContext cdcContext, PsInvocation<T> sf) throws SQLException {
         assertStableUpdateSql(cdcContext.getParameterizedSql(), cdcContext.getKeyColumn());
 
         T invoke = sf.invoke();
@@ -162,7 +174,7 @@ public class PsDelegate {
             }
             // 对于ROW模式，需要记录下来具体更新的行。
             if (cdcContext.checkTableMode(TableConfig.CM_ROW)) {
-                try (Statement statement = connection.createStatement()) {
+                try (Statement statement = cdcConnection.getDelegate().createStatement()) {
                     // select 获取主键值：对于 UPDATE 语句，select 先于 update 执行，不需要 for update 锁住数据
                     ResultSet resultSet = statement.executeQuery(
                             assembleSelectKeyValueSql(executableSql, tableName, keyColumn, false));
@@ -171,8 +183,11 @@ public class PsDelegate {
                         long keyValue = resultSet.getLong(keyColumn);
                         String rowCdcSql = SqlUtils.replaceDmlWhereSeg(executableSql, "where " + keyColumn + " = " + keyValue);
                         if (!columnList.isEmpty()) {
-                            Map<String, Object> columnValueMap = queryColumnValueMap(connection, cdcContext, keyValue, columnList);
-                            rowCdcSql = SqlUtils.UpdateOrInsertUpdateColumnValue(rowCdcSql, columnValueMap);
+                            Map<String, Object> columnValueMap = queryColumnValueMap(cdcContext, keyValue, columnList);
+                            Map<String, Token> columnTokenMap = columnValueMap.entrySet()
+                                    .stream()
+                                    .collect(Collectors.toMap(Map.Entry::getKey, e -> cdcDataSource.getDataFormatterRegistry().parse(e.getValue())));
+                            rowCdcSql = SqlUtils.UpdateOrInsertUpdateColumnValue(rowCdcSql, columnTokenMap);
                         }
                         rowCdcSqlList.add(assembleCdcRecordSql(cdcContext.getTableName(), TableConfig.CM_ROW, rowCdcSql));
                     }
@@ -180,12 +195,12 @@ public class PsDelegate {
             }
         }
 
-        executeCdcSql(connection, statementCdcSqlList);
-        executeCdcSql(connection, rowCdcSqlList);
+        executeCdcSql(cdcConnection.getDelegate(), statementCdcSqlList);
+        executeCdcSql(cdcConnection.getDelegate(), rowCdcSqlList);
         return invoke;
     }
 
-    private static String assembleSelectKeyValueSql(String executableSql, String tableName, String keyColumn, boolean forUpdate) {
+    private String assembleSelectKeyValueSql(String executableSql, String tableName, String keyColumn, boolean forUpdate) {
         String sql = "select "
                 + keyColumn + " "
                 + "from "
@@ -194,18 +209,18 @@ public class PsDelegate {
         return forUpdate ? sql + "for update" : sql;
     }
 
-    private static String assembleCdcRecordSql(String tableName, String cdcMode, String executableSql) {
+    private String assembleCdcRecordSql(String tableName, String cdcMode, String executableSql) {
         return "insert into " + tableName + "_cdc_" + cdcMode + "(executable_sql) values("
                 + "'" + executableSql.replace("'", "\\'") + "')";
     }
 
-    private static void assertStableUpdateSql(String sql, String keyColumn) {
+    private void assertStableUpdateSql(String sql, String keyColumn) {
         if (!SqlUtils.checkStableUpdateSql(sql, keyColumn)) {
             throw new CdcException("update sql cannot update column which in where-condition and primary key column. ");
         }
     }
 
-    private static void executeCdcSql(Connection connection, List<String> cdcSqlList) throws SQLException {
+    private void executeCdcSql(Connection connection, List<String> cdcSqlList) throws SQLException {
         if (cdcSqlList == null || cdcSqlList.isEmpty()) {
             return;
         }

@@ -1,5 +1,8 @@
 package cn.addenda.businesseasy.cdc;
 
+import cn.addenda.businesseasy.cdc.format.DataFormatterRegistry;
+import cn.addenda.businesseasy.cdc.format.DefaultDataFormatterRegistry;
+
 import javax.sql.DataSource;
 import java.io.PrintWriter;
 import java.sql.Connection;
@@ -19,8 +22,16 @@ public class CdcDataSource implements DataSource {
 
     private final DataSource delegate;
 
+    private DataFormatterRegistry dataFormatterRegistry;
+
     public CdcDataSource(DataSource delegate) {
         this.delegate = delegate;
+        this.dataFormatterRegistry = new DefaultDataFormatterRegistry();
+    }
+
+    public CdcDataSource(DataSource delegate, DataFormatterRegistry dataFormatterRegistry) {
+        this.delegate = delegate;
+        this.dataFormatterRegistry = dataFormatterRegistry;
     }
 
     @Override
@@ -130,6 +141,14 @@ public class CdcDataSource implements DataSource {
 
     public TableConfig getTableConfig(String tableName) {
         return tableMetaData.get(tableName);
+    }
+
+    public void setDataFormatterRegistry(DataFormatterRegistry dataFormatterRegistry) {
+        this.dataFormatterRegistry = dataFormatterRegistry;
+    }
+
+    public DataFormatterRegistry getDataFormatterRegistry() {
+        return dataFormatterRegistry;
     }
 
 }

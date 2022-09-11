@@ -16,15 +16,7 @@ import cn.addenda.ro.grammar.lexical.scan.TokenSequence;
 import cn.addenda.ro.grammar.lexical.token.Token;
 import cn.addenda.ro.grammar.lexical.token.TokenType;
 
-import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.text.SimpleDateFormat;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -256,7 +248,7 @@ public class SqlUtils {
     }
 
 
-    public static String UpdateOrInsertUpdateColumnValue(String sql, Map<String, Object> columnValueMap) {
+    public static String UpdateOrInsertUpdateColumnValue(String sql, Map<String, Token> columnTokenMap) {
         if (!isInsertSql(sql) && !isUpdateSql(sql)) {
             throw new CdcException("only support insert and update sql. ");
         }
@@ -271,9 +263,8 @@ public class SqlUtils {
                 List<AssignmentList.Entry> entryList = assignmentList.getEntryList();
                 for (AssignmentList.Entry entry : entryList) {
                     String columnName = String.valueOf(entry.getColumn().getLiteral());
-                    if (columnValueMap.containsKey(columnName)) {
-                        Token token = parseObjectToToken(columnValueMap.get(columnName));
-                        entry.setValue(new Literal(token));
+                    if (columnTokenMap.containsKey(columnName)) {
+                        entry.setValue(new Literal(columnTokenMap.get(columnName)));
                     }
                 }
             } else if (insertRep instanceof InsertValuesRep) {
@@ -283,9 +274,8 @@ public class SqlUtils {
                 List<Token> columnList = insertValuesRep.getColumnList();
                 for (int i = 0; i < columnList.size(); i++) {
                     String columnName = String.valueOf(columnList.get(i).getLiteral());
-                    if (columnValueMap.containsKey(columnName)) {
-                        Token token = parseObjectToToken(columnValueMap.get(columnName));
-                        curdList.set(i, new Literal(token));
+                    if (columnTokenMap.containsKey(columnName)) {
+                        curdList.set(i, new Literal(columnTokenMap.get(columnName)));
                     }
                 }
             } else {
@@ -297,9 +287,8 @@ public class SqlUtils {
             List<AssignmentList.Entry> entryList = assignmentList.getEntryList();
             for (AssignmentList.Entry entry : entryList) {
                 String columnName = String.valueOf(entry.getColumn().getLiteral());
-                if (columnValueMap.containsKey(columnName)) {
-                    Token token = parseObjectToToken(columnValueMap.get(columnName));
-                    entry.setValue(new Literal(token));
+                if (columnTokenMap.containsKey(columnName)) {
+                    entry.setValue(new Literal(columnTokenMap.get(columnName)));
                 }
             }
         }
@@ -332,115 +321,6 @@ public class SqlUtils {
             }
         }
         return sb + " " + whereSeg;
-    }
-
-    private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT_THREAD_LOCAL = ThreadLocal.withInitial(() -> new SimpleDateFormat("yyyy-MM-dd"));
-    private static final ThreadLocal<SimpleDateFormat> TIME_FORMAT_THREAD_LOCAL = ThreadLocal.withInitial(() -> new SimpleDateFormat("HH:mm:ss"));
-    private static final ThreadLocal<SimpleDateFormat> DATETIME_FORMAT_THREAD_LOCAL = ThreadLocal.withInitial(() -> new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"));
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
-    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-    public static final String SINGLE_QUOTATION = "'";
-
-    public static String parseObjectToString(Object obj) {
-        assertDataType(obj);
-        if (obj == null) {
-            return "null";
-        } else if (obj instanceof Boolean) {
-            return Boolean.FALSE.equals(obj) ? "false" : "true";
-        } else if (obj instanceof Double) {
-            return obj.toString();
-        } else if (obj instanceof Float) {
-            return obj.toString();
-        } else if (obj instanceof Long) {
-            return obj.toString();
-        } else if (obj instanceof Integer) {
-            return obj.toString();
-        } else if (obj instanceof Short) {
-            return obj.toString();
-        } else if (obj instanceof Byte) {
-            return obj.toString();
-        } else if (obj instanceof Character) {
-            return SINGLE_QUOTATION + obj + SINGLE_QUOTATION;
-        } else if (obj instanceof CharSequence) {
-            return SINGLE_QUOTATION + obj + SINGLE_QUOTATION;
-        } else if (obj instanceof BigDecimal) {
-            return obj.toString();
-        } else if (obj instanceof BigInteger) {
-            return obj.toString();
-        } else if (obj instanceof java.sql.Date) {
-            return SINGLE_QUOTATION + DATE_FORMAT_THREAD_LOCAL.get().format((java.sql.Date) obj) + SINGLE_QUOTATION;
-        } else if (obj instanceof Time) {
-            return SINGLE_QUOTATION + TIME_FORMAT_THREAD_LOCAL.get().format((Time) obj) + SINGLE_QUOTATION;
-        } else if (obj instanceof Timestamp) {
-            return SINGLE_QUOTATION + DATETIME_FORMAT_THREAD_LOCAL.get().format((java.util.Date) obj) + SINGLE_QUOTATION;
-        } else if (obj instanceof java.util.Date) {
-            return SINGLE_QUOTATION + DATETIME_FORMAT_THREAD_LOCAL.get().format((java.util.Date) obj) + SINGLE_QUOTATION;
-        } else if (obj instanceof LocalDateTime) {
-            return SINGLE_QUOTATION + DATE_TIME_FORMATTER.format((LocalDateTime) obj) + SINGLE_QUOTATION;
-        } else if (obj instanceof LocalDate) {
-            return SINGLE_QUOTATION + DATE_FORMATTER.format((LocalDate) obj) + SINGLE_QUOTATION;
-        } else if (obj instanceof LocalTime) {
-            return SINGLE_QUOTATION + TIME_FORMATTER.format((LocalTime) obj) + SINGLE_QUOTATION;
-        }
-        return null;
-    }
-
-    public static Token parseObjectToToken(Object obj) {
-        assertDataType(obj);
-        if (obj == null) {
-            return new Token(TokenType.NULL, "null");
-        } else if (obj instanceof Boolean) {
-            return Boolean.FALSE.equals(obj) ? new Token(TokenType.FALSE, "false") : new Token(TokenType.TRUE, "true");
-        } else if (obj instanceof Double) {
-            return new Token(TokenType.DECIMAL, new BigDecimal(obj.toString()));
-        } else if (obj instanceof Float) {
-            return new Token(TokenType.DECIMAL, new BigDecimal(obj.toString()));
-        } else if (obj instanceof Long) {
-            return new Token(TokenType.INTEGER, new BigInteger(obj.toString()));
-        } else if (obj instanceof Integer) {
-            return new Token(TokenType.INTEGER, new BigInteger(obj.toString()));
-        } else if (obj instanceof Short) {
-            return new Token(TokenType.INTEGER, new BigInteger(obj.toString()));
-        } else if (obj instanceof Byte) {
-            return new Token(TokenType.INTEGER, new BigInteger(obj.toString()));
-        } else if (obj instanceof Character) {
-            return new Token(TokenType.STRING, obj.toString());
-        } else if (obj instanceof CharSequence) {
-            return new Token(TokenType.STRING, obj);
-        } else if (obj instanceof BigDecimal) {
-            return new Token(TokenType.DECIMAL, obj.toString());
-        } else if (obj instanceof BigInteger) {
-            return new Token(TokenType.INTEGER, obj.toString());
-        } else if (obj instanceof java.sql.Date) {
-            return new Token(TokenType.STRING, DATE_FORMAT_THREAD_LOCAL.get().format((java.sql.Date) obj));
-        } else if (obj instanceof Time) {
-            return new Token(TokenType.STRING, TIME_FORMAT_THREAD_LOCAL.get().format((Time) obj));
-        } else if (obj instanceof Timestamp) {
-            return new Token(TokenType.STRING, DATETIME_FORMAT_THREAD_LOCAL.get().format((java.util.Date) obj));
-        } else if (obj instanceof java.util.Date) {
-            return new Token(TokenType.STRING, DATETIME_FORMAT_THREAD_LOCAL.get().format((java.util.Date) obj));
-        } else if (obj instanceof LocalDateTime) {
-            return new Token(TokenType.STRING, DATE_TIME_FORMATTER.format((LocalDateTime) obj));
-        } else if (obj instanceof LocalDate) {
-            return new Token(TokenType.STRING, DATE_FORMATTER.format((LocalDate) obj));
-        } else if (obj instanceof LocalTime) {
-            return new Token(TokenType.STRING, TIME_FORMATTER.format((LocalTime) obj));
-        }
-        return null;
-    }
-
-    public static void assertDataType(Object object) {
-        if (object == null) {
-            return;
-        }
-        if (object instanceof Boolean || object instanceof Double || object instanceof Float || object instanceof Long ||
-                object instanceof Integer || object instanceof Short || object instanceof Byte || object instanceof Character ||
-                object instanceof CharSequence || object instanceof BigDecimal || object instanceof BigInteger || object instanceof Date ||
-                object instanceof LocalDateTime || object instanceof LocalDate || object instanceof LocalTime) {
-            return;
-        }
-        throw new CdcException("不支持的数据类型，仅支持：null, Boolean, Double, Float, Long, Integer, Short, Byte, Character, CharSequence, BigDecimal, BigInteger, Date, LocalDateTime, LocalDate, LocalTime. ");
     }
 
 }

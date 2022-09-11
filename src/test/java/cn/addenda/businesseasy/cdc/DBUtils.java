@@ -1,5 +1,7 @@
 package cn.addenda.businesseasy.cdc;
 
+import cn.addenda.businesseasy.cdc.format.DefaultDataFormatterRegistry;
+
 import javax.sql.DataSource;
 import java.io.PrintWriter;
 import java.sql.Connection;
@@ -87,7 +89,7 @@ public class DBUtils {
             }
         };
 
-        CdcDataSource cdcDataSource = new CdcDataSource(dataSource);
+        CdcDataSource cdcDataSource = new CdcDataSource(dataSource, new DefaultDataFormatterRegistry());
         cdcDataSource.setTableMetaData("t_cdc_test[id]s,r");
         return cdcDataSource;
     }

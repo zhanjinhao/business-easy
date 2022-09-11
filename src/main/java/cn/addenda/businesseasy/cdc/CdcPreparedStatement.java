@@ -1,6 +1,6 @@
 package cn.addenda.businesseasy.cdc;
 
-import cn.addenda.businesseasy.cdc.sql.SqlUtils;
+import cn.addenda.businesseasy.cdc.format.DataFormatterRegistry;
 import cn.addenda.businesseasy.util.BEArrayUtil;
 import cn.addenda.ro.grammar.lexical.scan.DefaultScanner;
 import cn.addenda.ro.grammar.lexical.scan.TokenSequence;
@@ -22,8 +22,6 @@ import java.util.List;
  */
 public class CdcPreparedStatement extends AbstractCdcStatement<PreparedStatement> implements PreparedStatement {
 
-    private static final String CDC_PREPARE_STATEMENT_UNSUPPORTED_DATA_TYPE_REASON = " is unsupported data type in cdc! ";
-
     private final String tableName;
 
     private final String parameterizedSql;
@@ -35,6 +33,8 @@ public class CdcPreparedStatement extends AbstractCdcStatement<PreparedStatement
     private final List<String> executableSqlList = new ArrayList<>();
 
     private int parameterCount;
+
+    private final PsDelegate psDelegate;
 
     /**
      * CdcPreparedStatement能被创建的前提:
@@ -58,6 +58,7 @@ public class CdcPreparedStatement extends AbstractCdcStatement<PreparedStatement
             }
         }
         parameterList = newParameterList();
+        psDelegate = new PsDelegate(getCdcDataSource(), connection, delegate);
     }
 
     @Override
@@ -74,20 +75,17 @@ public class CdcPreparedStatement extends AbstractCdcStatement<PreparedStatement
 
     @Override
     public boolean execute() throws SQLException {
-        return PsDelegate.execute(
-                connection.getDelegate(), this, newSqlHolder(getExecutableSql()), delegate::execute);
+        return psDelegate.execute(newCdcContext(getExecutableSql()), delegate::execute);
     }
 
     @Override
     public int executeUpdate() throws SQLException {
-        return PsDelegate.execute(
-                connection.getDelegate(), this, newSqlHolder(getExecutableSql()), delegate::executeUpdate);
+        return psDelegate.execute(newCdcContext(getExecutableSql()), delegate::executeUpdate);
     }
 
     @Override
     public long executeLargeUpdate() throws SQLException {
-        return PsDelegate.execute(
-                connection.getDelegate(), this, newSqlHolder(getExecutableSql()), delegate::executeLargeUpdate);
+        return psDelegate.execute(newCdcContext(getExecutableSql()), delegate::executeLargeUpdate);
     }
 
     // ---------------------
@@ -109,25 +107,24 @@ public class CdcPreparedStatement extends AbstractCdcStatement<PreparedStatement
 
     @Override
     public int[] executeBatch() throws SQLException {
-        return PsDelegate.execute(
-                connection.getDelegate(), this, newSqlHolder(executableSqlList), delegate::executeBatch);
+        return psDelegate.execute(newCdcContext(executableSqlList), delegate::executeBatch);
     }
 
     @Override
     public long[] executeLargeBatch() throws SQLException {
-        return PsDelegate.execute(
-                connection.getDelegate(), this, newSqlHolder(executableSqlList), delegate::executeLargeBatch);
+        return psDelegate.execute(newCdcContext(executableSqlList), delegate::executeLargeBatch);
     }
 
-    private CdcContext newSqlHolder(String executableSql) {
-        CdcDataSource cdcDataSource = connection.getCdcDataSource();
-        return new CdcContext(parameterizedSql, BEArrayUtil.asArrayList(executableSql), cdcDataSource.getTableConfig(tableName));
+    private CdcContext newCdcContext(String executableSql) {
+        CdcDataSource cdcDataSource = getCdcDataSource();
+        return new CdcContext(parameterizedSql, BEArrayUtil.asArrayList(executableSql),
+                cdcDataSource.getTableConfig(tableName), cdcDataSource.getDataFormatterRegistry());
     }
 
-
-    private CdcContext newSqlHolder(List<String> executableSqlList) {
-        CdcDataSource cdcDataSource = connection.getCdcDataSource();
-        return new CdcContext(parameterizedSql, executableSqlList, cdcDataSource.getTableConfig(tableName));
+    private CdcContext newCdcContext(List<String> executableSqlList) {
+        CdcDataSource cdcDataSource = getCdcDataSource();
+        return new CdcContext(parameterizedSql, executableSqlList,
+                cdcDataSource.getTableConfig(tableName), cdcDataSource.getDataFormatterRegistry());
     }
 
 
@@ -151,14 +148,14 @@ public class CdcPreparedStatement extends AbstractCdcStatement<PreparedStatement
 
     @Override
     public void setObject(int parameterIndex, Object x, SQLType targetSqlType) throws SQLException {
-        SqlUtils.assertDataType(x);
+        assertDataType(x.getClass());
         delegate.setObject(parameterIndex, x, targetSqlType);
         parameterList.set(parameterIndex - 1, x);
     }
 
     @Override
     public void setObject(int parameterIndex, Object x, SQLType targetSqlType, int scaleOrLength) throws SQLException {
-        SqlUtils.assertDataType(x);
+        assertDataType(x.getClass());
         delegate.setObject(parameterIndex, x, targetSqlType, scaleOrLength);
         parameterList.set(parameterIndex - 1, x);
     }
@@ -237,14 +234,14 @@ public class CdcPreparedStatement extends AbstractCdcStatement<PreparedStatement
 
     @Override
     public void setObject(int parameterIndex, Object x, int targetSqlType) throws SQLException {
-        SqlUtils.assertDataType(x);
+        assertDataType(x.getClass());
         delegate.setObject(parameterIndex, x, targetSqlType);
         parameterList.set(parameterIndex - 1, x);
     }
 
     @Override
     public void setObject(int parameterIndex, Object x) throws SQLException {
-        SqlUtils.assertDataType(x);
+        assertDataType(x.getClass());
         delegate.setObject(parameterIndex, x);
         parameterList.set(parameterIndex - 1, x);
     }
@@ -287,7 +284,7 @@ public class CdcPreparedStatement extends AbstractCdcStatement<PreparedStatement
 
     @Override
     public void setObject(int parameterIndex, Object x, int targetSqlType, int scaleOrLength) throws SQLException {
-        SqlUtils.assertDataType(x);
+        assertDataType(x.getClass());
         delegate.setObject(parameterIndex, x, targetSqlType, scaleOrLength);
         parameterList.set(parameterIndex - 1, x);
     }
@@ -301,10 +298,10 @@ public class CdcPreparedStatement extends AbstractCdcStatement<PreparedStatement
             TokenType type = token.getType();
             Object literal = token.getLiteral();
             if (TokenType.PARAMETER.equals(token.getType())) {
-                sql.append(" ").append(SqlUtils.parseObjectToString(parameterList.get(i)));
+                sql.append(" ").append(getCdcDataSource().getDataFormatterRegistry().format(parameterList.get(i)));
                 i++;
             } else if (TokenType.STRING.equals(type)) {
-                sql.append(" ").append(SqlUtils.SINGLE_QUOTATION).append(literal).append(SqlUtils.SINGLE_QUOTATION);
+                sql.append(" ").append(getCdcDataSource().getDataFormatterRegistry().format(literal));
             } else if (TokenType.EOF.equals(type)) {
 
             } else {
@@ -318,145 +315,178 @@ public class CdcPreparedStatement extends AbstractCdcStatement<PreparedStatement
         return sql.toString();
     }
 
-    // -----------------
-    //  下面的方法不能调用
-    // ----------------
-
     @Override
     public void setBytes(int parameterIndex, byte[] x) throws SQLException {
-        throw new CdcException(x.getClass().getSimpleName() + CDC_PREPARE_STATEMENT_UNSUPPORTED_DATA_TYPE_REASON);
+        assertDataType(x.getClass());
+        delegate.setBytes(parameterIndex, x);
     }
 
     @Override
     public void setAsciiStream(int parameterIndex, InputStream x, int length) throws SQLException {
-        throw new CdcException(x.getClass().getSimpleName() + CDC_PREPARE_STATEMENT_UNSUPPORTED_DATA_TYPE_REASON);
+        assertDataType(x.getClass());
+        delegate.setAsciiStream(parameterIndex, x, length);
     }
 
     @Override
     public void setUnicodeStream(int parameterIndex, InputStream x, int length) throws SQLException {
-        throw new CdcException(x.getClass().getSimpleName() + CDC_PREPARE_STATEMENT_UNSUPPORTED_DATA_TYPE_REASON);
+        assertDataType(x.getClass());
+        delegate.setUnicodeStream(parameterIndex, x, length);
     }
 
     @Override
     public void setBinaryStream(int parameterIndex, InputStream x, int length) throws SQLException {
-        throw new CdcException(x.getClass().getSimpleName() + CDC_PREPARE_STATEMENT_UNSUPPORTED_DATA_TYPE_REASON);
+        assertDataType(x.getClass());
+        delegate.setBinaryStream(parameterIndex, x, length);
     }
 
     @Override
     public void setCharacterStream(int parameterIndex, Reader reader, int length) throws SQLException {
-        throw new CdcException(reader.getClass().getSimpleName() + CDC_PREPARE_STATEMENT_UNSUPPORTED_DATA_TYPE_REASON);
+        assertDataType(reader.getClass());
+        delegate.setCharacterStream(parameterIndex, reader, length);
     }
 
     @Override
     public void setRef(int parameterIndex, Ref x) throws SQLException {
-        throw new CdcException(x.getClass().getSimpleName() + CDC_PREPARE_STATEMENT_UNSUPPORTED_DATA_TYPE_REASON);
+        assertDataType(x.getClass());
+        delegate.setRef(parameterIndex, x);
     }
 
     @Override
     public void setBlob(int parameterIndex, Blob x) throws SQLException {
-        throw new CdcException(x.getClass().getSimpleName() + CDC_PREPARE_STATEMENT_UNSUPPORTED_DATA_TYPE_REASON);
+        assertDataType(x.getClass());
+        delegate.setBlob(parameterIndex, x);
     }
 
     @Override
     public void setClob(int parameterIndex, Clob x) throws SQLException {
-        throw new CdcException(x.getClass().getSimpleName() + CDC_PREPARE_STATEMENT_UNSUPPORTED_DATA_TYPE_REASON);
+        assertDataType(x.getClass());
+        delegate.setClob(parameterIndex, x);
     }
 
     @Override
     public void setArray(int parameterIndex, Array x) throws SQLException {
-        throw new CdcException(x.getClass().getSimpleName() + CDC_PREPARE_STATEMENT_UNSUPPORTED_DATA_TYPE_REASON);
+        assertDataType(x.getClass());
+        delegate.setArray(parameterIndex, x);
     }
 
     @Override
     public void setURL(int parameterIndex, URL x) throws SQLException {
-        throw new CdcException(x.getClass().getSimpleName() + CDC_PREPARE_STATEMENT_UNSUPPORTED_DATA_TYPE_REASON);
+        assertDataType(x.getClass());
+        delegate.setURL(parameterIndex, x);
     }
 
     @Override
     public void setRowId(int parameterIndex, RowId x) throws SQLException {
-        throw new CdcException(x.getClass().getSimpleName() + CDC_PREPARE_STATEMENT_UNSUPPORTED_DATA_TYPE_REASON);
+        assertDataType(x.getClass());
+        delegate.setRowId(parameterIndex, x);
     }
 
     @Override
     public void setNCharacterStream(int parameterIndex, Reader value, long length) throws SQLException {
-        throw new CdcException(value.getClass().getSimpleName() + CDC_PREPARE_STATEMENT_UNSUPPORTED_DATA_TYPE_REASON);
+        assertDataType(value.getClass());
+        delegate.setNCharacterStream(parameterIndex, value, length);
     }
 
     @Override
     public void setNClob(int parameterIndex, NClob value) throws SQLException {
-        throw new CdcException(value.getClass().getSimpleName() + CDC_PREPARE_STATEMENT_UNSUPPORTED_DATA_TYPE_REASON);
+        assertDataType(value.getClass());
+        delegate.setNClob(parameterIndex, value);
     }
 
     @Override
     public void setClob(int parameterIndex, Reader reader, long length) throws SQLException {
-        throw new CdcException(reader.getClass().getSimpleName() + CDC_PREPARE_STATEMENT_UNSUPPORTED_DATA_TYPE_REASON);
+        assertDataType(reader.getClass());
+        delegate.setClob(parameterIndex, reader, length);
     }
 
     @Override
     public void setBlob(int parameterIndex, InputStream inputStream, long length) throws SQLException {
-        throw new CdcException(inputStream.getClass().getSimpleName() + CDC_PREPARE_STATEMENT_UNSUPPORTED_DATA_TYPE_REASON);
+        assertDataType(inputStream.getClass());
+        delegate.setBlob(parameterIndex, inputStream, length);
     }
 
     @Override
     public void setNClob(int parameterIndex, Reader reader, long length) throws SQLException {
-        throw new CdcException(reader.getClass().getSimpleName() + CDC_PREPARE_STATEMENT_UNSUPPORTED_DATA_TYPE_REASON);
+        assertDataType(reader.getClass());
+        delegate.setNClob(parameterIndex, reader, length);
     }
 
     @Override
     public void setSQLXML(int parameterIndex, SQLXML xmlObject) throws SQLException {
-        throw new CdcException(xmlObject.getClass().getSimpleName() + CDC_PREPARE_STATEMENT_UNSUPPORTED_DATA_TYPE_REASON);
+        assertDataType(xmlObject.getClass());
+        delegate.setSQLXML(parameterIndex, xmlObject);
     }
 
     @Override
     public void setAsciiStream(int parameterIndex, InputStream x, long length) throws SQLException {
-        throw new CdcException(x.getClass().getSimpleName() + CDC_PREPARE_STATEMENT_UNSUPPORTED_DATA_TYPE_REASON);
+        assertDataType(x.getClass());
+        delegate.setAsciiStream(parameterIndex, x, length);
     }
 
     @Override
     public void setBinaryStream(int parameterIndex, InputStream x, long length) throws SQLException {
-        throw new CdcException(x.getClass().getSimpleName() + CDC_PREPARE_STATEMENT_UNSUPPORTED_DATA_TYPE_REASON);
+        assertDataType(x.getClass());
+        delegate.setBinaryStream(parameterIndex, x, length);
     }
 
     @Override
     public void setCharacterStream(int parameterIndex, Reader reader, long length) throws SQLException {
-        throw new CdcException(reader.getClass().getSimpleName() + CDC_PREPARE_STATEMENT_UNSUPPORTED_DATA_TYPE_REASON);
+        assertDataType(reader.getClass());
+        delegate.setCharacterStream(parameterIndex, reader, length);
     }
 
     @Override
     public void setAsciiStream(int parameterIndex, InputStream x) throws SQLException {
-        throw new CdcException(x.getClass().getSimpleName() + CDC_PREPARE_STATEMENT_UNSUPPORTED_DATA_TYPE_REASON);
+        assertDataType(x.getClass());
+        delegate.setAsciiStream(parameterIndex, x);
     }
 
     @Override
     public void setBinaryStream(int parameterIndex, InputStream x) throws SQLException {
-        throw new CdcException(x.getClass().getSimpleName() + CDC_PREPARE_STATEMENT_UNSUPPORTED_DATA_TYPE_REASON);
+        assertDataType(x.getClass());
+        delegate.setBinaryStream(parameterIndex, x);
     }
 
     @Override
     public void setCharacterStream(int parameterIndex, Reader reader) throws SQLException {
-        throw new CdcException(reader.getClass().getSimpleName() + CDC_PREPARE_STATEMENT_UNSUPPORTED_DATA_TYPE_REASON);
+        assertDataType(reader.getClass());
+        delegate.setCharacterStream(parameterIndex, reader);
     }
 
     @Override
     public void setNCharacterStream(int parameterIndex, Reader value) throws SQLException {
-        throw new CdcException(value.getClass().getSimpleName() + CDC_PREPARE_STATEMENT_UNSUPPORTED_DATA_TYPE_REASON);
+        assertDataType(value.getClass());
+        delegate.setNCharacterStream(parameterIndex, value);
     }
 
     @Override
     public void setClob(int parameterIndex, Reader reader) throws SQLException {
-        throw new CdcException(reader.getClass().getSimpleName() + CDC_PREPARE_STATEMENT_UNSUPPORTED_DATA_TYPE_REASON);
+        assertDataType(reader.getClass());
+        delegate.setClob(parameterIndex, reader);
     }
 
     @Override
     public void setBlob(int parameterIndex, InputStream inputStream) throws SQLException {
-        throw new CdcException(inputStream.getClass().getSimpleName() + CDC_PREPARE_STATEMENT_UNSUPPORTED_DATA_TYPE_REASON);
+        assertDataType(inputStream.getClass());
+        delegate.setBlob(parameterIndex, inputStream);
     }
 
     @Override
     public void setNClob(int parameterIndex, Reader reader) throws SQLException {
-        throw new CdcException(reader.getClass().getSimpleName() + CDC_PREPARE_STATEMENT_UNSUPPORTED_DATA_TYPE_REASON);
+        assertDataType(reader.getClass());
+        delegate.setNClob(parameterIndex, reader);
     }
 
+    private CdcDataSource getCdcDataSource() {
+        return connection.getCdcDataSource();
+    }
+
+    private void assertDataType(Class<?> clazz) {
+        DataFormatterRegistry dataFormatterRegistry = getCdcDataSource().getDataFormatterRegistry();
+        if (!dataFormatterRegistry.typeAvailable(clazz)) {
+            throw new CdcException("不支持的数据类型，当前类型处理中心是：" + dataFormatterRegistry.getClass().getSimpleName() + "。");
+        }
+    }
 
     // -------------------
     //  下面的方法与CDC无关
