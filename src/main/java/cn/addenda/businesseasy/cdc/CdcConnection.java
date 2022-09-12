@@ -170,11 +170,6 @@ public class CdcConnection implements Connection {
         return delegate.prepareCall(sql, resultSetType, resultSetConcurrency, resultSetHoldability);
     }
 
-    // ------------------------------------------------------------------------------
-    //  此模块暂时仅考虑在Spring的环境下运行。
-    //  Spring中有自己的Savepoint实现，所以在Spring环境中，JDBC的Savepoint相关方法不会被执行。
-    // ------------------------------------------------------------------------------
-
     @Override
     public Savepoint setSavepoint() throws SQLException {
         return delegate.setSavepoint();
