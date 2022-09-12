@@ -142,9 +142,9 @@ public class PsDelegate {
             // 对于ROW模式，需要记录下来具体删除的行。
             if (cdcContext.checkTableMode(TableConfig.CM_ROW)) {
                 try (Statement statement = cdcConnection.getDelegate().createStatement()) {
-                    // select 获取主键值：对于 DELETE 语句，select 先于 delete 执行，需要 for update 锁住数据
+                    // select 获取主键值。
                     ResultSet resultSet = statement.executeQuery(
-                            assembleSelectKeyValueSql(executableSql, tableName, keyColumn, true));
+                            assembleSelectKeyValueSql(executableSql, tableName, keyColumn));
                     while (resultSet.next()) {
                         executableSql = "delete from " + tableName + " where " + keyColumn + "=" + resultSet.getLong(keyColumn);
                         rowCdcSqlList.add(assembleCdcRecordSql(cdcContext.getTableName(), TableConfig.CM_ROW, executableSql));
@@ -161,7 +161,6 @@ public class PsDelegate {
     public <T> T executeUpdate(CdcContext cdcContext, PsInvocation<T> sf) throws SQLException {
         assertStableUpdateSql(cdcContext.getParameterizedSql(), cdcContext.getKeyColumn());
 
-        T invoke = sf.invoke();
         String tableName = cdcContext.getTableName();
         String keyColumn = cdcContext.getKeyColumn();
         List<String> statementCdcSqlList = new ArrayList<>();
@@ -175,9 +174,9 @@ public class PsDelegate {
             // 对于ROW模式，需要记录下来具体更新的行。
             if (cdcContext.checkTableMode(TableConfig.CM_ROW)) {
                 try (Statement statement = cdcConnection.getDelegate().createStatement()) {
-                    // select 获取主键值：对于 UPDATE 语句，select 先于 update 执行，不需要 for update 锁住数据
+                    // select 获取主键值。
                     ResultSet resultSet = statement.executeQuery(
-                            assembleSelectKeyValueSql(executableSql, tableName, keyColumn, false));
+                            assembleSelectKeyValueSql(executableSql, tableName, keyColumn));
                     List<String> columnList = SqlUtils.extractNonLiteralColumnFromUpdateOrDeleteSql(executableSql);
                     while (resultSet.next()) {
                         long keyValue = resultSet.getLong(keyColumn);
@@ -197,16 +196,16 @@ public class PsDelegate {
 
         executeCdcSql(cdcConnection.getDelegate(), statementCdcSqlList);
         executeCdcSql(cdcConnection.getDelegate(), rowCdcSqlList);
-        return invoke;
+        return sf.invoke();
     }
 
-    private String assembleSelectKeyValueSql(String executableSql, String tableName, String keyColumn, boolean forUpdate) {
-        String sql = "select "
+    private String assembleSelectKeyValueSql(String executableSql, String tableName, String keyColumn) {
+        return "select "
                 + keyColumn + " "
                 + "from "
                 + tableName + " "
-                + SqlUtils.extractWhereConditionFromUpdateOrDeleteSql(executableSql) + " ";
-        return forUpdate ? sql + "for update" : sql;
+                + SqlUtils.extractWhereConditionFromUpdateOrDeleteSql(executableSql) + " "
+                + "for update";
     }
 
     private String assembleCdcRecordSql(String tableName, String cdcMode, String executableSql) {
