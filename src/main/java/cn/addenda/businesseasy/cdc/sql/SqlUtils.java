@@ -78,7 +78,7 @@ public class SqlUtils {
         if (!isInsertSql(sql)) {
             throw new CdcException("only support insert sql. ");
         }
-        Insert insert = CurdUtils.parseInsert(sql);
+        Insert insert = CurdUtils.parseInsert(sql, false);
         Curd insertRep = insert.getInsertRep();
         if (insertRep instanceof InsertSetRep) {
             InsertSetRep insertSetRep = (InsertSetRep) insertRep;
@@ -155,7 +155,7 @@ public class SqlUtils {
     }
 
     public static boolean checkStableUpdateSql(String sql, String keyColumn) {
-        Update update = CurdUtils.parseUpdate(sql);
+        Update update = CurdUtils.parseUpdate(sql, false);
 
         // where 里的条件列
         WhereSeg whereSeg = (WhereSeg) update.getWhereSeg();
@@ -184,7 +184,7 @@ public class SqlUtils {
         }
 
         List<String> columnNameList = new ArrayList<>();
-        Curd parse = CurdUtils.parse(sql);
+        Curd parse = CurdUtils.parse(sql, false);
         if (parse instanceof Insert) {
             Insert insert = (Insert) parse;
             Curd insertRep = insert.getInsertRep();
@@ -226,7 +226,7 @@ public class SqlUtils {
     }
 
     public static String insertInjectColumnValue(String sql, String keyColumn, Long firstResult) {
-        Insert insert = CurdUtils.parseInsert(sql);
+        Insert insert = CurdUtils.parseInsert(sql, false);
         Curd insertRep = insert.getInsertRep();
         if (insertRep instanceof InsertSetRep) {
             InsertSetRep insertSetRep = (InsertSetRep) insertRep;
@@ -253,7 +253,7 @@ public class SqlUtils {
             throw new CdcException("only support insert and update sql. ");
         }
 
-        Curd parse = CurdUtils.parse(sql);
+        Curd parse = CurdUtils.parse(sql, false);
         if (parse instanceof Insert) {
             Insert insert = (Insert) parse;
             Curd insertRep = insert.getInsertRep();
