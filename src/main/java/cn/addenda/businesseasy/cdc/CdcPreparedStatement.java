@@ -22,10 +22,6 @@ import java.util.List;
  */
 public class CdcPreparedStatement extends AbstractCdcStatement<PreparedStatement> implements PreparedStatement {
 
-    private final String tableName;
-
-    private final String parameterizedSql;
-
     private final TokenSequence tokenSequence;
 
     private List<Object> parameterList;
@@ -48,8 +44,6 @@ public class CdcPreparedStatement extends AbstractCdcStatement<PreparedStatement
      */
     public CdcPreparedStatement(String tableName, String parameterizedSql, PreparedStatement delegate, CdcConnection connection) {
         super(delegate, connection);
-        this.tableName = tableName;
-        this.parameterizedSql = parameterizedSql;
         this.tokenSequence = new DefaultScanner(parameterizedSql).scanTokens();
         List<Token> source = this.tokenSequence.getSource();
         for (Token token : source) {
@@ -58,7 +52,8 @@ public class CdcPreparedStatement extends AbstractCdcStatement<PreparedStatement
             }
         }
         parameterList = newParameterList();
-        psDelegate = new PsDelegate(getCdcDataSource(), connection, delegate);
+        psDelegate = new PsDelegate(getCdcDataSource(), connection, delegate,
+                connection.getCdcDataSource().getTableConfig(tableName), parameterizedSql);
     }
 
     @Override
@@ -75,17 +70,17 @@ public class CdcPreparedStatement extends AbstractCdcStatement<PreparedStatement
 
     @Override
     public boolean execute() throws SQLException {
-        return psDelegate.execute(newCdcContext(getExecutableSql()), delegate::execute);
+        return psDelegate.execute(BEArrayUtil.asArrayList(getExecutableSql()), delegate::execute);
     }
 
     @Override
     public int executeUpdate() throws SQLException {
-        return psDelegate.execute(newCdcContext(getExecutableSql()), delegate::executeUpdate);
+        return psDelegate.execute(BEArrayUtil.asArrayList(getExecutableSql()), delegate::executeUpdate);
     }
 
     @Override
     public long executeLargeUpdate() throws SQLException {
-        return psDelegate.execute(newCdcContext(getExecutableSql()), delegate::executeLargeUpdate);
+        return psDelegate.execute(BEArrayUtil.asArrayList(getExecutableSql()), delegate::executeLargeUpdate);
     }
 
     // ---------------------
@@ -107,26 +102,13 @@ public class CdcPreparedStatement extends AbstractCdcStatement<PreparedStatement
 
     @Override
     public int[] executeBatch() throws SQLException {
-        return psDelegate.execute(newCdcContext(executableSqlList), delegate::executeBatch);
+        return psDelegate.execute(executableSqlList, delegate::executeBatch);
     }
 
     @Override
     public long[] executeLargeBatch() throws SQLException {
-        return psDelegate.execute(newCdcContext(executableSqlList), delegate::executeLargeBatch);
+        return psDelegate.execute(executableSqlList, delegate::executeLargeBatch);
     }
-
-    private CdcContext newCdcContext(String executableSql) {
-        CdcDataSource cdcDataSource = getCdcDataSource();
-        return new CdcContext(parameterizedSql, BEArrayUtil.asArrayList(executableSql),
-                cdcDataSource.getTableConfig(tableName), cdcDataSource.getDataFormatterRegistry());
-    }
-
-    private CdcContext newCdcContext(List<String> executableSqlList) {
-        CdcDataSource cdcDataSource = getCdcDataSource();
-        return new CdcContext(parameterizedSql, executableSqlList,
-                cdcDataSource.getTableConfig(tableName), cdcDataSource.getDataFormatterRegistry());
-    }
-
 
     private List<Object> newParameterList() {
         List<Object> list = new ArrayList<>(parameterCount);
