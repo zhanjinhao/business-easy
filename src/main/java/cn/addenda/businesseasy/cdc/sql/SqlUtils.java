@@ -1,15 +1,13 @@
 package cn.addenda.businesseasy.cdc.sql;
 
+import cn.addenda.businesseasy.asynctask.BinaryResult;
 import cn.addenda.businesseasy.cdc.CdcException;
 import cn.addenda.ro.grammar.ast.CurdUtils;
 import cn.addenda.ro.grammar.ast.create.Insert;
 import cn.addenda.ro.grammar.ast.create.InsertSelectRep;
 import cn.addenda.ro.grammar.ast.create.InsertSetRep;
 import cn.addenda.ro.grammar.ast.create.InsertValuesRep;
-import cn.addenda.ro.grammar.ast.expression.AssignmentList;
-import cn.addenda.ro.grammar.ast.expression.Curd;
-import cn.addenda.ro.grammar.ast.expression.Literal;
-import cn.addenda.ro.grammar.ast.expression.WhereSeg;
+import cn.addenda.ro.grammar.ast.expression.*;
 import cn.addenda.ro.grammar.ast.update.Update;
 import cn.addenda.ro.grammar.lexical.scan.DefaultScanner;
 import cn.addenda.ro.grammar.lexical.scan.TokenSequence;
@@ -154,6 +152,33 @@ public class SqlUtils {
         return !wherePreTokenFg ? "" : sb.toString();
     }
 
+    public static String extractUpdateSegFromUpdateSql(String sql) {
+        if (!isUpdateSql(sql) && !isDeleteSql(sql)) {
+            throw new CdcException("only support update or delete sql. ");
+        }
+        TokenSequence tokenSequence = new DefaultScanner(sql).scanTokens();
+        List<Token> source = tokenSequence.getSource();
+        StringBuilder sb = new StringBuilder();
+        for (Token token : source) {
+            TokenType type = token.getType();
+            Object literal = token.getLiteral();
+            if (!TokenType.EOF.equals(type)) {
+                if (TokenType.STRING.equals(type)) {
+                    sb.append(" '").append(literal).append("'");
+                } else if (TokenType.WHERE.equals(type)) {
+                    break;
+                } else {
+                    // mysql 的函数 支持 now(), now( )写法，但是不支持 now (), now ( ) 写法。所以(前不留空格
+                    if (!("(".equals(literal))) {
+                        sb.append(" ");
+                    }
+                    sb.append(literal);
+                }
+            }
+        }
+        return sb.toString();
+    }
+
     public static boolean checkStableUpdateSql(String sql, String keyColumn) {
         Update update = CurdUtils.parseUpdate(sql, false);
 
@@ -163,7 +188,7 @@ public class SqlUtils {
         if (whereSeg != null) {
             conditionColumnList = whereSeg.accept(WhereSegColumnVisitor.getInstance());
         }
-        Set<String> updatedColumnNameLis = conditionColumnList
+        Set<String> conditionColumnNameList = conditionColumnList
                 .stream().map(item -> String.valueOf(item.getLiteral())).collect(Collectors.toSet());
 
         // where 里的条件列 和 key列 不能在更新列里面出现
@@ -171,14 +196,14 @@ public class SqlUtils {
         List<AssignmentList.Entry> entryList = assignmentList.getEntryList();
         for (AssignmentList.Entry entry : entryList) {
             String columnName = String.valueOf(entry.getColumn().getLiteral());
-            if (keyColumn.equals(columnName) || updatedColumnNameLis.contains(columnName)) {
+            if (keyColumn.equals(columnName) || conditionColumnNameList.contains(columnName)) {
                 return false;
             }
         }
         return true;
     }
 
-    public static List<String> extractNonLiteralColumnFromUpdateOrDeleteSql(String sql) {
+    public static List<String> extractNonLiteralColumnFromUpdateOrInsertSql(String sql) {
         if (!isInsertSql(sql) && !isUpdateSql(sql)) {
             throw new CdcException("only support insert and update sql. ");
         }
@@ -225,21 +250,20 @@ public class SqlUtils {
         return columnNameList;
     }
 
-    public static String insertInjectColumnValue(String sql, String keyColumn, Long firstResult) {
+    public static String insertInjectColumnValue(String sql, String keyColumn, Token token) {
         Insert insert = CurdUtils.parseInsert(sql, false);
         Curd insertRep = insert.getInsertRep();
         if (insertRep instanceof InsertSetRep) {
             InsertSetRep insertSetRep = (InsertSetRep) insertRep;
             AssignmentList assignmentList = (AssignmentList) insertSetRep.getAssignmentList();
             List<AssignmentList.Entry> entryList = assignmentList.getEntryList();
-            entryList.add(new AssignmentList.Entry(new Token(TokenType.IDENTIFIER, keyColumn),
-                    new Literal(new Token(TokenType.INTEGER, new BigInteger(String.valueOf(firstResult))))));
+            entryList.add(new AssignmentList.Entry(new Token(TokenType.IDENTIFIER, keyColumn), new Literal(token)));
         } else if (insertRep instanceof InsertValuesRep) {
             InsertValuesRep insertValuesRep = (InsertValuesRep) insertRep;
             List<Token> columnList = insertValuesRep.getColumnList();
             columnList.add(new Token(TokenType.IDENTIFIER, keyColumn));
             List<Curd> curdList = insertValuesRep.getCurdListList().get(0);
-            curdList.add(new Literal(new Token(TokenType.INTEGER, new BigInteger(String.valueOf(firstResult)))));
+            curdList.add(new Literal(token));
         } else if (insertRep instanceof InsertSelectRep) {
             throw new CdcException("不支持的Insert语法，仅支持：insert into T() values() 和 insert into T set c = '1' 两种语法");
         }
@@ -248,7 +272,7 @@ public class SqlUtils {
     }
 
 
-    public static String UpdateOrInsertUpdateColumnValue(String sql, Map<String, Token> columnTokenMap) {
+    public static String updateOrInsertUpdateColumnValue(String sql, Map<String, Token> columnTokenMap) {
         if (!isInsertSql(sql) && !isUpdateSql(sql)) {
             throw new CdcException("only support insert and update sql. ");
         }
@@ -321,6 +345,52 @@ public class SqlUtils {
             }
         }
         return sb + " " + whereSeg;
+    }
+
+
+    public static String tokenSequenceToSqlStr(TokenSequence tokenSequence) {
+        List<Token> source = tokenSequence.getSource();
+        StringBuilder sb = new StringBuilder();
+        for (Token token : source) {
+            TokenType type = token.getType();
+            Object literal = token.getLiteral();
+            if (TokenType.STRING.equals(type)) {
+                sb.append(" '").append(literal).append("'");
+            } else {
+                // mysql 的函数 支持 now(), now( )写法，但是不支持 now (), now ( ) 写法。所以(前不留空格
+                if (!("(".equals(literal))) {
+                    sb.append(" ");
+                }
+                sb.append(literal);
+            }
+        }
+        return sb.toString();
+    }
+
+    public static BinaryResult<String, List<Long>> separateUpdateSegAndKeyValues(String keyInOrKeyEqualConditionUpdateSql) {
+        Update update = CurdUtils.parseUpdate(keyInOrKeyEqualConditionUpdateSql);
+
+        List<Long> keyValueList = new ArrayList<>();
+        WhereSeg whereSeg = (WhereSeg) update.getWhereSeg();
+        Curd logic = whereSeg.getLogic();
+        if (logic instanceof InCondition) {
+            InCondition inCondition = (InCondition) logic;
+            List<Curd> range = inCondition.getRange();
+            for (Curd curd : range) {
+                Token value = ((Literal) curd).getValue();
+                keyValueList.add(((BigInteger) value.getLiteral()).longValue());
+            }
+        } else if (logic instanceof Comparison) {
+            Comparison comparison = (Comparison) logic;
+            Token value = ((Literal) comparison.getRightCurd()).getValue();
+            keyValueList.add(((BigInteger) value.getLiteral()).longValue());
+        } else {
+            throw new CdcException("仅支持 key in 和 key equal 语法！");
+        }
+
+        int whereIndex = keyInOrKeyEqualConditionUpdateSql.indexOf("where");
+        String updateSeg = keyInOrKeyEqualConditionUpdateSql.substring(0, whereIndex);
+        return new BinaryResult<>(updateSeg, keyValueList);
     }
 
 }

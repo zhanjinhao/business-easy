@@ -60,12 +60,14 @@ public class NonLiteralValueCUDExecuteBatchTest {
     @Test
     public void test02_update() throws Exception {
         PreparedStatement ps = connection.prepareStatement(
-                "update t_cdc_test set date_d = ?, time_d = ?, datetime_d =now() where long_d = ? + 1");
+                "update t_cdc_test set date_d = ?, time_d = ?, datetime_d =now(), float_d = ? where long_d = ? + 1");
         ps.setDate(1, new Date(System.currentTimeMillis()));
         ps.setTime(2, new Time(System.currentTimeMillis()));
-        ps.setLong(3, 1L);
+        ps.setFloat(3, 3.3f);
+        ps.setLong(4, 1L);
         ps.addBatch();
-        ps.setLong(3, 2L);
+        ps.setFloat(3, 3.4f);
+        ps.setLong(4, 2L);
         ps.addBatch();
 
         ps.executeBatch();

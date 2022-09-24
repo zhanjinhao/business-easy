@@ -52,7 +52,7 @@ public class CdcPreparedStatement extends AbstractCdcStatement<PreparedStatement
             }
         }
         parameterList = newParameterList();
-        psDelegate = new PsDelegate(getCdcDataSource(), connection, delegate,
+        psDelegate = new PsDelegate(connection, delegate,
                 connection.getCdcDataSource().getTableConfig(tableName), parameterizedSql);
     }
 

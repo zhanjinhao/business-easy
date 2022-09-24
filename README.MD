@@ -15,3 +15,5 @@ spring-easy 和 mybatis-easy 的基础依赖。
 6、增加对SavePoint的支持。 √
 
 7、增加重放工具类。
+
+8、executeCdcSql 执行前优化。
