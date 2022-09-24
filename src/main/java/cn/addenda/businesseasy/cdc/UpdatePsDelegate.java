@@ -1,0 +1,109 @@
+package cn.addenda.businesseasy.cdc;
+
+import cn.addenda.businesseasy.asynctask.BinaryResult;
+import cn.addenda.businesseasy.cdc.sql.SqlUtils;
+import cn.addenda.businesseasy.util.BEListUtil;
+import cn.addenda.ro.grammar.lexical.token.Token;
+
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * @author addenda
+ * @datetime 2022/9/24 9:52
+ */
+public class UpdatePsDelegate extends AbstractPsDelegate {
+
+    public UpdatePsDelegate(CdcConnection cdcConnection, PreparedStatement ps, TableConfig tableConfig, String parameterizedSql) {
+        super(cdcConnection, ps, tableConfig, parameterizedSql);
+    }
+
+    @Override
+    public <T> T execute(List<String> executableSqlList, PsInvocation<T> pi) throws SQLException {
+        assertStableUpdateSql(parameterizedSql, keyColumn);
+
+        // -------------------------------------
+        //  对于Statement模式来说，记录下来SQL就行了
+        // -------------------------------------
+        if (checkTableMode(TableConfig.CM_STATEMENT)) {
+            List<String> statementCdcSqlList = new ArrayList<>(executableSqlList);
+            executeCdcSql(TableConfig.CM_STATEMENT, statementCdcSqlList);
+        }
+
+        // ----------------------------------
+        //  对于ROW模式，需要记录下来具体更新的行。
+        // ----------------------------------
+        if (checkTableMode(TableConfig.CM_ROW)) {
+            List<String> rowCdcSqlList = new ArrayList<>();
+            List<String> columnList = SqlUtils.extractNonLiteralColumnFromUpdateOrInsertSql(parameterizedSql);
+            try (Statement keyValueStatement = cdcConnection.getDelegate().createStatement()) {
+                for (String executableSql : executableSqlList) {
+                    // select 获取主键值。
+                    List<Long> keyValueList = lockKey(keyValueStatement, executableSql);
+
+                    // 进行 1:n -> 1:1 优化
+                    if (columnList.isEmpty()) {
+                        List<List<Long>> listList = BEListUtil.splitList(keyValueList, IN_SIZE);
+                        for (List<Long> item : listList) {
+                            String rowCdcSql = SqlUtils.replaceDmlWhereSeg(executableSql, "where " + keyColumn + " in (" + longListToString(item) + ")");
+                            rowCdcSqlList.add(SqlUtils.updateOrInsertUpdateColumnValue(rowCdcSql, Collections.EMPTY_MAP));
+                        }
+                    }
+                    // 无法进行 1:n -> 1:1 优化
+                    else {
+                        try (Statement statement = cdcConnection.getDelegate().createStatement()) {
+                            Map<Long, Map<String, Token>> keyColumnTokenMap = queryKeyColumnTokenMap(statement, keyValueList, columnList);
+                            for (Long keyValue : keyValueList) {
+                                String rowCdcSql = SqlUtils.replaceDmlWhereSeg(executableSql, "where " + keyColumn + " = " + keyValue);
+                                Map<String, Token> columnTokenMap = keyColumnTokenMap.get(keyValue);
+                                rowCdcSqlList.add(SqlUtils.updateOrInsertUpdateColumnValue(rowCdcSql, columnTokenMap));
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 1:1 -> n:1 优化
+            List<String> tmpSqlList = new ArrayList<>(rowCdcSqlList);
+            rowCdcSqlList.clear();
+            List<Long> sameUpdateSegKeyValueList = new ArrayList<>();
+            String preUpdateSeg = null;
+            for (String rowCdcSql : tmpSqlList) {
+                BinaryResult<String, List<Long>> binaryResult = SqlUtils.separateUpdateSegAndKeyValues(rowCdcSql);
+                String curUpdateSeg = binaryResult.getFirstResult();
+                if (preUpdateSeg == null || preUpdateSeg.equals(curUpdateSeg)) {
+                    sameUpdateSegKeyValueList.addAll(binaryResult.getSecondResult());
+                } else {
+                    rowCdcSqlList.addAll(assembleRowUpdateSqlList(preUpdateSeg, sameUpdateSegKeyValueList));
+                    sameUpdateSegKeyValueList.clear();
+                    sameUpdateSegKeyValueList.addAll(binaryResult.getSecondResult());
+                }
+                preUpdateSeg = curUpdateSeg;
+            }
+            rowCdcSqlList.addAll(assembleRowUpdateSqlList(preUpdateSeg, sameUpdateSegKeyValueList));
+
+            executeCdcSql(TableConfig.CM_ROW, rowCdcSqlList);
+        }
+
+        return pi.invoke();
+    }
+
+    private List<String> assembleRowUpdateSqlList(String updateSeg, List<Long> keyValueList) {
+        List<String> rowCdcSqlList = new ArrayList<>();
+        List<List<Long>> listList = BEListUtil.splitList(keyValueList, IN_SIZE);
+        listList.forEach(item -> rowCdcSqlList.add(updateSeg + " where " + keyColumn + " in (" + longListToString(item) + ")"));
+        return rowCdcSqlList;
+    }
+
+    private void assertStableUpdateSql(String sql, String keyColumn) {
+        if (!SqlUtils.checkStableUpdateSql(sql, keyColumn)) {
+            throw new CdcException("update sql cannot update column which in where-condition and primary key column. ");
+        }
+    }
+
+}
