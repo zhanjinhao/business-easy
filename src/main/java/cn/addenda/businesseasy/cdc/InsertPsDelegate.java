@@ -20,8 +20,14 @@ import java.util.Map;
  */
 public class InsertPsDelegate extends AbstractPsDelegate {
 
+    /**
+     * 这些列必须从数据库里面取。
+     */
+    private final List<String> dependentColumnList;
+
     public InsertPsDelegate(CdcConnection cdcConnection, PreparedStatement ps, TableConfig tableConfig, String parameterizedSql) {
         super(cdcConnection, ps, tableConfig, parameterizedSql);
+        dependentColumnList = SqlUtils.extractDependentColumnFromUpdateOrInsertSql(parameterizedSql);
     }
 
     @Override
@@ -44,10 +50,9 @@ public class InsertPsDelegate extends AbstractPsDelegate {
         // ----------------------------------
         if (checkTableMode(TableConfig.CM_ROW)) {
             List<String> rowCdcSqlList = new ArrayList<>();
-            List<String> columnList = SqlUtils.extractNonLiteralColumnFromUpdateOrInsertSql(parameterizedSql);
-            if (!columnList.isEmpty()) {
+            if (!dependentColumnList.isEmpty()) {
                 try (Statement statement = cdcConnection.getDelegate().createStatement()) {
-                    Map<Long, Map<String, Token>> keyColumnTokenMap = queryKeyColumnTokenMap(statement, keyValueList, columnList);
+                    Map<Long, Map<String, Token>> keyColumnTokenMap = queryKeyColumnTokenMap(statement, keyValueList, dependentColumnList);
                     for (int i = 0; i < keyValueList.size(); i++) {
                         Long keyValue = keyValueList.get(i);
                         Map<String, Token> columnTokenMap = keyColumnTokenMap.get(keyValue);

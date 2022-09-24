@@ -203,7 +203,7 @@ public class SqlUtils {
         return true;
     }
 
-    public static List<String> extractNonLiteralColumnFromUpdateOrInsertSql(String sql) {
+    public static List<String> extractDependentColumnFromUpdateOrInsertSql(String sql) {
         if (!isInsertSql(sql) && !isUpdateSql(sql)) {
             throw new CdcException("only support insert and update sql. ");
         }

@@ -2,20 +2,23 @@ spring-easy 和 mybatis-easy 的基础依赖。
 
 
 # TODO
-1、cdc 支持 OffsetDateTime 和 ZonedDateTime。 √
 
-2、类型转换做成可配置的，与数据源关联。 √
+01、cdc 支持 OffsetDateTime 和 ZonedDateTime。 √
 
-3、cdc 引入 diff 模式。
+02、类型转换做成可配置的，与数据源关联。 √
 
-4、cdc 引入 compare 模式。
+03、cdc 引入 diff 模式。
 
-5、row模式性能优化。 √
+04、cdc 引入 compare 模式。
 
-6、增加对SavePoint的支持。 √
+05、row模式性能优化。 √
 
-7、增加重放工具类。
+06、增加对SavePoint的支持。 √
 
-8、executeCdcSql 执行前优化。
+07、增加重放工具类。
 
-9、引入表达式计算器增强 1:1 -> n:1 模式的优化。
+08、executeCdcSql 执行前优化。 √
+
+09、引入表达式计算器增强 1:1 -> n:1 模式的优化。
+
+10、将SQL转为插入字段的字符串 bugfix。

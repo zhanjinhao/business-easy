@@ -19,13 +19,19 @@ import java.util.Map;
  */
 public class UpdatePsDelegate extends AbstractPsDelegate {
 
+    /**
+     * 这些列必须从数据库里面取。
+     */
+    private final List<String> dependentColumnList;
+
     public UpdatePsDelegate(CdcConnection cdcConnection, PreparedStatement ps, TableConfig tableConfig, String parameterizedSql) {
         super(cdcConnection, ps, tableConfig, parameterizedSql);
+        dependentColumnList = SqlUtils.extractDependentColumnFromUpdateOrInsertSql(parameterizedSql);
     }
 
     @Override
     public <T> T execute(List<String> executableSqlList, PsInvocation<T> pi) throws SQLException {
-        assertStableUpdateSql(parameterizedSql, keyColumn);
+        assertStableUpdateSql(parameterizedSql);
 
         // -------------------------------------
         //  对于Statement模式来说，记录下来SQL就行了
@@ -40,14 +46,13 @@ public class UpdatePsDelegate extends AbstractPsDelegate {
         // ----------------------------------
         if (checkTableMode(TableConfig.CM_ROW)) {
             List<String> rowCdcSqlList = new ArrayList<>();
-            List<String> columnList = SqlUtils.extractNonLiteralColumnFromUpdateOrInsertSql(parameterizedSql);
             try (Statement keyValueStatement = cdcConnection.getDelegate().createStatement()) {
                 for (String executableSql : executableSqlList) {
                     // select 获取主键值。
                     List<Long> keyValueList = lockKey(keyValueStatement, executableSql);
 
                     // 进行 1:n -> 1:1 优化
-                    if (columnList.isEmpty()) {
+                    if (dependentColumnList.isEmpty()) {
                         List<List<Long>> listList = BEListUtil.splitList(keyValueList, IN_SIZE);
                         for (List<Long> item : listList) {
                             String rowCdcSql = SqlUtils.replaceDmlWhereSeg(executableSql, "where " + keyColumn + " in (" + longListToString(item) + ")");
@@ -57,7 +62,7 @@ public class UpdatePsDelegate extends AbstractPsDelegate {
                     // 无法进行 1:n -> 1:1 优化
                     else {
                         try (Statement statement = cdcConnection.getDelegate().createStatement()) {
-                            Map<Long, Map<String, Token>> keyColumnTokenMap = queryKeyColumnTokenMap(statement, keyValueList, columnList);
+                            Map<Long, Map<String, Token>> keyColumnTokenMap = queryKeyColumnTokenMap(statement, keyValueList, dependentColumnList);
                             for (Long keyValue : keyValueList) {
                                 String rowCdcSql = SqlUtils.replaceDmlWhereSeg(executableSql, "where " + keyColumn + " = " + keyValue);
                                 Map<String, Token> columnTokenMap = keyColumnTokenMap.get(keyValue);
@@ -100,7 +105,7 @@ public class UpdatePsDelegate extends AbstractPsDelegate {
         return rowCdcSqlList;
     }
 
-    private void assertStableUpdateSql(String sql, String keyColumn) {
+    private void assertStableUpdateSql(String sql) {
         if (!SqlUtils.checkStableUpdateSql(sql, keyColumn)) {
             throw new CdcException("update sql cannot update column which in where-condition and primary key column. ");
         }
