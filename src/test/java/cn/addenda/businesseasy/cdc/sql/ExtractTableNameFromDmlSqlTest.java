@@ -52,16 +52,16 @@ public class ExtractTableNameFromDmlSqlTest {
 
     @Test
     public void test5() {
-        System.out.println(SqlUtils.extractDependentColumnFromUpdateOrInsertSql(
+        System.out.println(SqlUtils.divideColumnFromUpdateOrInsertSql(
                 "update runoob_tbl set runoob_title=replace( runoob_title , 'c++', 'python' )  where runoob_title  = '1'"));
 
-        System.out.println(SqlUtils.extractDependentColumnFromUpdateOrInsertSql(
+        System.out.println(SqlUtils.divideColumnFromUpdateOrInsertSql(
                 "update runoob_tbl set runoob_title=replace( '1234567' , 'c++', 'python' )  where runoob_title  = '1'"));
 
-        System.out.println(SqlUtils.extractDependentColumnFromUpdateOrInsertSql(
+        System.out.println(SqlUtils.divideColumnFromUpdateOrInsertSql(
                 "update runoob_tbl set id=?  + 1 , b=1"));
 
-        System.out.println(SqlUtils.extractDependentColumnFromUpdateOrInsertSql(
+        System.out.println(SqlUtils.divideColumnFromUpdateOrInsertSql(
                 "update runoob_tbl set id=1  + 1 , b=?"));
 
     }

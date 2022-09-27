@@ -24,9 +24,16 @@ public class UpdatePsDelegate extends AbstractPsDelegate {
      */
     private final List<String> dependentColumnList;
 
+    /**
+     * 这些列需要用表达式计算器计算
+     */
+    private final List<String> calculableColumnList;
+
     public UpdatePsDelegate(CdcConnection cdcConnection, PreparedStatement ps, TableConfig tableConfig, String parameterizedSql) {
         super(cdcConnection, ps, tableConfig, parameterizedSql);
-        dependentColumnList = SqlUtils.extractDependentColumnFromUpdateOrInsertSql(parameterizedSql);
+        BinaryResult<List<String>, List<String>> binaryResult = SqlUtils.divideColumnFromUpdateOrInsertSql(parameterizedSql);
+        dependentColumnList = binaryResult.getFirstResult();
+        calculableColumnList = binaryResult.getSecondResult();
     }
 
     @Override

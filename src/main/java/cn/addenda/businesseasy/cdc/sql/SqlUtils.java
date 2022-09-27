@@ -203,12 +203,18 @@ public class SqlUtils {
         return true;
     }
 
-    public static List<String> extractDependentColumnFromUpdateOrInsertSql(String sql) {
+    /**
+     * @param sql
+     * @return first dependentColumnNameList; second calculableColumnNameList
+     */
+    public static BinaryResult<List<String>, List<String>> divideColumnFromUpdateOrInsertSql(String sql) {
         if (!isInsertSql(sql) && !isUpdateSql(sql)) {
             throw new CdcException("only support insert and update sql. ");
         }
 
-        List<String> columnNameList = new ArrayList<>();
+        List<String> dependentColumnNameList = new ArrayList<>();
+        List<String> calculableColumnNameList = new ArrayList<>();
+
         Curd parse = CurdUtils.parse(sql, false);
         if (parse instanceof Insert) {
             Insert insert = (Insert) parse;
@@ -218,8 +224,14 @@ public class SqlUtils {
                 AssignmentList assignmentList = (AssignmentList) insertSetRep.getAssignmentList();
                 List<AssignmentList.Entry> entryList = assignmentList.getEntryList();
                 for (AssignmentList.Entry entry : entryList) {
-                    if (!(entry.getValue() instanceof Literal)) {
-                        columnNameList.add(String.valueOf(entry.getColumn().getLiteral()));
+                    Curd value = entry.getValue();
+                    String columnName = String.valueOf(entry.getColumn().getLiteral());
+                    if (value instanceof Literal) {
+                        // no-op
+                    } else if (value.accept(CalculableColumnVisitor.getInstance())) {
+                        calculableColumnNameList.add(columnName);
+                    } else {
+                        dependentColumnNameList.add(columnName);
                     }
                 }
             } else if (insertRep instanceof InsertValuesRep) {
@@ -228,9 +240,14 @@ public class SqlUtils {
                 List<Curd> curdList = curdListList.get(0);
                 List<Token> columnList = insertValuesRep.getColumnList();
                 for (int i = 0; i < curdList.size(); i++) {
-                    Curd curd = curdList.get(i);
-                    if (!(curd instanceof Literal)) {
-                        columnNameList.add(String.valueOf(columnList.get(i).getLiteral()));
+                    Curd value = curdList.get(i);
+                    String columnName = String.valueOf(columnList.get(i));
+                    if (value instanceof Literal) {
+                        // no-op
+                    } else if (value.accept(CalculableColumnVisitor.getInstance())) {
+                        calculableColumnNameList.add(columnName);
+                    } else {
+                        dependentColumnNameList.add(columnName);
                     }
                 }
             } else {
@@ -241,13 +258,19 @@ public class SqlUtils {
             AssignmentList assignmentList = (AssignmentList) update.getAssignmentList();
             List<AssignmentList.Entry> entryList = assignmentList.getEntryList();
             for (AssignmentList.Entry entry : entryList) {
-                if (!(entry.getValue() instanceof Literal)) {
-                    columnNameList.add(String.valueOf(entry.getColumn().getLiteral()));
+                Curd value = entry.getValue();
+                String columnName = String.valueOf(entry.getColumn().getLiteral());
+                if (value instanceof Literal) {
+                    // no-op
+                } else if (value.accept(CalculableColumnVisitor.getInstance())) {
+                    calculableColumnNameList.add(columnName);
+                } else {
+                    dependentColumnNameList.add(columnName);
                 }
             }
         }
 
-        return columnNameList;
+        return new BinaryResult<>(dependentColumnNameList, calculableColumnNameList);
     }
 
     public static String insertInjectColumnValue(String sql, String keyColumn, Token token) {

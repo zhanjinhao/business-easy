@@ -16,6 +16,7 @@
         <lombok.version>1.18.22</lombok.version>
         <slf4j.version>1.7.36</slf4j.version>
         <relational-operations-grammar.version>2.3.2-SNAPSHOT</relational-operations-grammar.version>
+        <expression-calculator.version>1.0.1-SNAPSHOT</expression-calculator.version>
     </properties>
 
     <dependencies>
@@ -58,6 +59,11 @@
             <groupId>cn.addenda</groupId>
             <artifactId>relational-operations-grammar</artifactId>
             <version>${relational-operations-grammar.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>cn.addenda</groupId>
+            <artifactId>expression-calculator</artifactId>
+            <version>${expression-calculator.version}</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
