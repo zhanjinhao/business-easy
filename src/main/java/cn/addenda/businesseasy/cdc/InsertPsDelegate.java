@@ -63,7 +63,7 @@ public class InsertPsDelegate extends AbstractPsDelegate {
                     for (int i = 0; i < keyValueList.size(); i++) {
                         Long keyValue = keyValueList.get(i);
                         Map<String, Token> columnTokenMap = keyColumnTokenMap.get(keyValue);
-                        rowCdcSqlList.add(SqlUtils.updateOrInsertUpdateColumnValue(executableSqlList.get(i), columnTokenMap));
+                        rowCdcSqlList.add(SqlUtils.updateOrInsertUpdateColumnValue(executableSqlList.get(i), columnTokenMap, calculableColumnList, dataFormatterRegistry));
                     }
                 }
             } else {

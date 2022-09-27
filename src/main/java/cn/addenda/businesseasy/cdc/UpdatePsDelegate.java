@@ -63,7 +63,7 @@ public class UpdatePsDelegate extends AbstractPsDelegate {
                         List<List<Long>> listList = BEListUtil.splitList(keyValueList, IN_SIZE);
                         for (List<Long> item : listList) {
                             String rowCdcSql = SqlUtils.replaceDmlWhereSeg(executableSql, "where " + keyColumn + " in (" + longListToString(item) + ")");
-                            rowCdcSqlList.add(SqlUtils.updateOrInsertUpdateColumnValue(rowCdcSql, Collections.EMPTY_MAP));
+                            rowCdcSqlList.add(SqlUtils.updateOrInsertUpdateColumnValue(rowCdcSql, Collections.EMPTY_MAP, calculableColumnList, dataFormatterRegistry));
                         }
                     }
                     // 无法进行 1:n -> 1:1 优化
@@ -73,7 +73,7 @@ public class UpdatePsDelegate extends AbstractPsDelegate {
                             for (Long keyValue : keyValueList) {
                                 String rowCdcSql = SqlUtils.replaceDmlWhereSeg(executableSql, "where " + keyColumn + " = " + keyValue);
                                 Map<String, Token> columnTokenMap = keyColumnTokenMap.get(keyValue);
-                                rowCdcSqlList.add(SqlUtils.updateOrInsertUpdateColumnValue(rowCdcSql, columnTokenMap));
+                                rowCdcSqlList.add(SqlUtils.updateOrInsertUpdateColumnValue(rowCdcSql, columnTokenMap, calculableColumnList, dataFormatterRegistry));
                             }
                         }
                     }

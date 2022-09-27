@@ -19,6 +19,8 @@ spring-easy 和 mybatis-easy 的基础依赖。
 
 08、executeCdcSql 执行前优化。 √
 
-09、引入表达式计算器增强 1:1 -> n:1 模式的优化。
+09、引入表达式计算器减少从数据库取数。
 
 10、将SQL转为插入字段的字符串 bugfix。
+
+11、insert 支持多 values 语法。

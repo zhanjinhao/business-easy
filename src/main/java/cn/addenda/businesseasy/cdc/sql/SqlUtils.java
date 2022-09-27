@@ -2,6 +2,9 @@ package cn.addenda.businesseasy.cdc.sql;
 
 import cn.addenda.businesseasy.asynctask.BinaryResult;
 import cn.addenda.businesseasy.cdc.CdcException;
+import cn.addenda.businesseasy.cdc.format.DataFormatterRegistry;
+import cn.addenda.ec.calculator.CalculatorFactory;
+import cn.addenda.ec.function.calculator.DefaultFunctionCalculator;
 import cn.addenda.ro.grammar.ast.CurdUtils;
 import cn.addenda.ro.grammar.ast.create.Insert;
 import cn.addenda.ro.grammar.ast.create.InsertSelectRep;
@@ -56,8 +59,8 @@ public class SqlUtils {
         boolean tableNamePreTokenFg = false;
         for (Token token : source) {
             if (TokenType.UPDATE.equals(token.getType()) ||
-                    TokenType.INTO.equals(token.getType()) ||
-                    TokenType.FROM.equals(token.getType())) {
+                TokenType.INTO.equals(token.getType()) ||
+                TokenType.FROM.equals(token.getType())) {
                 tableNamePreTokenFg = true;
                 continue;
             }
@@ -152,33 +155,6 @@ public class SqlUtils {
         return !wherePreTokenFg ? "" : sb.toString();
     }
 
-    public static String extractUpdateSegFromUpdateSql(String sql) {
-        if (!isUpdateSql(sql) && !isDeleteSql(sql)) {
-            throw new CdcException("only support update or delete sql. ");
-        }
-        TokenSequence tokenSequence = new DefaultScanner(sql).scanTokens();
-        List<Token> source = tokenSequence.getSource();
-        StringBuilder sb = new StringBuilder();
-        for (Token token : source) {
-            TokenType type = token.getType();
-            Object literal = token.getLiteral();
-            if (!TokenType.EOF.equals(type)) {
-                if (TokenType.STRING.equals(type)) {
-                    sb.append(" '").append(literal).append("'");
-                } else if (TokenType.WHERE.equals(type)) {
-                    break;
-                } else {
-                    // mysql 的函数 支持 now(), now( )写法，但是不支持 now (), now ( ) 写法。所以(前不留空格
-                    if (!("(".equals(literal))) {
-                        sb.append(" ");
-                    }
-                    sb.append(literal);
-                }
-            }
-        }
-        return sb.toString();
-    }
-
     public static boolean checkStableUpdateSql(String sql, String keyColumn) {
         Update update = CurdUtils.parseUpdate(sql, false);
 
@@ -189,7 +165,7 @@ public class SqlUtils {
             conditionColumnList = whereSeg.accept(WhereSegColumnVisitor.getInstance());
         }
         Set<String> conditionColumnNameList = conditionColumnList
-                .stream().map(item -> String.valueOf(item.getLiteral())).collect(Collectors.toSet());
+            .stream().map(item -> String.valueOf(item.getLiteral())).collect(Collectors.toSet());
 
         // where 里的条件列 和 key列 不能在更新列里面出现
         AssignmentList assignmentList = (AssignmentList) update.getAssignmentList();
@@ -204,7 +180,6 @@ public class SqlUtils {
     }
 
     /**
-     * @param sql
      * @return first dependentColumnNameList; second calculableColumnNameList
      */
     public static BinaryResult<List<String>, List<String>> divideColumnFromUpdateOrInsertSql(String sql) {
@@ -228,7 +203,7 @@ public class SqlUtils {
                     String columnName = String.valueOf(entry.getColumn().getLiteral());
                     if (value instanceof Literal) {
                         // no-op
-                    } else if (value.accept(CalculableColumnVisitor.getInstance())) {
+                    } else if (value.accept(InsertOrUpdateCalculableColumnVisitor.getInstance())) {
                         calculableColumnNameList.add(columnName);
                     } else {
                         dependentColumnNameList.add(columnName);
@@ -244,7 +219,7 @@ public class SqlUtils {
                     String columnName = String.valueOf(columnList.get(i));
                     if (value instanceof Literal) {
                         // no-op
-                    } else if (value.accept(CalculableColumnVisitor.getInstance())) {
+                    } else if (value.accept(InsertOrUpdateCalculableColumnVisitor.getInstance())) {
                         calculableColumnNameList.add(columnName);
                     } else {
                         dependentColumnNameList.add(columnName);
@@ -262,7 +237,7 @@ public class SqlUtils {
                 String columnName = String.valueOf(entry.getColumn().getLiteral());
                 if (value instanceof Literal) {
                     // no-op
-                } else if (value.accept(CalculableColumnVisitor.getInstance())) {
+                } else if (value.accept(InsertOrUpdateCalculableColumnVisitor.getInstance())) {
                     calculableColumnNameList.add(columnName);
                 } else {
                     dependentColumnNameList.add(columnName);
@@ -295,7 +270,7 @@ public class SqlUtils {
     }
 
 
-    public static String updateOrInsertUpdateColumnValue(String sql, Map<String, Token> columnTokenMap) {
+    public static String updateOrInsertUpdateColumnValue(String sql, Map<String, Token> dependentColumnTokenMap, List<String> calculableColumnList, DataFormatterRegistry dataFormatterRegistry) {
         if (!isInsertSql(sql) && !isUpdateSql(sql)) {
             throw new CdcException("only support insert and update sql. ");
         }
@@ -310,8 +285,12 @@ public class SqlUtils {
                 List<AssignmentList.Entry> entryList = assignmentList.getEntryList();
                 for (AssignmentList.Entry entry : entryList) {
                     String columnName = String.valueOf(entry.getColumn().getLiteral());
-                    if (columnTokenMap.containsKey(columnName)) {
-                        entry.setValue(new Literal(columnTokenMap.get(columnName)));
+                    if (dependentColumnTokenMap.containsKey(columnName)) {
+                        entry.setValue(new Literal(dependentColumnTokenMap.get(columnName)));
+                    } else if (calculableColumnList.contains(columnName)) {
+                        Curd value = entry.getValue();
+                        Object result = CalculatorFactory.createExpressionCalculator(value, DefaultFunctionCalculator.getInstance()).calculate(null);
+                        entry.setValue(new Literal(dataFormatterRegistry.parse(result)));
                     }
                 }
             } else if (insertRep instanceof InsertValuesRep) {
@@ -321,8 +300,8 @@ public class SqlUtils {
                 List<Token> columnList = insertValuesRep.getColumnList();
                 for (int i = 0; i < columnList.size(); i++) {
                     String columnName = String.valueOf(columnList.get(i).getLiteral());
-                    if (columnTokenMap.containsKey(columnName)) {
-                        curdList.set(i, new Literal(columnTokenMap.get(columnName)));
+                    if (dependentColumnTokenMap.containsKey(columnName)) {
+                        curdList.set(i, new Literal(dependentColumnTokenMap.get(columnName)));
                     }
                 }
             } else {
@@ -334,8 +313,8 @@ public class SqlUtils {
             List<AssignmentList.Entry> entryList = assignmentList.getEntryList();
             for (AssignmentList.Entry entry : entryList) {
                 String columnName = String.valueOf(entry.getColumn().getLiteral());
-                if (columnTokenMap.containsKey(columnName)) {
-                    entry.setValue(new Literal(columnTokenMap.get(columnName)));
+                if (dependentColumnTokenMap.containsKey(columnName)) {
+                    entry.setValue(new Literal(dependentColumnTokenMap.get(columnName)));
                 }
             }
         }
@@ -368,26 +347,6 @@ public class SqlUtils {
             }
         }
         return sb + " " + whereSeg;
-    }
-
-
-    public static String tokenSequenceToSqlStr(TokenSequence tokenSequence) {
-        List<Token> source = tokenSequence.getSource();
-        StringBuilder sb = new StringBuilder();
-        for (Token token : source) {
-            TokenType type = token.getType();
-            Object literal = token.getLiteral();
-            if (TokenType.STRING.equals(type)) {
-                sb.append(" '").append(literal).append("'");
-            } else {
-                // mysql 的函数 支持 now(), now( )写法，但是不支持 now (), now ( ) 写法。所以(前不留空格
-                if (!("(".equals(literal))) {
-                    sb.append(" ");
-                }
-                sb.append(literal);
-            }
-        }
-        return sb.toString();
     }
 
     public static BinaryResult<String, List<Long>> separateUpdateSegAndKeyValues(String keyInOrKeyEqualConditionUpdateSql) {
