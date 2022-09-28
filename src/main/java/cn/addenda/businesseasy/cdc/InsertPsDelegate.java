@@ -11,6 +11,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -23,18 +24,24 @@ public class InsertPsDelegate extends AbstractPsDelegate {
     /**
      * 这些列必须从数据库里面取。
      */
-    private final List<String> dependentColumnList;
+    private List<String> dependentColumnList;
 
     /**
      * 这些列需要用表达式计算器计算
      */
-    private final List<String> calculableColumnList;
+    private List<String> calculableColumnList;
+
+    private boolean multipleRows = false;
 
     public InsertPsDelegate(CdcConnection cdcConnection, PreparedStatement ps, TableConfig tableConfig, String parameterizedSql) {
         super(cdcConnection, ps, tableConfig, parameterizedSql);
-        BinaryResult<List<String>, List<String>> binaryResult = SqlUtils.divideColumnFromUpdateOrInsertSql(parameterizedSql);
-        dependentColumnList = binaryResult.getFirstResult();
-        calculableColumnList = binaryResult.getSecondResult();
+        if (SqlUtils.checkInsertMultipleRows(parameterizedSql)) {
+            multipleRows = true;
+        } else {
+            BinaryResult<List<String>, List<String>> binaryResult = SqlUtils.divideColumnFromUpdateOrInsertSql(parameterizedSql);
+            dependentColumnList = binaryResult.getFirstResult();
+            calculableColumnList = binaryResult.getSecondResult();
+        }
     }
 
     @Override
@@ -57,17 +64,44 @@ public class InsertPsDelegate extends AbstractPsDelegate {
         // ----------------------------------
         if (checkTableMode(TableConfig.CM_ROW)) {
             List<String> rowCdcSqlList = new ArrayList<>();
-            if (!dependentColumnList.isEmpty()) {
+            if (multipleRows) {
+                // 将多行insert语句处理为单行insert语句
+                executableSqlList = toSingleRow(executableSqlList);
                 try (Statement statement = cdcConnection.getDelegate().createStatement()) {
-                    Map<Long, Map<String, Token>> keyColumnTokenMap = queryKeyColumnTokenMap(statement, keyValueList, dependentColumnList);
-                    for (int i = 0; i < keyValueList.size(); i++) {
+                    // insert into A(a, b) values (1,'2'), (3+1,concat('2','3'))
+                    // 拆分后：
+                    // insert into a(a,b) values (1,'2')
+                    // insert into a(a,b) values (3 + 1 ,concat('2','3'))
+                    // 所以不可以按相同的 dependentColumnList 和 calculableColumnList 处理
+                    List<String> rowDependentColumnList;
+                    List<String> rowCalculableColumnList;
+                    for (int i = 0; i < executableSqlList.size(); i++) {
+                        String executableSql = executableSqlList.get(i);
                         Long keyValue = keyValueList.get(i);
-                        Map<String, Token> columnTokenMap = keyColumnTokenMap.get(keyValue);
-                        rowCdcSqlList.add(SqlUtils.updateOrInsertUpdateColumnValue(executableSqlList.get(i), columnTokenMap, calculableColumnList, dataFormatterRegistry));
+                        BinaryResult<List<String>, List<String>> binaryResult = SqlUtils.divideColumnFromUpdateOrInsertSql(executableSql);
+                        rowDependentColumnList = binaryResult.getFirstResult();
+                        rowCalculableColumnList = binaryResult.getSecondResult();
+                        if (!rowDependentColumnList.isEmpty()) {
+                            Map<String, Token> columnTokenMap = queryColumnTokenMap(statement, keyValue, rowDependentColumnList);
+                            rowCdcSqlList.add(SqlUtils.updateOrInsertUpdateColumnValue(executableSql, columnTokenMap, rowCalculableColumnList, dataFormatterRegistry));
+                        } else {
+                            rowCdcSqlList.add(executableSql);
+                        }
                     }
                 }
             } else {
-                rowCdcSqlList.addAll(executableSqlList);
+                if (!dependentColumnList.isEmpty()) {
+                    try (Statement statement = cdcConnection.getDelegate().createStatement()) {
+                        Map<Long, Map<String, Token>> keyColumnTokenMap = queryKeyColumnTokenMap(statement, keyValueList, dependentColumnList);
+                        for (int i = 0; i < keyValueList.size(); i++) {
+                            Long keyValue = keyValueList.get(i);
+                            Map<String, Token> columnTokenMap = keyColumnTokenMap.get(keyValue);
+                            rowCdcSqlList.add(SqlUtils.updateOrInsertUpdateColumnValue(executableSqlList.get(i), columnTokenMap, calculableColumnList, dataFormatterRegistry));
+                        }
+                    }
+                } else {
+                    rowCdcSqlList.addAll(executableSqlList);
+                }
             }
             executeCdcSql(TableConfig.CM_ROW, rowCdcSqlList);
         }
@@ -75,13 +109,20 @@ public class InsertPsDelegate extends AbstractPsDelegate {
         return invoke;
     }
 
+    private List<String> toSingleRow(List<String> executableSqlList) {
+        List<String> singleRowList = new ArrayList<>();
+        executableSqlList.forEach(item -> singleRowList.addAll(SqlUtils.splitInsertMultipleRows(item)));
+        return singleRowList;
+    }
+
+    private Map<String, Token> queryColumnTokenMap(Statement statement, Long keyValue, List<String> columnList) throws SQLException {
+        return queryKeyColumnTokenMap(statement, Collections.singletonList(keyValue), columnList).get(keyValue);
+    }
 
     /**
      * 处理SQL语句 和 主键值
      *
-     * @param executableSqlList
      * @return firstValue时填充了主键值的sql；secondValue主键集合。
-     * @throws SQLException
      */
     private BinaryResult<List<String>, List<Long>> fillKeyValueToInsertSql(List<String> executableSqlList) throws SQLException {
         ResultSet generatedKeys = ps.getGeneratedKeys();

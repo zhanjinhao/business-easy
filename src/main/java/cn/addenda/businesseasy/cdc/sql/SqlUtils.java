@@ -10,15 +10,24 @@ import cn.addenda.ro.grammar.ast.create.Insert;
 import cn.addenda.ro.grammar.ast.create.InsertSelectRep;
 import cn.addenda.ro.grammar.ast.create.InsertSetRep;
 import cn.addenda.ro.grammar.ast.create.InsertValuesRep;
-import cn.addenda.ro.grammar.ast.expression.*;
+import cn.addenda.ro.grammar.ast.expression.AssignmentList;
+import cn.addenda.ro.grammar.ast.expression.Comparison;
+import cn.addenda.ro.grammar.ast.expression.Curd;
+import cn.addenda.ro.grammar.ast.expression.InCondition;
+import cn.addenda.ro.grammar.ast.expression.Literal;
+import cn.addenda.ro.grammar.ast.expression.WhereSeg;
 import cn.addenda.ro.grammar.ast.update.Update;
 import cn.addenda.ro.grammar.lexical.scan.DefaultScanner;
 import cn.addenda.ro.grammar.lexical.scan.TokenSequence;
 import cn.addenda.ro.grammar.lexical.token.Token;
 import cn.addenda.ro.grammar.lexical.token.TokenType;
-
 import java.math.BigInteger;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -246,6 +255,43 @@ public class SqlUtils {
         }
 
         return new BinaryResult<>(dependentColumnNameList, calculableColumnNameList);
+    }
+
+    public static boolean checkInsertMultipleRows(String insertSql) {
+        Insert insert = CurdUtils.parseInsert(insertSql, false);
+        Curd insertRep = insert.getInsertRep();
+        if (insertRep instanceof InsertSetRep) {
+            return false;
+        } else if (insertRep instanceof InsertValuesRep) {
+            InsertValuesRep insertValuesRep = (InsertValuesRep) insertRep;
+            List<List<Curd>> curdListList = insertValuesRep.getCurdListList();
+            return curdListList.size() > 1;
+        } else {
+            throw new CdcException("不支持的Insert语法，仅支持：insert into T() values() 和 insert into T set c = '1' 两种语法");
+        }
+    }
+
+    public static List<String> splitInsertMultipleRows(String multipleRowsInsertSql) {
+        List<String> singleRowList = new ArrayList<>();
+        Insert insert = CurdUtils.parseInsert(multipleRowsInsertSql, false);
+        Curd insertRep = insert.getInsertRep();
+        if (insertRep instanceof InsertSetRep) {
+            singleRowList.add(multipleRowsInsertSql);
+        } else if (insertRep instanceof InsertValuesRep) {
+            InsertValuesRep insertValuesRep = (InsertValuesRep) insertRep;
+            List<Token> columnList = insertValuesRep.getColumnList();
+            String prefix = "insert into "
+                + insert.getTableName().getLiteral() + "(" + columnList.stream().map(item -> String.valueOf(item.getLiteral())).collect(Collectors.joining(","))
+                + ") values ";
+            List<List<Curd>> curdListList = insertValuesRep.getCurdListList();
+            for (List<Curd> curdList : curdListList) {
+                String sql = prefix + curdList.stream().map(Curd::toString).collect(Collectors.joining(",", "(", ")"));
+                singleRowList.add(sql);
+            }
+        } else {
+            throw new CdcException("不支持的Insert语法，仅支持：insert into T() values() 和 insert into T set c = '1' 两种语法");
+        }
+        return singleRowList;
     }
 
     public static String insertInjectColumnValue(String sql, String keyColumn, Token token) {
