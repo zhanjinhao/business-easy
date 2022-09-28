@@ -2,6 +2,9 @@ package cn.addenda.businesseasy.cdc;
 
 import cn.addenda.businesseasy.asynctask.BinaryResult;
 import cn.addenda.businesseasy.cdc.sql.SqlUtils;
+import cn.addenda.ec.calculator.CalculatorFactory;
+import cn.addenda.ec.function.calculator.DefaultFunctionCalculator;
+import cn.addenda.ro.grammar.ast.expression.Curd;
 import cn.addenda.ro.grammar.lexical.token.Token;
 import cn.addenda.ro.grammar.lexical.token.TokenType;
 
@@ -12,8 +15,10 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * @author addenda
@@ -38,9 +43,9 @@ public class InsertPsDelegate extends AbstractPsDelegate {
         if (SqlUtils.checkInsertMultipleRows(parameterizedSql)) {
             multipleRows = true;
         } else {
-            BinaryResult<List<String>, List<String>> binaryResult = SqlUtils.divideColumnFromUpdateOrInsertSql(parameterizedSql);
+            BinaryResult<List<String>, List<BinaryResult<String, Curd>>> binaryResult = SqlUtils.divideColumnFromUpdateOrInsertSql(parameterizedSql);
             dependentColumnList = binaryResult.getFirstResult();
-            calculableColumnList = binaryResult.getSecondResult();
+            calculableColumnList = binaryResult.getSecondResult().stream().map(BinaryResult::getFirstResult).collect(Collectors.toList());
         }
     }
 
@@ -74,34 +79,58 @@ public class InsertPsDelegate extends AbstractPsDelegate {
                     // insert into a(a,b) values (3 + 1 ,concat('2','3'))
                     // 所以不可以按相同的 dependentColumnList 和 calculableColumnList 处理
                     List<String> rowDependentColumnList;
-                    List<String> rowCalculableColumnList;
+                    List<BinaryResult<String, Curd>> rowCalculableColumnBrList;
                     for (int i = 0; i < executableSqlList.size(); i++) {
                         String executableSql = executableSqlList.get(i);
                         Long keyValue = keyValueList.get(i);
-                        BinaryResult<List<String>, List<String>> binaryResult = SqlUtils.divideColumnFromUpdateOrInsertSql(executableSql);
+                        BinaryResult<List<String>, List<BinaryResult<String, Curd>>> binaryResult = SqlUtils.divideColumnFromUpdateOrInsertSql(executableSql);
                         rowDependentColumnList = binaryResult.getFirstResult();
-                        rowCalculableColumnList = binaryResult.getSecondResult();
+                        rowCalculableColumnBrList = binaryResult.getSecondResult();
+                        Map<String, Token> columnTokenMap = new HashMap<>(8);
+                        // 从数据库中获取字段
                         if (!rowDependentColumnList.isEmpty()) {
-                            Map<String, Token> columnTokenMap = queryColumnTokenMap(statement, keyValue, rowDependentColumnList);
-                            rowCdcSqlList.add(SqlUtils.updateOrInsertUpdateColumnValue(executableSql, columnTokenMap, rowCalculableColumnList, dataFormatterRegistry));
+                            columnTokenMap.putAll(queryColumnTokenMap(statement, keyValue, rowDependentColumnList));
+                        }
+                        // 表达式计算器计算字段
+                        if (!rowCalculableColumnBrList.isEmpty()) {
+                            for (BinaryResult<String, Curd> binary : rowCalculableColumnBrList) {
+                                Curd value = binary.getSecondResult();
+                                Object result = CalculatorFactory.createExpressionCalculator(value, DefaultFunctionCalculator.getInstance()).calculate();
+                                columnTokenMap.put(binary.getFirstResult(), dataFormatterRegistry.parse(result));
+                            }
+                        }
+                        if (!columnTokenMap.isEmpty()) {
+                            rowCdcSqlList.add(SqlUtils.updateOrInsertUpdateColumnValue(executableSql, columnTokenMap));
                         } else {
                             rowCdcSqlList.add(executableSql);
                         }
                     }
                 }
             } else {
+                rowCdcSqlList.addAll(executableSqlList);
+
+                // 从数据库里面取数据
                 if (!dependentColumnList.isEmpty()) {
+                    List<String> tmpSqlList = new ArrayList<>(rowCdcSqlList);
+                    rowCdcSqlList.clear();
                     try (Statement statement = cdcConnection.getDelegate().createStatement()) {
                         Map<Long, Map<String, Token>> keyColumnTokenMap = queryKeyColumnTokenMap(statement, keyValueList, dependentColumnList);
                         for (int i = 0; i < keyValueList.size(); i++) {
-                            Long keyValue = keyValueList.get(i);
-                            Map<String, Token> columnTokenMap = keyColumnTokenMap.get(keyValue);
-                            rowCdcSqlList.add(SqlUtils.updateOrInsertUpdateColumnValue(executableSqlList.get(i), columnTokenMap, calculableColumnList, dataFormatterRegistry));
+                            Map<String, Token> columnTokenMap = keyColumnTokenMap.get(keyValueList.get(i));
+                            rowCdcSqlList.add(SqlUtils.updateOrInsertUpdateColumnValue(tmpSqlList.get(i), columnTokenMap));
                         }
                     }
-                } else {
-                    rowCdcSqlList.addAll(executableSqlList);
                 }
+
+                // 表达式计算器计算字段
+                if (!calculableColumnList.isEmpty()) {
+                    List<String> tmpSqlList = new ArrayList<>(rowCdcSqlList);
+                    rowCdcSqlList.clear();
+                    for (String sql : tmpSqlList) {
+                        rowCdcSqlList.add(SqlUtils.updateOrInsertCalculateColumnValue(sql, calculableColumnList, dataFormatterRegistry, DefaultFunctionCalculator.getInstance()));
+                    }
+                }
+
             }
             executeCdcSql(TableConfig.CM_ROW, rowCdcSqlList);
         }

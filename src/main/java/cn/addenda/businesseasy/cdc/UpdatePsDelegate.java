@@ -3,6 +3,8 @@ package cn.addenda.businesseasy.cdc;
 import cn.addenda.businesseasy.asynctask.BinaryResult;
 import cn.addenda.businesseasy.cdc.sql.SqlUtils;
 import cn.addenda.businesseasy.util.BEListUtil;
+import cn.addenda.ec.function.calculator.DefaultFunctionCalculator;
+import cn.addenda.ro.grammar.ast.expression.Curd;
 import cn.addenda.ro.grammar.lexical.token.Token;
 
 import java.sql.PreparedStatement;
@@ -12,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * @author addenda
@@ -31,9 +34,9 @@ public class UpdatePsDelegate extends AbstractPsDelegate {
 
     public UpdatePsDelegate(CdcConnection cdcConnection, PreparedStatement ps, TableConfig tableConfig, String parameterizedSql) {
         super(cdcConnection, ps, tableConfig, parameterizedSql);
-        BinaryResult<List<String>, List<String>> binaryResult = SqlUtils.divideColumnFromUpdateOrInsertSql(parameterizedSql);
+        BinaryResult<List<String>, List<BinaryResult<String, Curd>>> binaryResult = SqlUtils.divideColumnFromUpdateOrInsertSql(parameterizedSql);
         dependentColumnList = binaryResult.getFirstResult();
-        calculableColumnList = binaryResult.getSecondResult();
+        calculableColumnList = binaryResult.getSecondResult().stream().map(BinaryResult::getFirstResult).collect(Collectors.toList());
     }
 
     @Override
@@ -63,7 +66,7 @@ public class UpdatePsDelegate extends AbstractPsDelegate {
                         List<List<Long>> listList = BEListUtil.splitList(keyValueList, IN_SIZE);
                         for (List<Long> item : listList) {
                             String rowCdcSql = SqlUtils.replaceDmlWhereSeg(executableSql, "where " + keyColumn + " in (" + longListToString(item) + ")");
-                            rowCdcSqlList.add(SqlUtils.updateOrInsertUpdateColumnValue(rowCdcSql, Collections.EMPTY_MAP, calculableColumnList, dataFormatterRegistry));
+                            rowCdcSqlList.add(SqlUtils.updateOrInsertUpdateColumnValue(rowCdcSql, Collections.EMPTY_MAP));
                         }
                     }
                     // 无法进行 1:n -> 1:1 优化
@@ -73,10 +76,18 @@ public class UpdatePsDelegate extends AbstractPsDelegate {
                             for (Long keyValue : keyValueList) {
                                 String rowCdcSql = SqlUtils.replaceDmlWhereSeg(executableSql, "where " + keyColumn + " = " + keyValue);
                                 Map<String, Token> columnTokenMap = keyColumnTokenMap.get(keyValue);
-                                rowCdcSqlList.add(SqlUtils.updateOrInsertUpdateColumnValue(rowCdcSql, columnTokenMap, calculableColumnList, dataFormatterRegistry));
+                                rowCdcSqlList.add(SqlUtils.updateOrInsertUpdateColumnValue(rowCdcSql, columnTokenMap));
                             }
                         }
                     }
+                }
+            }
+
+            if (!calculableColumnList.isEmpty()) {
+                List<String> tmpSqlList = new ArrayList<>(rowCdcSqlList);
+                rowCdcSqlList.clear();
+                for (String sql : tmpSqlList) {
+                    rowCdcSqlList.add(SqlUtils.updateOrInsertCalculateColumnValue(sql, calculableColumnList, dataFormatterRegistry, DefaultFunctionCalculator.getInstance()));
                 }
             }
 

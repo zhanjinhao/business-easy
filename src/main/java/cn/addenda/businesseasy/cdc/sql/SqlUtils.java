@@ -4,7 +4,7 @@ import cn.addenda.businesseasy.asynctask.BinaryResult;
 import cn.addenda.businesseasy.cdc.CdcException;
 import cn.addenda.businesseasy.cdc.format.DataFormatterRegistry;
 import cn.addenda.ec.calculator.CalculatorFactory;
-import cn.addenda.ec.function.calculator.DefaultFunctionCalculator;
+import cn.addenda.ec.function.calculator.FunctionCalculator;
 import cn.addenda.ro.grammar.ast.CurdUtils;
 import cn.addenda.ro.grammar.ast.create.Insert;
 import cn.addenda.ro.grammar.ast.create.InsertSelectRep;
@@ -191,13 +191,13 @@ public class SqlUtils {
     /**
      * @return first dependentColumnNameList; second calculableColumnNameList
      */
-    public static BinaryResult<List<String>, List<String>> divideColumnFromUpdateOrInsertSql(String sql) {
+    public static BinaryResult<List<String>, List<BinaryResult<String, Curd>>> divideColumnFromUpdateOrInsertSql(String sql) {
         if (!isInsertSql(sql) && !isUpdateSql(sql)) {
             throw new CdcException("only support insert and update sql. ");
         }
 
         List<String> dependentColumnNameList = new ArrayList<>();
-        List<String> calculableColumnNameList = new ArrayList<>();
+        List<BinaryResult<String, Curd>> calculableColumnNameList = new ArrayList<>();
 
         Curd parse = CurdUtils.parse(sql, false);
         if (parse instanceof Insert) {
@@ -212,8 +212,8 @@ public class SqlUtils {
                     String columnName = String.valueOf(entry.getColumn().getLiteral());
                     if (value instanceof Literal) {
                         // no-op
-                    } else if (value.accept(InsertOrUpdateCalculableColumnVisitor.getInstance())) {
-                        calculableColumnNameList.add(columnName);
+                    } else if (Boolean.TRUE.equals(value.accept(InsertOrUpdateCalculableColumnVisitor.getInstance()))) {
+                        calculableColumnNameList.add(new BinaryResult<>(columnName, value));
                     } else {
                         dependentColumnNameList.add(columnName);
                     }
@@ -229,7 +229,7 @@ public class SqlUtils {
                     if (value instanceof Literal) {
                         // no-op
                     } else if (value.accept(InsertOrUpdateCalculableColumnVisitor.getInstance())) {
-                        calculableColumnNameList.add(columnName);
+                        calculableColumnNameList.add(new BinaryResult<>(columnName, value));
                     } else {
                         dependentColumnNameList.add(columnName);
                     }
@@ -247,7 +247,7 @@ public class SqlUtils {
                 if (value instanceof Literal) {
                     // no-op
                 } else if (value.accept(InsertOrUpdateCalculableColumnVisitor.getInstance())) {
-                    calculableColumnNameList.add(columnName);
+                    calculableColumnNameList.add(new BinaryResult<>(columnName, value));
                 } else {
                     dependentColumnNameList.add(columnName);
                 }
@@ -316,7 +316,7 @@ public class SqlUtils {
     }
 
 
-    public static String updateOrInsertUpdateColumnValue(String sql, Map<String, Token> dependentColumnTokenMap, List<String> calculableColumnList, DataFormatterRegistry dataFormatterRegistry) {
+    public static String updateOrInsertUpdateColumnValue(String sql, Map<String, Token> columnTokenMap) {
         if (!isInsertSql(sql) && !isUpdateSql(sql)) {
             throw new CdcException("only support insert and update sql. ");
         }
@@ -331,12 +331,8 @@ public class SqlUtils {
                 List<AssignmentList.Entry> entryList = assignmentList.getEntryList();
                 for (AssignmentList.Entry entry : entryList) {
                     String columnName = String.valueOf(entry.getColumn().getLiteral());
-                    if (dependentColumnTokenMap.containsKey(columnName)) {
-                        entry.setValue(new Literal(dependentColumnTokenMap.get(columnName)));
-                    } else if (calculableColumnList.contains(columnName)) {
-                        Curd value = entry.getValue();
-                        Object result = CalculatorFactory.createExpressionCalculator(value, DefaultFunctionCalculator.getInstance()).calculate(null);
-                        entry.setValue(new Literal(dataFormatterRegistry.parse(result)));
+                    if (columnTokenMap.containsKey(columnName)) {
+                        entry.setValue(new Literal(columnTokenMap.get(columnName)));
                     }
                 }
             } else if (insertRep instanceof InsertValuesRep) {
@@ -346,8 +342,8 @@ public class SqlUtils {
                 List<Token> columnList = insertValuesRep.getColumnList();
                 for (int i = 0; i < columnList.size(); i++) {
                     String columnName = String.valueOf(columnList.get(i).getLiteral());
-                    if (dependentColumnTokenMap.containsKey(columnName)) {
-                        curdList.set(i, new Literal(dependentColumnTokenMap.get(columnName)));
+                    if (columnTokenMap.containsKey(columnName)) {
+                        curdList.set(i, new Literal(columnTokenMap.get(columnName)));
                     }
                 }
             } else {
@@ -359,8 +355,60 @@ public class SqlUtils {
             List<AssignmentList.Entry> entryList = assignmentList.getEntryList();
             for (AssignmentList.Entry entry : entryList) {
                 String columnName = String.valueOf(entry.getColumn().getLiteral());
-                if (dependentColumnTokenMap.containsKey(columnName)) {
-                    entry.setValue(new Literal(dependentColumnTokenMap.get(columnName)));
+                if (columnTokenMap.containsKey(columnName)) {
+                    entry.setValue(new Literal(columnTokenMap.get(columnName)));
+                }
+            }
+        }
+
+        return parse.toString();
+    }
+
+
+    public static String updateOrInsertCalculateColumnValue(String sql, List<String> calculableColumnList, DataFormatterRegistry dataFormatterRegistry, FunctionCalculator functionCalculator) {
+        if (!isInsertSql(sql) && !isUpdateSql(sql)) {
+            throw new CdcException("only support insert and update sql. ");
+        }
+
+        Curd parse = CurdUtils.parse(sql, false);
+        if (parse instanceof Insert) {
+            Insert insert = (Insert) parse;
+            Curd insertRep = insert.getInsertRep();
+            if (insertRep instanceof InsertSetRep) {
+                InsertSetRep insertSetRep = (InsertSetRep) insertRep;
+                AssignmentList assignmentList = (AssignmentList) insertSetRep.getAssignmentList();
+                List<AssignmentList.Entry> entryList = assignmentList.getEntryList();
+                for (AssignmentList.Entry entry : entryList) {
+                    String columnName = String.valueOf(entry.getColumn().getLiteral());
+                    if (calculableColumnList.contains(columnName)) {
+                        Object result = CalculatorFactory.createExpressionCalculator(entry.getValue(), functionCalculator).calculate();
+                        entry.setValue(new Literal(dataFormatterRegistry.parse(result)));
+                    }
+                }
+            } else if (insertRep instanceof InsertValuesRep) {
+                InsertValuesRep insertValuesRep = (InsertValuesRep) insertRep;
+                List<List<Curd>> curdListList = insertValuesRep.getCurdListList();
+                List<Curd> curdList = curdListList.get(0);
+                List<Token> columnList = insertValuesRep.getColumnList();
+                for (int i = 0; i < columnList.size(); i++) {
+                    String columnName = String.valueOf(columnList.get(i).getLiteral());
+                    if (calculableColumnList.contains(columnName)) {
+                        Object result = CalculatorFactory.createExpressionCalculator(curdList.get(i), functionCalculator).calculate();
+                        curdList.set(i, new Literal(dataFormatterRegistry.parse(result)));
+                    }
+                }
+            } else {
+                throw new CdcException("不支持的Insert语法，仅支持：insert into T() values() 和 insert into T set c = '1' 两种语法");
+            }
+        } else if (parse instanceof Update) {
+            Update update = (Update) parse;
+            AssignmentList assignmentList = (AssignmentList) update.getAssignmentList();
+            List<AssignmentList.Entry> entryList = assignmentList.getEntryList();
+            for (AssignmentList.Entry entry : entryList) {
+                String columnName = String.valueOf(entry.getColumn().getLiteral());
+                if (calculableColumnList.contains(columnName)) {
+                    Object result = CalculatorFactory.createExpressionCalculator(entry.getValue(), functionCalculator).calculate();
+                    entry.setValue(new Literal(dataFormatterRegistry.parse(result)));
                 }
             }
         }

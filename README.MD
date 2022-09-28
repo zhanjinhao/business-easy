@@ -24,3 +24,5 @@ spring-easy 和 mybatis-easy 的基础依赖。
 10、将SQL转为插入字段的字符串 bugfix。
 
 11、insert 支持多 values 语法。
+
+12、FunctionCalculator和FunctionEvaluator配置在CdcDataSource。
