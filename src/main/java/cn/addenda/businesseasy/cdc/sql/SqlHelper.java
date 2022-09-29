@@ -154,10 +154,10 @@ public class SqlHelper {
                 List<Token> columnList = insertValuesRep.getColumnList();
                 for (int i = 0; i < curdList.size(); i++) {
                     Curd value = curdList.get(i);
-                    String columnName = String.valueOf(columnList.get(i));
+                    String columnName = String.valueOf(columnList.get(i).getLiteral());
                     if (value instanceof Literal) {
                         // no-op
-                    } else if (value.accept(InsertOrUpdateCalculableColumnVisitor.getInstance())) {
+                    } else if (Boolean.TRUE.equals(value.accept(InsertOrUpdateCalculableColumnVisitor.getInstance()))) {
                         calculableColumnNameList.add(new BinaryResult<>(columnName, value));
                     } else {
                         dependentColumnNameList.add(columnName);
@@ -175,7 +175,7 @@ public class SqlHelper {
                 String columnName = String.valueOf(entry.getColumn().getLiteral());
                 if (value instanceof Literal) {
                     // no-op
-                } else if (value.accept(InsertOrUpdateCalculableColumnVisitor.getInstance())) {
+                } else if (Boolean.TRUE.equals(value.accept(InsertOrUpdateCalculableColumnVisitor.getInstance()))) {
                     calculableColumnNameList.add(new BinaryResult<>(columnName, value));
                 } else {
                     dependentColumnNameList.add(columnName);
