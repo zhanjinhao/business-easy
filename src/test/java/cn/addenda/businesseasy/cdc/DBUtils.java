@@ -2,6 +2,7 @@ package cn.addenda.businesseasy.cdc;
 
 import cn.addenda.businesseasy.cdc.format.DefaultDataFormatterRegistry;
 
+import cn.addenda.ec.function.calculator.DefaultFunctionCalculator;
 import javax.sql.DataSource;
 import java.io.PrintWriter;
 import java.sql.Connection;
@@ -24,9 +25,9 @@ public class DBUtils {
         }
         try {
             return DriverManager.getConnection(
-                    DBPropertiesReader.read("db.url"),
-                    DBPropertiesReader.read("db.username"),
-                    DBPropertiesReader.read("db.password"));
+                DBPropertiesReader.read("db.url"),
+                DBPropertiesReader.read("db.username"),
+                DBPropertiesReader.read("db.password"));
         } catch (SQLException exception) {
             exception.printStackTrace();
         }
@@ -89,7 +90,7 @@ public class DBUtils {
             }
         };
 
-        CdcDataSource cdcDataSource = new CdcDataSource(dataSource, new DefaultDataFormatterRegistry());
+        CdcDataSource cdcDataSource = new CdcDataSource(dataSource, new DefaultDataFormatterRegistry(), DefaultFunctionCalculator.getInstance());
         cdcDataSource.setTableMetaData("t_cdc_test[id]s,r");
         return cdcDataSource;
     }

@@ -40,10 +40,10 @@ public class InsertPsDelegate extends AbstractPsDelegate {
 
     public InsertPsDelegate(CdcConnection cdcConnection, PreparedStatement ps, TableConfig tableConfig, String parameterizedSql) {
         super(cdcConnection, ps, tableConfig, parameterizedSql);
-        if (SqlUtils.checkInsertMultipleRows(parameterizedSql)) {
+        if (sqlHelper.checkInsertMultipleRows(parameterizedSql)) {
             multipleRows = true;
         } else {
-            BinaryResult<List<String>, List<BinaryResult<String, Curd>>> binaryResult = SqlUtils.divideColumnFromUpdateOrInsertSql(parameterizedSql);
+            BinaryResult<List<String>, List<BinaryResult<String, Curd>>> binaryResult = sqlHelper.divideColumnFromUpdateOrInsertSql(parameterizedSql);
             dependentColumnList = binaryResult.getFirstResult();
             calculableColumnList = binaryResult.getSecondResult().stream().map(BinaryResult::getFirstResult).collect(Collectors.toList());
         }
@@ -83,7 +83,7 @@ public class InsertPsDelegate extends AbstractPsDelegate {
                     for (int i = 0; i < executableSqlList.size(); i++) {
                         String executableSql = executableSqlList.get(i);
                         Long keyValue = keyValueList.get(i);
-                        BinaryResult<List<String>, List<BinaryResult<String, Curd>>> binaryResult = SqlUtils.divideColumnFromUpdateOrInsertSql(executableSql);
+                        BinaryResult<List<String>, List<BinaryResult<String, Curd>>> binaryResult = sqlHelper.divideColumnFromUpdateOrInsertSql(executableSql);
                         rowDependentColumnList = binaryResult.getFirstResult();
                         rowCalculableColumnBrList = binaryResult.getSecondResult();
                         Map<String, Token> columnTokenMap = new HashMap<>(8);
@@ -95,12 +95,12 @@ public class InsertPsDelegate extends AbstractPsDelegate {
                         if (!rowCalculableColumnBrList.isEmpty()) {
                             for (BinaryResult<String, Curd> binary : rowCalculableColumnBrList) {
                                 Curd value = binary.getSecondResult();
-                                Object result = CalculatorFactory.createExpressionCalculator(value, DefaultFunctionCalculator.getInstance()).calculate();
+                                Object result = CalculatorFactory.createExpressionCalculator(value, functionCalculator).calculate();
                                 columnTokenMap.put(binary.getFirstResult(), dataFormatterRegistry.parse(result));
                             }
                         }
                         if (!columnTokenMap.isEmpty()) {
-                            rowCdcSqlList.add(SqlUtils.updateOrInsertUpdateColumnValue(executableSql, columnTokenMap));
+                            rowCdcSqlList.add(sqlHelper.updateOrInsertUpdateColumnValue(executableSql, columnTokenMap));
                         } else {
                             rowCdcSqlList.add(executableSql);
                         }
@@ -117,7 +117,7 @@ public class InsertPsDelegate extends AbstractPsDelegate {
                         Map<Long, Map<String, Token>> keyColumnTokenMap = queryKeyColumnTokenMap(statement, keyValueList, dependentColumnList);
                         for (int i = 0; i < keyValueList.size(); i++) {
                             Map<String, Token> columnTokenMap = keyColumnTokenMap.get(keyValueList.get(i));
-                            rowCdcSqlList.add(SqlUtils.updateOrInsertUpdateColumnValue(tmpSqlList.get(i), columnTokenMap));
+                            rowCdcSqlList.add(sqlHelper.updateOrInsertUpdateColumnValue(tmpSqlList.get(i), columnTokenMap));
                         }
                     }
                 }
@@ -127,7 +127,7 @@ public class InsertPsDelegate extends AbstractPsDelegate {
                     List<String> tmpSqlList = new ArrayList<>(rowCdcSqlList);
                     rowCdcSqlList.clear();
                     for (String sql : tmpSqlList) {
-                        rowCdcSqlList.add(SqlUtils.updateOrInsertCalculateColumnValue(sql, calculableColumnList, dataFormatterRegistry, DefaultFunctionCalculator.getInstance()));
+                        rowCdcSqlList.add(sqlHelper.updateOrInsertCalculateColumnValue(sql, calculableColumnList, dataFormatterRegistry));
                     }
                 }
 
@@ -140,7 +140,7 @@ public class InsertPsDelegate extends AbstractPsDelegate {
 
     private List<String> toSingleRow(List<String> executableSqlList) {
         List<String> singleRowList = new ArrayList<>();
-        executableSqlList.forEach(item -> singleRowList.addAll(SqlUtils.splitInsertMultipleRows(item)));
+        executableSqlList.forEach(item -> singleRowList.addAll(sqlHelper.splitInsertMultipleRows(item)));
         return singleRowList;
     }
 
@@ -161,13 +161,13 @@ public class InsertPsDelegate extends AbstractPsDelegate {
             // 如果SQL中存在主键值，取SQL中的值。
             // 如果SQL中不存在主键值，取自增主键的值。
             // 不允许表没有主键。不支持联合主键。
-            BigInteger value = SqlUtils.extractColumnValueFromInsertSql(executableSql, keyColumn, BigInteger.class);
+            BigInteger value = sqlHelper.extractColumnValueFromInsertSql(executableSql, keyColumn, BigInteger.class);
             long keyValue;
             if (value == null) {
                 if (generatedKeys.next()) {
                     keyValue = generatedKeys.getLong(1);
                     keyValueList.add(keyValue);
-                    executableSqlWithKeyValueList.add(SqlUtils.insertInjectColumnValue(executableSql, keyColumn, new Token(TokenType.INTEGER, new BigInteger(String.valueOf(keyValue)))));
+                    executableSqlWithKeyValueList.add(sqlHelper.insertInjectColumnValue(executableSql, keyColumn, new Token(TokenType.INTEGER, new BigInteger(String.valueOf(keyValue)))));
                 } else {
                     throw new CdcException("Cannot get key column value from sql or generatedKey, key column: " + keyColumn + ". ");
                 }

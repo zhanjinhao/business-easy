@@ -3,7 +3,6 @@ package cn.addenda.businesseasy.cdc;
 import cn.addenda.businesseasy.asynctask.BinaryResult;
 import cn.addenda.businesseasy.cdc.sql.SqlUtils;
 import cn.addenda.businesseasy.util.BEListUtil;
-import cn.addenda.ec.function.calculator.DefaultFunctionCalculator;
 import cn.addenda.ro.grammar.ast.expression.Curd;
 import cn.addenda.ro.grammar.lexical.token.Token;
 
@@ -34,7 +33,7 @@ public class UpdatePsDelegate extends AbstractPsDelegate {
 
     public UpdatePsDelegate(CdcConnection cdcConnection, PreparedStatement ps, TableConfig tableConfig, String parameterizedSql) {
         super(cdcConnection, ps, tableConfig, parameterizedSql);
-        BinaryResult<List<String>, List<BinaryResult<String, Curd>>> binaryResult = SqlUtils.divideColumnFromUpdateOrInsertSql(parameterizedSql);
+        BinaryResult<List<String>, List<BinaryResult<String, Curd>>> binaryResult = sqlHelper.divideColumnFromUpdateOrInsertSql(parameterizedSql);
         dependentColumnList = binaryResult.getFirstResult();
         calculableColumnList = binaryResult.getSecondResult().stream().map(BinaryResult::getFirstResult).collect(Collectors.toList());
     }
@@ -66,7 +65,7 @@ public class UpdatePsDelegate extends AbstractPsDelegate {
                         List<List<Long>> listList = BEListUtil.splitList(keyValueList, IN_SIZE);
                         for (List<Long> item : listList) {
                             String rowCdcSql = SqlUtils.replaceDmlWhereSeg(executableSql, "where " + keyColumn + " in (" + longListToString(item) + ")");
-                            rowCdcSqlList.add(SqlUtils.updateOrInsertUpdateColumnValue(rowCdcSql, Collections.EMPTY_MAP));
+                            rowCdcSqlList.add(sqlHelper.updateOrInsertUpdateColumnValue(rowCdcSql, Collections.EMPTY_MAP));
                         }
                     }
                     // 无法进行 1:n -> 1:1 优化
@@ -76,7 +75,7 @@ public class UpdatePsDelegate extends AbstractPsDelegate {
                             for (Long keyValue : keyValueList) {
                                 String rowCdcSql = SqlUtils.replaceDmlWhereSeg(executableSql, "where " + keyColumn + " = " + keyValue);
                                 Map<String, Token> columnTokenMap = keyColumnTokenMap.get(keyValue);
-                                rowCdcSqlList.add(SqlUtils.updateOrInsertUpdateColumnValue(rowCdcSql, columnTokenMap));
+                                rowCdcSqlList.add(sqlHelper.updateOrInsertUpdateColumnValue(rowCdcSql, columnTokenMap));
                             }
                         }
                     }
@@ -87,7 +86,7 @@ public class UpdatePsDelegate extends AbstractPsDelegate {
                 List<String> tmpSqlList = new ArrayList<>(rowCdcSqlList);
                 rowCdcSqlList.clear();
                 for (String sql : tmpSqlList) {
-                    rowCdcSqlList.add(SqlUtils.updateOrInsertCalculateColumnValue(sql, calculableColumnList, dataFormatterRegistry, DefaultFunctionCalculator.getInstance()));
+                    rowCdcSqlList.add(sqlHelper.updateOrInsertCalculateColumnValue(sql, calculableColumnList, dataFormatterRegistry));
                 }
             }
 
@@ -97,7 +96,7 @@ public class UpdatePsDelegate extends AbstractPsDelegate {
             List<Long> sameUpdateSegKeyValueList = new ArrayList<>();
             String preUpdateSeg = null;
             for (String rowCdcSql : tmpSqlList) {
-                BinaryResult<String, List<Long>> binaryResult = SqlUtils.separateUpdateSegAndKeyValues(rowCdcSql);
+                BinaryResult<String, List<Long>> binaryResult = sqlHelper.separateUpdateSegAndKeyValues(rowCdcSql);
                 String curUpdateSeg = binaryResult.getFirstResult();
                 if (preUpdateSeg == null || preUpdateSeg.equals(curUpdateSeg)) {
                     sameUpdateSegKeyValueList.addAll(binaryResult.getSecondResult());
@@ -124,7 +123,7 @@ public class UpdatePsDelegate extends AbstractPsDelegate {
     }
 
     private void assertStableUpdateSql(String sql) {
-        if (!SqlUtils.checkStableUpdateSql(sql, keyColumn)) {
+        if (!sqlHelper.checkStableUpdateSql(sql, keyColumn)) {
             throw new CdcException("update sql cannot update column which in where-condition and primary key column. ");
         }
     }

@@ -1,8 +1,8 @@
 package cn.addenda.businesseasy.cdc;
 
 import cn.addenda.businesseasy.cdc.format.DataFormatterRegistry;
-import cn.addenda.businesseasy.cdc.format.DefaultDataFormatterRegistry;
 
+import cn.addenda.ec.function.calculator.FunctionCalculator;
 import javax.sql.DataSource;
 import java.io.PrintWriter;
 import java.sql.Connection;
@@ -24,14 +24,12 @@ public class CdcDataSource implements DataSource {
 
     private DataFormatterRegistry dataFormatterRegistry;
 
-    public CdcDataSource(DataSource delegate) {
-        this.delegate = delegate;
-        this.dataFormatterRegistry = new DefaultDataFormatterRegistry();
-    }
+    private FunctionCalculator functionCalculator;
 
-    public CdcDataSource(DataSource delegate, DataFormatterRegistry dataFormatterRegistry) {
+    public CdcDataSource(DataSource delegate, DataFormatterRegistry dataFormatterRegistry, FunctionCalculator functionCalculator) {
         this.delegate = delegate;
         this.dataFormatterRegistry = dataFormatterRegistry;
+        this.functionCalculator = functionCalculator;
     }
 
     @Override
@@ -131,7 +129,7 @@ public class CdcDataSource implements DataSource {
             }
 
             tableMetaData.put(tableName.toString(),
-                    new TableConfig(tableName.toString(), keyColumn.toString(), cdcModeList));
+                new TableConfig(tableName.toString(), keyColumn.toString(), cdcModeList));
         }
     }
 
@@ -151,4 +149,11 @@ public class CdcDataSource implements DataSource {
         return dataFormatterRegistry;
     }
 
+    public FunctionCalculator getFunctionCalculator() {
+        return functionCalculator;
+    }
+
+    public void setFunctionCalculator(FunctionCalculator functionCalculator) {
+        this.functionCalculator = functionCalculator;
+    }
 }

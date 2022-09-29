@@ -25,4 +25,4 @@ spring-easy 和 mybatis-easy 的基础依赖。
 
 11、insert 支持多 values 语法。
 
-12、FunctionCalculator和FunctionEvaluator配置在CdcDataSource。
+12、FunctionCalculator配置在CdcDataSource。

@@ -1,8 +1,10 @@
 package cn.addenda.businesseasy.cdc;
 
 import cn.addenda.businesseasy.cdc.format.DataFormatterRegistry;
+import cn.addenda.businesseasy.cdc.sql.SqlHelper;
 import cn.addenda.businesseasy.cdc.sql.SqlUtils;
 import cn.addenda.businesseasy.util.BEListUtil;
+import cn.addenda.ec.function.calculator.FunctionCalculator;
 import cn.addenda.ro.grammar.lexical.token.Token;
 
 import java.sql.*;
@@ -36,6 +38,10 @@ public abstract class AbstractPsDelegate implements PsDelegate {
 
     protected final DataFormatterRegistry dataFormatterRegistry;
 
+    protected final FunctionCalculator functionCalculator;
+
+    protected final SqlHelper sqlHelper;
+
     protected AbstractPsDelegate(CdcConnection cdcConnection, PreparedStatement ps, TableConfig tableConfig, String parameterizedSql) {
         this.cdcConnection = cdcConnection;
         this.ps = ps;
@@ -44,10 +50,12 @@ public abstract class AbstractPsDelegate implements PsDelegate {
         this.tableName = tableConfig.getTableName();
         this.keyColumn = tableConfig.getKeyColumn();
         this.dataFormatterRegistry = cdcConnection.getCdcDataSource().getDataFormatterRegistry();
+        functionCalculator = cdcConnection.getCdcDataSource().getFunctionCalculator();
+        sqlHelper = new SqlHelper(functionCalculator);
     }
 
     protected Map<Long, Map<String, Token>> queryKeyColumnTokenMap(
-            Statement statement, List<Long> keyValueList, List<String> columnList) throws SQLException {
+        Statement statement, List<Long> keyValueList, List<String> columnList) throws SQLException {
         Map<Long, Map<String, Token>> map = new HashMap<>();
         if (columnList.isEmpty()) {
             return map;
@@ -59,10 +67,10 @@ public abstract class AbstractPsDelegate implements PsDelegate {
             int size = item.size();
             String keyInList = longListToString(item);
             String sql = "select "
-                    + String.join(",", resultColumnList) + " "
-                    + "from " + tableName + " "
-                    + "where " + keyColumn + " "
-                    + "in (" + keyInList + ")";
+                + String.join(",", resultColumnList) + " "
+                + "from " + tableName + " "
+                + "where " + keyColumn + " "
+                + "in (" + keyInList + ")";
             ResultSet resultSet = statement.executeQuery(sql);
             Map<String, Token> columnTokenMap = new HashMap<>();
             int i = 0;
@@ -88,10 +96,7 @@ public abstract class AbstractPsDelegate implements PsDelegate {
     }
 
     /**
-     * @param statement
-     * @param executableSql
      * @return executableSql 执行时锁住的key
-     * @throws SQLException
      */
     protected List<Long> lockKey(Statement statement, String executableSql) throws SQLException {
         List<Long> keyValueList = new ArrayList<>();
@@ -105,11 +110,11 @@ public abstract class AbstractPsDelegate implements PsDelegate {
 
     private String assembleSelectKeyValueSql(String executableSql) {
         return "select "
-                + keyColumn + " "
-                + "from "
-                + tableName + " "
-                + SqlUtils.extractWhereConditionFromUpdateOrDeleteSql(executableSql) + " "
-                + "for update";
+            + keyColumn + " "
+            + "from "
+            + tableName + " "
+            + SqlUtils.extractWhereConditionFromUpdateOrDeleteSql(executableSql) + " "
+            + "for update";
     }
 
     protected void executeCdcSql(String cdcMode, List<String> cdcSqlList) throws SQLException {
