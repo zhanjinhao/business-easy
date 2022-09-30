@@ -385,7 +385,7 @@ public class SqlHelper {
             }
             String literal = String.valueOf(token.getLiteral());
             if (TokenType.STRING.equals(type)) {
-                sb.append(" '");
+                sb.append(" \\'");
                 int length = literal.length();
                 for (int i = 0; i < length; i++) {
                     char c = literal.charAt(i);
@@ -394,7 +394,7 @@ public class SqlHelper {
                     }
                     sb.append(c);
                 }
-                sb.append("'");
+                sb.append("\\'");
             } else if (TokenType.EOF.equals(type)) {
                 // no-op
             } else {
