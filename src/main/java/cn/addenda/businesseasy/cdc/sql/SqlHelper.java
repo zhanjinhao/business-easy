@@ -18,8 +18,11 @@ import cn.addenda.ro.grammar.ast.expression.InCondition;
 import cn.addenda.ro.grammar.ast.expression.Literal;
 import cn.addenda.ro.grammar.ast.expression.WhereSeg;
 import cn.addenda.ro.grammar.ast.update.Update;
+import cn.addenda.ro.grammar.lexical.scan.DefaultScanner;
+import cn.addenda.ro.grammar.lexical.scan.TokenSequence;
 import cn.addenda.ro.grammar.lexical.token.Token;
 import cn.addenda.ro.grammar.lexical.token.TokenType;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -102,7 +105,7 @@ public class SqlHelper {
             conditionColumnList = whereSeg.accept(WhereSegColumnVisitor.getInstance());
         }
         Set<String> conditionColumnNameList = conditionColumnList
-            .stream().map(item -> String.valueOf(item.getLiteral())).collect(Collectors.toSet());
+                .stream().map(item -> String.valueOf(item.getLiteral())).collect(Collectors.toSet());
 
         // where 里的条件列 和 key列 不能在更新列里面出现
         AssignmentList assignmentList = (AssignmentList) update.getAssignmentList();
@@ -210,8 +213,8 @@ public class SqlHelper {
             InsertValuesRep insertValuesRep = (InsertValuesRep) insertRep;
             List<Token> columnList = insertValuesRep.getColumnList();
             String prefix = "insert into "
-                + insert.getTableName().getLiteral() + "(" + columnList.stream().map(item -> String.valueOf(item.getLiteral())).collect(Collectors.joining(","))
-                + ") values ";
+                    + insert.getTableName().getLiteral() + "(" + columnList.stream().map(item -> String.valueOf(item.getLiteral())).collect(Collectors.joining(","))
+                    + ") values ";
             List<List<Curd>> curdListList = insertValuesRep.getCurdListList();
             for (List<Curd> curdList : curdListList) {
                 String sql = prefix + curdList.stream().map(Curd::toString).collect(Collectors.joining(",", "(", ")"));
@@ -367,6 +370,43 @@ public class SqlHelper {
         int whereIndex = keyInOrKeyEqualConditionUpdateSql.indexOf("where");
         String updateSeg = keyInOrKeyEqualConditionUpdateSql.substring(0, whereIndex);
         return new BinaryResult<>(updateSeg, keyValueList);
+    }
+
+    public String toStorableSql(String sql) {
+        TokenSequence tokenSequence = new DefaultScanner(sql).scanTokens();
+        List<Token> source = tokenSequence.getSource();
+        StringBuilder sb = new StringBuilder("'");
+        for (Token token : source) {
+            TokenType type = token.getType();
+            // 遇到 group_concat 的时候使用SQL解析器。
+            if (TokenType.GROUP_CONCAT.equals(type)) {
+                return CurdUtils.parse(sql, functionCalculator, false)
+                        .toString(" ", true);
+            }
+            String literal = String.valueOf(token.getLiteral());
+            if (TokenType.STRING.equals(type)) {
+                sb.append(" '");
+                int length = literal.length();
+                for (int i = 0; i < length; i++) {
+                    char c = literal.charAt(i);
+                    if (c == '\'') {
+                        sb.append("\\'");
+                    }
+                    sb.append(c);
+                }
+                sb.append("'");
+            } else if (TokenType.EOF.equals(type)) {
+                // no-op
+            } else {
+                // mysql 的函数 支持 now(), now( )写法，但是不支持 now (), now ( ) 写法。所以(前不留空格
+                if (!("(".equals(literal))) {
+                    sb.append(" ");
+                }
+                sb.append(literal);
+            }
+        }
+        sb.append("'");
+        return sb.toString();
     }
 
 }

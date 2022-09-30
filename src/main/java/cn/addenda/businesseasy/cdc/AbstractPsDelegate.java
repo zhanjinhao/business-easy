@@ -55,7 +55,7 @@ public abstract class AbstractPsDelegate implements PsDelegate {
     }
 
     protected Map<Long, Map<String, Token>> queryKeyColumnTokenMap(
-        Statement statement, List<Long> keyValueList, List<String> columnList) throws SQLException {
+            Statement statement, List<Long> keyValueList, List<String> columnList) throws SQLException {
         Map<Long, Map<String, Token>> map = new HashMap<>();
         if (columnList.isEmpty()) {
             return map;
@@ -67,10 +67,10 @@ public abstract class AbstractPsDelegate implements PsDelegate {
             int size = item.size();
             String keyInList = longListToString(item);
             String sql = "select "
-                + String.join(",", resultColumnList) + " "
-                + "from " + tableName + " "
-                + "where " + keyColumn + " "
-                + "in (" + keyInList + ")";
+                    + String.join(",", resultColumnList) + " "
+                    + "from " + tableName + " "
+                    + "where " + keyColumn + " "
+                    + "in (" + keyInList + ")";
             ResultSet resultSet = statement.executeQuery(sql);
             Map<String, Token> columnTokenMap = new HashMap<>();
             int i = 0;
@@ -110,11 +110,11 @@ public abstract class AbstractPsDelegate implements PsDelegate {
 
     private String assembleSelectKeyValueSql(String executableSql) {
         return "select "
-            + keyColumn + " "
-            + "from "
-            + tableName + " "
-            + SqlUtils.extractWhereConditionFromUpdateOrDeleteSql(executableSql) + " "
-            + "for update";
+                + keyColumn + " "
+                + "from "
+                + tableName + " "
+                + SqlUtils.extractWhereConditionFromUpdateOrDeleteSql(executableSql) + " "
+                + "for update";
     }
 
     protected void executeCdcSql(String cdcMode, List<String> cdcSqlList) throws SQLException {
@@ -129,7 +129,9 @@ public abstract class AbstractPsDelegate implements PsDelegate {
         for (List<String> item : listList) {
             StringBuilder sql = new StringBuilder(sqlPreSegment);
             for (String string : item) {
-                sql.append("('").append(string.replace("'", "\\'")).append("'),");
+                sql.append("(");
+                sql.append(sqlHelper.toStorableSql(string));
+                sql.append("),");
             }
             if (item.size() == EXECUTE_INSERT_SQL_BATCH) {
                 sqlList.add(sql.substring(0, sql.length() - 1));
