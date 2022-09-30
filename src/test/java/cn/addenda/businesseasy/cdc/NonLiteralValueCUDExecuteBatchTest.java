@@ -33,10 +33,10 @@ public class NonLiteralValueCUDExecuteBatchTest {
     public void test01_insert() throws Exception {
         PreparedStatement ps = connection.prepareStatement(
                 "insert into t_cdc_test(long_d, int_d, string_d, date_d, time_d, datetime_d, float_d, double_d) " +
-                        "values (? + 1,?,?,?,?,now(),?,?)", Statement.RETURN_GENERATED_KEYS);
+                        "values (? + 1, ?, replace(?,'a','\\''), date_add(?, interval 1 day), ?, now(), ?, ?)", Statement.RETURN_GENERATED_KEYS);
         ps.setLong(1, 1L);
         ps.setInt(2, 2);
-        ps.setString(3, "3");
+        ps.setString(3, "3a");
         ps.setDate(4, new Date(System.currentTimeMillis()));
         ps.setTime(5, new Time(System.currentTimeMillis()));
         ps.setFloat(6, 1.1f);
@@ -44,7 +44,7 @@ public class NonLiteralValueCUDExecuteBatchTest {
         ps.addBatch();
         ps.setLong(1, 2L);
         ps.setInt(2, 3);
-        ps.setString(3, "4");
+        ps.setString(3, "4a");
         ps.setDate(4, new Date(System.currentTimeMillis()));
         ps.setTime(5, new Time(System.currentTimeMillis()));
         ps.setFloat(6, 2.2f);

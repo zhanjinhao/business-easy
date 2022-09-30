@@ -1,9 +1,7 @@
 package cn.addenda.businesseasy.cdc;
 
 import cn.addenda.businesseasy.asynctask.BinaryResult;
-import cn.addenda.businesseasy.cdc.sql.SqlUtils;
 import cn.addenda.ec.calculator.CalculatorFactory;
-import cn.addenda.ec.function.calculator.DefaultFunctionCalculator;
 import cn.addenda.ro.grammar.ast.expression.Curd;
 import cn.addenda.ro.grammar.lexical.token.Token;
 import cn.addenda.ro.grammar.lexical.token.TokenType;
