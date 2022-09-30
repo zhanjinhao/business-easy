@@ -72,9 +72,9 @@ public abstract class AbstractPsDelegate implements PsDelegate {
                     + "where " + keyColumn + " "
                     + "in (" + keyInList + ")";
             ResultSet resultSet = statement.executeQuery(sql);
-            Map<String, Token> columnTokenMap = new HashMap<>();
             int i = 0;
             while (resultSet.next()) {
+                Map<String, Token> columnTokenMap = new HashMap<>();
                 Long keyValue = null;
                 for (String column : resultColumnList) {
                     if (keyColumn.equals(column)) {
