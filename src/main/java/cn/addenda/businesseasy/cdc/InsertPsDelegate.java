@@ -50,6 +50,11 @@ public class InsertPsDelegate extends AbstractPsDelegate {
     @Override
     public <T> T execute(List<String> executableSqlList, PsInvocation<T> pi) throws SQLException {
         T invoke = pi.invoke();
+        if (multipleRows) {
+            // 将多行insert语句处理为单行insert语句
+            executableSqlList = toSingleRow(executableSqlList);
+        }
+
         BinaryResult<List<String>, List<Long>> sqlWithKeyValueBr = fillKeyValueToInsertSql(executableSqlList);
         executableSqlList = sqlWithKeyValueBr.getFirstResult();
         List<Long> keyValueList = sqlWithKeyValueBr.getSecondResult();
@@ -68,8 +73,6 @@ public class InsertPsDelegate extends AbstractPsDelegate {
         if (checkTableMode(TableConfig.CM_ROW)) {
             List<String> rowCdcSqlList = new ArrayList<>();
             if (multipleRows) {
-                // 将多行insert语句处理为单行insert语句
-                executableSqlList = toSingleRow(executableSqlList);
                 try (Statement statement = cdcConnection.getDelegate().createStatement()) {
                     // insert into A(a, b) values (1,'2'), (3+1,concat('2','3'))
                     // 拆分后：
