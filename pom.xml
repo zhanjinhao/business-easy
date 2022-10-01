@@ -15,16 +15,18 @@
         <spring.version>5.3.22</spring.version>
         <lombok.version>1.18.22</lombok.version>
         <slf4j.version>1.7.36</slf4j.version>
-        <relational-operations-grammar.version>2.3.2-SNAPSHOT</relational-operations-grammar.version>
-        <expression-calculator.version>1.0.1-SNAPSHOT</expression-calculator.version>
+        <junit.version>4.13.2</junit.version>
     </properties>
 
     <dependencies>
+        <!--Spring依赖-->
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-beans</artifactId>
             <version>${spring.version}</version>
         </dependency>
+
+        <!--Jackson依赖-->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-core</artifactId>
@@ -50,44 +52,28 @@
             <artifactId>jackson-datatype-jdk8</artifactId>
             <version>${jackson.version}</version>
         </dependency>
+
+        <!--slf4j依赖-->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>${slf4j.version}</version>
         </dependency>
+
+        <!--junit依赖-->
         <dependency>
-            <groupId>cn.addenda</groupId>
-            <artifactId>relational-operations-grammar</artifactId>
-            <version>${relational-operations-grammar.version}</version>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>cn.addenda</groupId>
-            <artifactId>expression-calculator</artifactId>
-            <version>${expression-calculator.version}</version>
-        </dependency>
+
+        <!--lombok-->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <version>${lombok.version}</version>
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <version>${slf4j.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
-            <version>8.0.27</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.13.2</version>
-            <scope>test</scope>
         </dependency>
     </dependencies>
 
