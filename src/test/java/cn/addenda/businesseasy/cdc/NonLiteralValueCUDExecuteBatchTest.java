@@ -33,7 +33,8 @@ public class NonLiteralValueCUDExecuteBatchTest {
     public void test01_insert() throws Exception {
         PreparedStatement ps = connection.prepareStatement(
                 "insert into t_cdc_test(long_d, int_d, string_d, date_d, time_d, datetime_d, float_d, double_d) " +
-                        "values (? + 1, ?, replace(?,'a','\\''), date_add(?, interval 1 day), ?, now(), ?, ?)", Statement.RETURN_GENERATED_KEYS);
+                        "values (? + 1, ?, replace(?,'a','\\''), date_add(?, interval 1 day), ?, now(), ?, ?)" +
+                        ",(1, 2, '3a', '1970-01-01', '01:00:00', '1970-01-01 01:00:00', 1.1, 2.2)", Statement.RETURN_GENERATED_KEYS);
         ps.setLong(1, 1L);
         ps.setInt(2, 2);
         ps.setString(3, "3a");
@@ -60,13 +61,13 @@ public class NonLiteralValueCUDExecuteBatchTest {
     @Test
     public void test02_update() throws Exception {
         PreparedStatement ps = connection.prepareStatement(
-                "update t_cdc_test set date_d = ?, time_d = ?, datetime_d =now(), float_d = ? where long_d = ? + 1");
+                "update t_cdc_test set date_d = date_add(?, interval 1 day), time_d = ?, datetime_d =now(), float_d = ? + 1 where long_d = ? + 1");
         ps.setDate(1, new Date(System.currentTimeMillis()));
         ps.setTime(2, new Time(System.currentTimeMillis()));
         ps.setFloat(3, 3.3f);
         ps.setLong(4, 1L);
         ps.addBatch();
-        ps.setFloat(3, 3.4f);
+        ps.setFloat(3, 3.3f);
         ps.setLong(4, 2L);
         ps.addBatch();
 
