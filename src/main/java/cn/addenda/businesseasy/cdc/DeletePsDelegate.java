@@ -2,13 +2,11 @@ package cn.addenda.businesseasy.cdc;
 
 import cn.addenda.businesseasy.util.BEListUtil;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author addenda
@@ -21,7 +19,12 @@ public class DeletePsDelegate extends AbstractPsDelegate {
     }
 
     @Override
-    public <T> T execute(List<String> executableSqlList, PsInvocation<T> pi) throws SQLException {
+    protected <T> void doAssert(List<String> executableSqlList, PsInvocation<T> pi) throws SQLException {
+        assertTxIsolationNotLessThan(Connection.TRANSACTION_REPEATABLE_READ);
+    }
+
+    @Override
+    public <T> T doExecute(List<String> executableSqlList, PsInvocation<T> pi) throws SQLException {
         // -------------------------------------
         //  对于Statement模式来说，记录下来SQL就行了
         // -------------------------------------

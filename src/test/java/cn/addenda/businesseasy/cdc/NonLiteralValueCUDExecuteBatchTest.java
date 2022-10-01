@@ -24,6 +24,7 @@ public class NonLiteralValueCUDExecuteBatchTest {
         try {
             connection = dataSource.getConnection();
             connection.setAutoCommit(false);
+            connection.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
         } catch (SQLException e) {
             e.printStackTrace();
         }

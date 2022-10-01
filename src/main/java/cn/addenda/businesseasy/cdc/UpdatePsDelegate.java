@@ -6,13 +6,11 @@ import cn.addenda.businesseasy.util.BEListUtil;
 import cn.addenda.ro.grammar.ast.expression.Curd;
 import cn.addenda.ro.grammar.lexical.token.Token;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -39,8 +37,22 @@ public class UpdatePsDelegate extends AbstractPsDelegate {
     }
 
     @Override
-    public <T> T execute(List<String> executableSqlList, PsInvocation<T> pi) throws SQLException {
-        assertStableUpdateSql(parameterizedSql);
+    protected <T> void doAssert(List<String> executableSqlList, PsInvocation<T> pi) throws SQLException {
+        assertTxIsolationNotLessThan(Connection.TRANSACTION_REPEATABLE_READ);
+        // 对于batch模式，需要是 stable sql
+        if (executableSqlList.size() > 1) {
+            assertStableUpdateSql(parameterizedSql);
+        }
+    }
+
+    private void assertStableUpdateSql(String sql) {
+        if (!sqlHelper.checkStableUpdateSql(sql, keyColumn)) {
+            throw new CdcException("update sql cannot update column which in where-condition and primary key column when sql in batch mode. ");
+        }
+    }
+
+    @Override
+    public <T> T doExecute(List<String> executableSqlList, PsInvocation<T> pi) throws SQLException {
 
         // -------------------------------------
         //  对于Statement模式来说，记录下来SQL就行了
@@ -120,12 +132,6 @@ public class UpdatePsDelegate extends AbstractPsDelegate {
         List<List<Long>> listList = BEListUtil.splitList(keyValueList, IN_SIZE);
         listList.forEach(item -> rowCdcSqlList.add(updateSeg + " where " + keyColumn + " in (" + longListToString(item) + ")"));
         return rowCdcSqlList;
-    }
-
-    private void assertStableUpdateSql(String sql) {
-        if (!sqlHelper.checkStableUpdateSql(sql, keyColumn)) {
-            throw new CdcException("update sql cannot update column which in where-condition and primary key column. ");
-        }
     }
 
 }

@@ -54,6 +54,31 @@ public abstract class AbstractPsDelegate implements PsDelegate {
         sqlHelper = new SqlHelper(functionCalculator);
     }
 
+    @Override
+    public <T> T execute(List<String> executableSqlList, PsInvocation<T> pi) throws SQLException {
+        doAssert(executableSqlList, pi);
+        return doExecute(executableSqlList, pi);
+    }
+
+    protected abstract <T> void doAssert(List<String> executableSqlList, PsInvocation<T> pi) throws SQLException;
+
+    protected abstract <T> T doExecute(List<String> executableSqlList, PsInvocation<T> pi) throws SQLException;
+
+    private static final Map<Integer, String> txIsolationStrMap = new HashMap<>();
+
+    static {
+        txIsolationStrMap.put(1, "READ_UNCOMMITTED");
+        txIsolationStrMap.put(2, "READ_COMMITTED");
+        txIsolationStrMap.put(4, "REPEATABLE_READ");
+        txIsolationStrMap.put(8, "SERIALIZABLE");
+    }
+
+    protected void assertTxIsolationNotLessThan(int txIsolation) throws SQLException {
+        if (cdcConnection.getDelegate().getTransactionIsolation() < txIsolation) {
+            throw new CdcException("tx isolation must not less than " + txIsolationStrMap.get(txIsolation) + ".");
+        }
+    }
+
     protected Map<Long, Map<String, Token>> queryKeyColumnTokenMap(
             Statement statement, List<Long> keyValueList, List<String> columnList) throws SQLException {
         Map<Long, Map<String, Token>> map = new HashMap<>();

@@ -7,10 +7,7 @@ import cn.addenda.ro.grammar.lexical.token.Token;
 import cn.addenda.ro.grammar.lexical.token.TokenType;
 
 import java.math.BigInteger;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -48,7 +45,12 @@ public class InsertPsDelegate extends AbstractPsDelegate {
     }
 
     @Override
-    public <T> T execute(List<String> executableSqlList, PsInvocation<T> pi) throws SQLException {
+    protected <T> void doAssert(List<String> executableSqlList, PsInvocation<T> pi) throws SQLException {
+        assertTxIsolationNotLessThan(Connection.TRANSACTION_READ_COMMITTED);
+    }
+
+    @Override
+    public <T> T doExecute(List<String> executableSqlList, PsInvocation<T> pi) throws SQLException {
         T invoke = pi.invoke();
         if (multipleRows) {
             // 将多行insert语句处理为单行insert语句
