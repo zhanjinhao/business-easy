@@ -63,4 +63,20 @@ public class BEListUtil {
         return new TernaryResult<>(inAButNotInB, inAAndB, notInAButInB);
     }
 
+    public static <T> List<T> merge(List<T> a, List<T> b) {
+        if (a == null && b == null) {
+            return new ArrayList<>();
+        }
+        if (a == null) {
+            return new ArrayList<>(b);
+        }
+        if (b == null) {
+            return new ArrayList<>(a);
+        }
+        List<T> result = new ArrayList<>();
+        result.addAll(a);
+        result.addAll(b);
+        return result;
+    }
+
 }
