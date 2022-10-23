@@ -5,24 +5,19 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.BeanDescription;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationConfig;
-import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.BeanPropertyWriter;
 import com.fasterxml.jackson.databind.ser.BeanSerializerModifier;
+import org.springframework.util.StringUtils;
+
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.springframework.util.StringUtils;
 
 /**
  * @Author ISJINHAO
@@ -80,10 +75,6 @@ public class BEJsonUtil {
         }
     }
 
-    /**
-     * @param input 待转换对象
-     * @return 如果转换失败返回<code>null</code>，否则返回转换后的json字符串
-     */
     public static String objectToString(Object input) {
         if (null == input) {
             return null;
@@ -92,10 +83,6 @@ public class BEJsonUtil {
         return objectToString(BASIC, input);
     }
 
-    /**
-     * @param input 待转换对象
-     * @return 如果转换失败返回<code>null</code>，否则返回转换后的json字符串
-     */
     public static String objectToString(Object input, String... ignoreProperties) {
         if (null == input) {
             return null;
@@ -104,7 +91,7 @@ public class BEJsonUtil {
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.setSerializerFactory(objectMapper.getSerializerFactory()
-            .withSerializerModifier(new IgnorePropertiesBeanSerializerModifier(Arrays.stream(ignoreProperties).collect(Collectors.toSet()))));
+                .withSerializerModifier(new IgnorePropertiesBeanSerializerModifier(Arrays.stream(ignoreProperties).collect(Collectors.toSet()))));
         return objectToString(objectMapper, input);
     }
 
@@ -123,20 +110,25 @@ public class BEJsonUtil {
         }
     }
 
-    /**
-     * 转换Json String为指定类
-     *
-     * @param inputJson 待转换json字符串
-     * @param targetType 目标类型
-     * @param <T> 目标类
-     * @return 目标类
-     */
-    public static <T> T stringToObject(String inputJson, TypeReference<T> targetType) {
+    public static <T> T stringToObject(String inputJson, TypeReference<T> reference) {
         if (!StringUtils.hasText(inputJson)) {
             return null;
         }
 
-        return stringToObject(BASIC, inputJson, targetType);
+        return stringToObject(BASIC, inputJson, reference);
+    }
+
+    public static <T> T stringToObject(String inputJson, Class<T> clazz) {
+        if (!StringUtils.hasText(inputJson)) {
+            return null;
+        }
+
+        return stringToObject(BASIC, inputJson, new TypeReference<T>() {
+            @Override
+            public Type getType() {
+                return clazz;
+            }
+        });
     }
 
     public static <T> T stringToObject(ObjectMapper objectMapper, String inputJson, TypeReference<T> targetType) {
@@ -146,6 +138,23 @@ public class BEJsonUtil {
 
         try {
             return objectMapper.readValue(inputJson, targetType);
+        } catch (Exception e) {
+            throw new BEUtilException("Json转换异常[String to Type].", e);
+        }
+    }
+
+    public static <T> T stringToObject(ObjectMapper objectMapper, String inputJson, Class<T> clazz) {
+        if (!StringUtils.hasText(inputJson)) {
+            return null;
+        }
+
+        try {
+            return objectMapper.readValue(inputJson, new TypeReference<T>() {
+                @Override
+                public Type getType() {
+                    return clazz;
+                }
+            });
         } catch (Exception e) {
             throw new BEUtilException("Json转换异常[String to Type].", e);
         }
@@ -167,11 +176,6 @@ public class BEJsonUtil {
         } catch (JsonProcessingException e) {
             throw new BEUtilException("去除Json的空值时出错！", e);
         }
-    }
-
-    public static void main(String[] args) {
-        String content = "{\"context\":\"\",\"layer\":\"Drivingdata\"}";
-        System.out.println(formatJson(content));
     }
 
 }
