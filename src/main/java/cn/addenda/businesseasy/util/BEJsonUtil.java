@@ -131,6 +131,14 @@ public class BEJsonUtil {
         });
     }
 
+    public static <T> T stringToObject(String inputJson, JavaType type) {
+        if (!StringUtils.hasText(inputJson)) {
+            return null;
+        }
+
+        return stringToObject(BASIC, inputJson, type);
+    }
+
     public static <T> T stringToObject(ObjectMapper objectMapper, String inputJson, TypeReference<T> targetType) {
         if (!StringUtils.hasText(inputJson)) {
             return null;
@@ -160,6 +168,18 @@ public class BEJsonUtil {
         }
     }
 
+    public static <T> T stringToObject(ObjectMapper objectMapper, String inputJson, JavaType type) {
+        if (!StringUtils.hasText(inputJson)) {
+            return null;
+        }
+
+        try {
+            return objectMapper.readValue(inputJson, type);
+        } catch (Exception e) {
+            throw new BEUtilException("Json转换异常[String to Type].", e);
+        }
+    }
+
     public static String formatJson(String content) {
         try {
             Object obj = BASIC.readValue(content, Object.class);
@@ -177,5 +197,6 @@ public class BEJsonUtil {
             throw new BEUtilException("去除Json的空值时出错！", e);
         }
     }
+
 
 }

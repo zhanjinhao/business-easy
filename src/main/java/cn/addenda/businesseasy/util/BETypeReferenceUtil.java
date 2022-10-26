@@ -1,10 +1,11 @@
 package cn.addenda.businesseasy.util;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl;
 
 /**
  * @author ISJINHAO
@@ -37,6 +38,21 @@ public class BETypeReferenceUtil {
             throw new BEUtilException("An error occurred in getCollectionItemTypeReference(), actualTypeArgument: " + actualTypeArgument, e);
         }
         return typeReference;
+    }
+
+    public static <T> TypeReference<T> newTypeReference(Class<T> clazz) {
+        TypeReference<Object> typeReference = new TypeReference<Object>() {
+        };
+
+        try {
+            Field _typeField = typeReferenceClass.getDeclaredField("_type");
+            _typeField.setAccessible(true);
+            _typeField.set(typeReference, clazz);
+        } catch (IllegalAccessException | NoSuchFieldException e) {
+            throw new BEUtilException("An error occurred in newTypeReference(), actualTypeArgument: " + clazz, e);
+        }
+        return (TypeReference<T>) typeReference;
+
     }
 
 }
