@@ -1,16 +1,22 @@
 package cn.addenda.businesseasy.util;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
+import java.time.*;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @Author ISJINHAO
  * @Date 2022/2/7 12:37
  */
 public class BEDateUtil {
+
+    public static final String FULL_FORMATTER = "yyyy-MM-dd HH:mm:ss.SSS";
+    public static final String YMD_FORMATTER = "yyyy-MM-dd";
+    public static final String HMS_FORMATTER = "HH:mm:ss";
+    public static final String SSS_FORMATTER = "SSS";
+    private static final Map<String, DateTimeFormatter> formatterMap = new ConcurrentHashMap<>();
 
     private BEDateUtil() {
         throw new BEUtilException("工具类不可实例化！");
@@ -89,6 +95,42 @@ public class BEDateUtil {
         ZonedDateTime zonedDateTime = localDateTime.atZone(zoneId);
         Instant instant = zonedDateTime.toInstant();
         return Date.from(instant);
+    }
+
+    public static String format(LocalDateTime localDateTime, String formatter) {
+        DateTimeFormatter dateTimeFormatter =
+                formatterMap.computeIfAbsent(formatter, s -> DateTimeFormatter.ofPattern(formatter));
+        return dateTimeFormatter.format(localDateTime);
+    }
+
+    public static String format(LocalDate localDate, String formatter) {
+        DateTimeFormatter dateTimeFormatter =
+                formatterMap.computeIfAbsent(formatter, s -> DateTimeFormatter.ofPattern(formatter));
+        return dateTimeFormatter.format(localDate);
+    }
+
+    public static String format(LocalTime localTime, String formatter) {
+        DateTimeFormatter dateTimeFormatter =
+                formatterMap.computeIfAbsent(formatter, s -> DateTimeFormatter.ofPattern(formatter));
+        return dateTimeFormatter.format(localTime);
+    }
+
+    public static LocalDateTime parseLdt(String localDateTime, String formatter) {
+        DateTimeFormatter dateTimeFormatter =
+                formatterMap.computeIfAbsent(formatter, s -> DateTimeFormatter.ofPattern(formatter));
+        return LocalDateTime.parse(localDateTime, dateTimeFormatter);
+    }
+
+    public static LocalDate parseLd(String localDate, String formatter) {
+        DateTimeFormatter dateTimeFormatter =
+                formatterMap.computeIfAbsent(formatter, s -> DateTimeFormatter.ofPattern(formatter));
+        return LocalDate.parse(localDate, dateTimeFormatter);
+    }
+
+    public static LocalTime parseLt(String localTime, String formatter) {
+        DateTimeFormatter dateTimeFormatter =
+                formatterMap.computeIfAbsent(formatter, s -> DateTimeFormatter.ofPattern(formatter));
+        return LocalTime.parse(localTime, dateTimeFormatter);
     }
 
 }
