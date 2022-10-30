@@ -8,14 +8,14 @@ import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
+import java.time.LocalTime;
 
-public class LocalDateTimeStrDeSerializer extends JsonDeserializer<LocalDateTime> {
+public class LocalTimeStrDeSerializer extends JsonDeserializer<LocalTime> {
 
     @Override
-    public LocalDateTime deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException, JsonProcessingException {
+    public LocalTime deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException, JsonProcessingException {
         JsonNode jsonNode = jp.getCodec().readTree(jp);
         final String s = jsonNode.asText();
-        return BEDateUtil.parseLdt(s, BEDateUtil.FULL_FORMATTER);
+        return BEDateUtil.parseLt(s, BEDateUtil.HMSS_FORMATTER);
     }
 }

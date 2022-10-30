@@ -14,8 +14,7 @@ public class BEDateUtil {
 
     public static final String FULL_FORMATTER = "yyyy-MM-dd HH:mm:ss.SSS";
     public static final String YMD_FORMATTER = "yyyy-MM-dd";
-    public static final String HMS_FORMATTER = "HH:mm:ss";
-    public static final String SSS_FORMATTER = "SSS";
+    public static final String HMSS_FORMATTER = "HH:mm:ss.SSS";
     private static final Map<String, DateTimeFormatter> formatterMap = new ConcurrentHashMap<>();
 
     private BEDateUtil() {
