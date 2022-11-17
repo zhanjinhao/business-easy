@@ -15,12 +15,12 @@ import java.util.function.Function;
  * @Date 2022/2/7 12:38
  */
 @Slf4j
-public class BEListUtil {
+public class BEListUtils {
 
     private static final int BATCH_SIZE = 100;
 
-    private BEListUtil() {
-        throw new BEUtilException("工具类不可实例化！");
+    private BEListUtils() {
+        throw new BEUtilsException("工具类不可实例化！");
     }
 
     /**
@@ -102,7 +102,7 @@ public class BEListUtil {
             return new ArrayList<>();
         }
         if (batchSize <= 0) {
-            throw new BEUtilException("inList batchSize 必须大于1，当前是: " + batchSize + ". ");
+            throw new BEUtilsException("inList batchSize 必须大于1，当前是: " + batchSize + ". ");
         }
         long start = System.currentTimeMillis();
         List<R> result = new ArrayList<>();
@@ -139,7 +139,7 @@ public class BEListUtil {
             return new ArrayList<>();
         }
         if (batchSize <= 0) {
-            throw new BEUtilException("inList batchSize 必须大于1，当前是: " + batchSize + ". ");
+            throw new BEUtilsException("inList batchSize 必须大于1，当前是: " + batchSize + ". ");
         }
         long start = System.currentTimeMillis();
         List<R> result = new ArrayList<>();

@@ -1,6 +1,6 @@
 package cn.addenda.businesseasy.json;
 
-import cn.addenda.businesseasy.util.BEDateUtil;
+import cn.addenda.businesseasy.util.BEDateUtils;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
@@ -16,6 +16,6 @@ public class LocalDateTimeStrDeSerializer extends JsonDeserializer<LocalDateTime
     public LocalDateTime deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException, JsonProcessingException {
         JsonNode jsonNode = jp.getCodec().readTree(jp);
         final String s = jsonNode.asText();
-        return BEDateUtil.parseLdt(s, BEDateUtil.FULL_FORMATTER);
+        return BEDateUtils.parseLdt(s, BEDateUtils.FULL_FORMATTER);
     }
 }

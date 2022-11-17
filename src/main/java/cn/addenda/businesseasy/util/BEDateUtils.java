@@ -10,15 +10,15 @@ import java.util.concurrent.ConcurrentHashMap;
  * @Author ISJINHAO
  * @Date 2022/2/7 12:37
  */
-public class BEDateUtil {
+public class BEDateUtils {
 
     public static final String FULL_FORMATTER = "yyyy-MM-dd HH:mm:ss.SSS";
     public static final String YMD_FORMATTER = "yyyy-MM-dd";
     public static final String HMSS_FORMATTER = "HH:mm:ss.SSS";
     private static final Map<String, DateTimeFormatter> formatterMap = new ConcurrentHashMap<>();
 
-    private BEDateUtil() {
-        throw new BEUtilException("工具类不可实例化！");
+    private BEDateUtils() {
+        throw new BEUtilsException("工具类不可实例化！");
     }
 
     private static final ZoneId defaultZoneId;
@@ -31,7 +31,7 @@ public class BEDateUtil {
             try {
                 defaultZoneId = ZoneId.of(property);
             } catch (Exception e) {
-                throw new BEUtilException("初始化BEDateUtil#defaultZoneId出错，businesseasy.timezone value:" + property);
+                throw new BEUtilsException("初始化BEDateUtil#defaultZoneId出错，businesseasy.timezone value:" + property);
             }
         }
     }

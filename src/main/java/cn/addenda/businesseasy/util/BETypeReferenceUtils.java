@@ -11,10 +11,10 @@ import java.lang.reflect.Type;
  * @author ISJINHAO
  * @date 2022/2/14
  */
-public class BETypeReferenceUtil {
+public class BETypeReferenceUtils {
 
-    private BETypeReferenceUtil() {
-        throw new BEUtilException("工具类不可实例化！");
+    private BETypeReferenceUtils() {
+        throw new BEUtilsException("工具类不可实例化！");
     }
 
     private static final Class<?> collectionClass = java.util.Collection.class;
@@ -35,7 +35,7 @@ public class BETypeReferenceUtil {
             _typeField.setAccessible(true);
             _typeField.set(typeReference, itemClass);
         } catch (IllegalAccessException | NoSuchFieldException e) {
-            throw new BEUtilException("An error occurred in getCollectionItemTypeReference(), actualTypeArgument: " + actualTypeArgument, e);
+            throw new BEUtilsException("An error occurred in getCollectionItemTypeReference(), actualTypeArgument: " + actualTypeArgument, e);
         }
         return typeReference;
     }
@@ -49,7 +49,7 @@ public class BETypeReferenceUtil {
             _typeField.setAccessible(true);
             _typeField.set(typeReference, clazz);
         } catch (IllegalAccessException | NoSuchFieldException e) {
-            throw new BEUtilException("An error occurred in newTypeReference(), actualTypeArgument: " + clazz, e);
+            throw new BEUtilsException("An error occurred in newTypeReference(), actualTypeArgument: " + clazz, e);
         }
         return (TypeReference<T>) typeReference;
 

@@ -14,7 +14,7 @@ public class BeListUtilTest {
 
     @Test
     public void test1() {
-        BEListUtil.inList(BEArrayUtil.asArrayList("a", "b"),
+        BEListUtils.inList(BEArrayUtils.asArrayList("a", "b"),
                 new Function<List<String>, List<Void>>() {
                     @Override
                     public List<Void> apply(List<String> objects) {
@@ -27,7 +27,7 @@ public class BeListUtilTest {
 
     @Test
     public void test2() {
-        BEListUtil.inList(BEArrayUtil.asArrayList("a", "b"), BEArrayUtil.asArrayList(1, 2),
+        BEListUtils.inList(BEArrayUtils.asArrayList("a", "b"), BEArrayUtils.asArrayList(1, 2),
                 (BiFunction<List<String>, List<Integer>, List<Void>>) (objects, objects2) -> {
                     System.out.println(objects);
                     System.out.println(objects2);

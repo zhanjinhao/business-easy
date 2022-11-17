@@ -1,6 +1,6 @@
 package cn.addenda.businesseasy.json;
 
-import cn.addenda.businesseasy.util.BEDateUtil;
+import cn.addenda.businesseasy.util.BEDateUtils;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonSerializer;
@@ -17,7 +17,7 @@ public class LocalTimeStrSerializer extends JsonSerializer<LocalTime> {
 
     @Override
     public void serialize(LocalTime localTime, JsonGenerator jgen, SerializerProvider provider) throws IOException, JsonProcessingException {
-        jgen.writeString(BEDateUtil.format(localTime, BEDateUtil.HMSS_FORMATTER));
+        jgen.writeString(BEDateUtils.format(localTime, BEDateUtils.HMSS_FORMATTER));
     }
 
 }

@@ -8,10 +8,10 @@ import org.springframework.util.StringUtils;
  * @Author ISJINHAO
  * @Date 2022/2/7 12:38
  */
-public class BEStringUtil {
+public class BEStringUtils {
 
-    private BEStringUtil() {
-        throw new BEUtilException("工具类不可实例化！");
+    private BEStringUtils() {
+        throw new BEUtilsException("工具类不可实例化！");
     }
 
     public static String expandWithSpecifiedChar(String str, char specifiedChar, int expectLength) {
@@ -56,7 +56,7 @@ public class BEStringUtil {
         }
         int length = pieces.length;
         if (endIndex > length || fromIndex < 0) {
-            throw new BEUtilException("数组长度: " + length + ", 起始索引: " + fromIndex + ", 终止索引: " + endIndex);
+            throw new BEUtilsException("数组长度: " + length + ", 起始索引: " + fromIndex + ", 终止索引: " + endIndex);
         }
         return String.join(" ", Arrays.stream(pieces).collect(Collectors.toList()).subList(fromIndex, endIndex));
     }
@@ -74,7 +74,7 @@ public class BEStringUtil {
         }
         int length = str.length();
         if (index < 0 || index >= length) {
-            throw new BEUtilException("非法的参数，当前字符串：" + str + "，长度：" + index + "，索引值：" + index + "。");
+            throw new BEUtilsException("非法的参数，当前字符串：" + str + "，长度：" + index + "，索引值：" + index + "。");
         }
 
         return str.substring(0, index) + newChar + str.substring(index + 1);

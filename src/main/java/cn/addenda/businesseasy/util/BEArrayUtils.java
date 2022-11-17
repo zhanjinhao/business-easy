@@ -13,10 +13,10 @@ import java.util.TreeSet;
  * @Author ISJINHAO
  * @Date 2022/2/7 12:37
  */
-public class BEArrayUtil {
+public class BEArrayUtils {
 
-    private BEArrayUtil() {
-        throw new BEUtilException("工具类不可实例化！");
+    private BEArrayUtils() {
+        throw new BEUtilsException("工具类不可实例化！");
     }
 
     public static <T> List<T> asArrayList(T... objs) {

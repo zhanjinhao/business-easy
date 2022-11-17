@@ -10,9 +10,9 @@ import lombok.extern.slf4j.Slf4j;
  * @date 2022/4/28
  */
 @Slf4j
-public class BEConnectionUtil {
+public class BEConnectionUtils {
 
-    private BEConnectionUtil() {
+    private BEConnectionUtils() {
 
     }
 

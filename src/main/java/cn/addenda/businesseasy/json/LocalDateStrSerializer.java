@@ -1,6 +1,6 @@
 package cn.addenda.businesseasy.json;
 
-import cn.addenda.businesseasy.util.BEDateUtil;
+import cn.addenda.businesseasy.util.BEDateUtils;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonSerializer;
@@ -17,7 +17,7 @@ public class LocalDateStrSerializer extends JsonSerializer<LocalDate> {
 
     @Override
     public void serialize(LocalDate localDate, JsonGenerator jgen, SerializerProvider provider) throws IOException, JsonProcessingException {
-        jgen.writeString(BEDateUtil.format(localDate, BEDateUtil.YMD_FORMATTER));
+        jgen.writeString(BEDateUtils.format(localDate, BEDateUtils.YMD_FORMATTER));
     }
 
 }

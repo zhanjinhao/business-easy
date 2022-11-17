@@ -12,14 +12,14 @@ public class CloneUtilTest {
 
     public static void main(String[] args) {
 
-        List<Son> sons1 = BEArrayUtil.asArrayList(new Son("a", "1"), new Son("b", "2"), new Son("c", "2"));
-        System.out.println(BECloneUtil.cloneByJDKSerialization(sons1));
+        List<Son> sons1 = BEArrayUtils.asArrayList(new Son("a", "1"), new Son("b", "2"), new Son("c", "2"));
+        System.out.println(BECloneUtils.cloneByJDKSerialization(sons1));
 
-        List<Son> sons2 = BEArrayUtil.asLinkedList(new Son("a", "1"), new Son("b", "2"), new Son("c", "2"));
-        System.out.println(BECloneUtil.cloneByJDKSerialization(sons2));
+        List<Son> sons2 = BEArrayUtils.asLinkedList(new Son("a", "1"), new Son("b", "2"), new Son("c", "2"));
+        System.out.println(BECloneUtils.cloneByJDKSerialization(sons2));
 
-        Set<Son> sons3 = BEArrayUtil.asHashSet(new Son("a", "1"), new Son("b", "2"), new Son("c", "2"));
-        System.out.println(BECloneUtil.cloneByJDKSerialization(sons3));
+        Set<Son> sons3 = BEArrayUtils.asHashSet(new Son("a", "1"), new Son("b", "2"), new Son("c", "2"));
+        System.out.println(BECloneUtils.cloneByJDKSerialization(sons3));
     }
 
     static class Son implements Serializable {

@@ -7,7 +7,7 @@ import java.lang.reflect.Method;
  * @Author ISJINHAO
  * @Date 2022/2/5 16:20
  */
-public class AnnotationUtil {
+public class AnnotationUtils {
 
     public static <T> T extractAnnotationFromMethod(Class<?> aClass, String methodName, Class<T> tClazz) {
         Method[] methods = aClass.getMethods();

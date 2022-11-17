@@ -1,7 +1,7 @@
 package cn.addenda.businesseasy.asynctask;
 
 import cn.addenda.businesseasy.concurrent.SimpleNamedThreadFactory;
-import cn.addenda.businesseasy.util.BEArrayUtil;
+import cn.addenda.businesseasy.util.BEArrayUtils;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -33,7 +33,7 @@ public class AsyncTaskExecutorService {
      */
     public static <T> CompletableFuture<FutureResult<T>> supplyAsync(Supplier<FutureResult<T>> supplier) {
         return CompletableFuture.supplyAsync(supplier, executorService)
-            .exceptionally(e -> new FutureResult<>(BEArrayUtil.asArrayList(e)));
+            .exceptionally(e -> new FutureResult<>(BEArrayUtils.asArrayList(e)));
     }
 
     /**
@@ -41,7 +41,7 @@ public class AsyncTaskExecutorService {
      */
     public static <T> CompletableFuture<FutureResult<T>> supplyAsync(Supplier<FutureResult<T>> supplier, String name) {
         return CompletableFuture.supplyAsync(costWrap(supplier, name), executorService)
-            .exceptionally(e -> new FutureResult<>(BEArrayUtil.asArrayList(e)));
+            .exceptionally(e -> new FutureResult<>(BEArrayUtils.asArrayList(e)));
     }
 
     /**
@@ -50,7 +50,7 @@ public class AsyncTaskExecutorService {
     public static <T, U> CompletableFuture<FutureResult<U>> thenApplyAsync(CompletableFuture<FutureResult<T>> future,
         Function<FutureResult<T>, FutureResult<U>> function) {
         return future.thenApplyAsync(function, executorService)
-            .exceptionally(e -> new FutureResult<>(BEArrayUtil.asArrayList(e)));
+            .exceptionally(e -> new FutureResult<>(BEArrayUtils.asArrayList(e)));
     }
 
     /**
@@ -59,7 +59,7 @@ public class AsyncTaskExecutorService {
     public static <T, U> CompletableFuture<FutureResult<U>> thenApplyAsync(CompletableFuture<FutureResult<T>> future,
         Function<FutureResult<T>, FutureResult<U>> function, String name) {
         return future.thenApplyAsync(costWrap(function, name), executorService)
-            .exceptionally(e -> new FutureResult<>(BEArrayUtil.asArrayList(e)));
+            .exceptionally(e -> new FutureResult<>(BEArrayUtils.asArrayList(e)));
     }
 
     /**
@@ -68,7 +68,7 @@ public class AsyncTaskExecutorService {
     public static <T, P, U> CompletableFuture<FutureResult<U>> thenCombineAsync(CompletableFuture<FutureResult<T>> future,
         CompletableFuture<FutureResult<P>> otherFuture, BiFunction<FutureResult<T>, FutureResult<P>, FutureResult<U>> function) {
         return future.thenCombineAsync(otherFuture, function, executorService)
-            .exceptionally(e -> new FutureResult<>(BEArrayUtil.asArrayList(e)));
+            .exceptionally(e -> new FutureResult<>(BEArrayUtils.asArrayList(e)));
     }
 
     /**
@@ -77,7 +77,7 @@ public class AsyncTaskExecutorService {
     public static <T, P, U> CompletableFuture<FutureResult<U>> thenCombineAsync(CompletableFuture<FutureResult<T>> future,
         CompletableFuture<FutureResult<P>> otherFuture, BiFunction<FutureResult<T>, FutureResult<P>, FutureResult<U>> function, String name) {
         return future.thenCombineAsync(otherFuture, costWrap(function, name), executorService)
-            .exceptionally(e -> new FutureResult<>(BEArrayUtil.asArrayList(e)));
+            .exceptionally(e -> new FutureResult<>(BEArrayUtils.asArrayList(e)));
     }
 
     /**

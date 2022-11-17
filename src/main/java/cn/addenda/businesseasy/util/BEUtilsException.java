@@ -9,13 +9,13 @@ import cn.addenda.businesseasy.BusinessEasyException;
  * @author ISJINHAO
  * @date 2022/2/14
  */
-public class BEUtilException extends BusinessEasyException {
+public class BEUtilsException extends BusinessEasyException {
 
-    public BEUtilException(String message) {
+    public BEUtilsException(String message) {
         super(message, 1009);
     }
 
-    public BEUtilException(String message, Throwable cause) {
+    public BEUtilsException(String message, Throwable cause) {
         super(message, cause, 1009);
     }
 

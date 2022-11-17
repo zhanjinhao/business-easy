@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
  * @Author ISJINHAO
  * @Date 2022/2/7 12:38
  */
-public class BEJsonUtil {
+public class BEJsonUtils {
 
     private static final ObjectMapper BASIC = new ObjectMapper();
     private static final ObjectMapper TRIM_NULL = new ObjectMapper();
@@ -47,7 +47,7 @@ public class BEJsonUtil {
                         jgen.writeString("");
                         return;
                     }
-                    jgen.writeNumber(BEDateUtil.localDateTimeToTimestamp(value));
+                    jgen.writeNumber(BEDateUtils.localDateTimeToTimestamp(value));
                 }
             });
             addDeserializer(LocalDateTime.class, new JsonDeserializer<LocalDateTime>() {
@@ -57,7 +57,7 @@ public class BEJsonUtil {
                     if ("".equals(text)) {
                         return null;
                     }
-                    return BEDateUtil.timestampToLocalDateTime(Long.parseLong(text));
+                    return BEDateUtils.timestampToLocalDateTime(Long.parseLong(text));
                 }
             });
         }
@@ -71,7 +71,7 @@ public class BEJsonUtil {
         try {
             return objectMapper.writeValueAsString(input);
         } catch (JsonProcessingException e) {
-            throw new BEUtilException("Json转换异常[Object to String].");
+            throw new BEUtilsException("Json转换异常[Object to String].");
         }
     }
 
@@ -147,7 +147,7 @@ public class BEJsonUtil {
         try {
             return objectMapper.readValue(inputJson, targetType);
         } catch (Exception e) {
-            throw new BEUtilException("Json转换异常[String to Type].", e);
+            throw new BEUtilsException("Json转换异常[String to Type].", e);
         }
     }
 
@@ -164,7 +164,7 @@ public class BEJsonUtil {
                 }
             });
         } catch (Exception e) {
-            throw new BEUtilException("Json转换异常[String to Type].", e);
+            throw new BEUtilsException("Json转换异常[String to Type].", e);
         }
     }
 
@@ -176,7 +176,7 @@ public class BEJsonUtil {
         try {
             return objectMapper.readValue(inputJson, type);
         } catch (Exception e) {
-            throw new BEUtilException("Json转换异常[String to Type].", e);
+            throw new BEUtilsException("Json转换异常[String to Type].", e);
         }
     }
 
@@ -185,7 +185,7 @@ public class BEJsonUtil {
             Object obj = BASIC.readValue(content, Object.class);
             return BASIC.writerWithDefaultPrettyPrinter().writeValueAsString(obj);
         } catch (JsonProcessingException e) {
-            throw new BEUtilException("格式化Json出错，content: " + content, e);
+            throw new BEUtilsException("格式化Json出错，content: " + content, e);
         }
     }
 
@@ -194,7 +194,7 @@ public class BEJsonUtil {
             Object o = BASIC.readValue(content, Object.class);
             return objectToString(TRIM_NULL, o);
         } catch (JsonProcessingException e) {
-            throw new BEUtilException("去除Json的空值时出错！", e);
+            throw new BEUtilsException("去除Json的空值时出错！", e);
         }
     }
 

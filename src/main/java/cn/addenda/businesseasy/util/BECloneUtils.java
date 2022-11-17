@@ -12,10 +12,10 @@ import java.util.Collection;
  * @Author ISJINHAO
  * @Date 2022/2/7 12:38
  */
-public class BECloneUtil {
+public class BECloneUtils {
 
-    private BECloneUtil() {
-        throw new BEUtilException("工具类不可实例化！");
+    private BECloneUtils() {
+        throw new BEUtilsException("工具类不可实例化！");
     }
 
     @SuppressWarnings("unchecked")
@@ -28,7 +28,7 @@ public class BECloneUtil {
             ObjectInputStream ois = new ObjectInputStream(bin);
             return (T) ois.readObject();
         } catch (IOException | ClassNotFoundException e) {
-            throw new BEUtilException("克隆对象出错！", e);
+            throw new BEUtilsException("克隆对象出错！", e);
         }
     }
 
@@ -50,7 +50,7 @@ public class BECloneUtil {
         try {
             return collection.newInstance();
         } catch (InstantiationException | IllegalAccessException e) {
-            throw new BEUtilException("反射生成集合对象失败！", e);
+            throw new BEUtilsException("反射生成集合对象失败！", e);
         }
     }
 
