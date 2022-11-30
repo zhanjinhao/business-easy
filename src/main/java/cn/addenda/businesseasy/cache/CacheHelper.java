@@ -2,6 +2,7 @@ package cn.addenda.businesseasy.cache;
 
 import cn.addenda.businesseasy.json.LocalDateTimeStrDeSerializer;
 import cn.addenda.businesseasy.json.LocalDateTimeStrSerializer;
+import cn.addenda.businesseasy.lock.LockService;
 import cn.addenda.businesseasy.util.BEJsonUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;

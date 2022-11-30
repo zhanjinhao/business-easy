@@ -1,4 +1,4 @@
-package cn.addenda.businesseasy.cache;
+package cn.addenda.businesseasy.lock;
 
 public interface LockService {
 
