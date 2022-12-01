@@ -36,6 +36,7 @@ public class CacheHelper {
     public static final String RT_DATA_FIRST_PREFIX = "rtf:";
     private static final String BUILD_SUCCESS_MSG = "构建缓存 [{}] 成功，获取到数据 [{}]。";
     private static final String UNEXPIRED_MSG = "获取到 [{}] 的数据 [{}] 未过期。";
+    private static final String CLEAR_MSG = "清理缓存 [{}] 成功。";
 
     private static final Class<?> TYPE_REFERENCE_CLASS = TypeReference.class;
 
@@ -52,10 +53,19 @@ public class CacheHelper {
         this.lockService = lockService;
     }
 
-    public <I> void setWithPerformanceFirst(String keyPrefix, I id, Consumer<I> setConsumer) {
+    public <I> void acceptWithPerformanceFirst(String keyPrefix, I id, Consumer<I> consumer) {
         String key = keyPrefix + PERFORMANCE_FIRST_PREFIX + id;
-        setConsumer.accept(id);
+        consumer.accept(id);
         kvOperator.delete(key);
+        log.info(CLEAR_MSG, key);
+    }
+
+    public <I, R> R applyWithPerformanceFirst(String keyPrefix, I id, Function<I, R> function) {
+        String key = keyPrefix + PERFORMANCE_FIRST_PREFIX + id;
+        R apply = function.apply(id);
+        kvOperator.delete(key);
+        log.info(CLEAR_MSG, key);
+        return apply;
     }
 
     /**
@@ -156,10 +166,19 @@ public class CacheHelper {
         log.info(BUILD_SUCCESS_MSG, key, r);
     }
 
-    public <I> void setWithRTDataFirst(String keyPrefix, I id, Consumer<I> set) {
+    public <I> void acceptWithRTDataFirst(String keyPrefix, I id, Consumer<I> consumer) {
         String key = keyPrefix + RT_DATA_FIRST_PREFIX + id;
-        set.accept(id);
+        consumer.accept(id);
         kvOperator.delete(key);
+        log.info(CLEAR_MSG, key);
+    }
+
+    public <I, R> R applyWithRTDataFirst(String keyPrefix, I id, Function<I, R> function) {
+        String key = keyPrefix + RT_DATA_FIRST_PREFIX + id;
+        R apply = function.apply(id);
+        kvOperator.delete(key);
+        log.info(CLEAR_MSG, key);
+        return apply;
     }
 
     /**
@@ -298,8 +317,8 @@ public class CacheHelper {
                         } else {
                             kvOperator.set(key, BEJsonUtils.objectToString(r), ttl, TimeUnit.MILLISECONDS);
                         }
+                        log.info(BUILD_SUCCESS_MSG, key, r);
                     }
-                    log.info(BUILD_SUCCESS_MSG, key, r);
                     return r;
                 } finally {
                     lockService.unlock(getLockKey(key));
@@ -332,6 +351,9 @@ public class CacheHelper {
         @JsonDeserialize(using = LocalDateTimeStrDeSerializer.class)
         private LocalDateTime expireTime;
         private T data;
+
+        public CacheData() {
+        }
 
         public CacheData(LocalDateTime expireTime, T data) {
             this.expireTime = expireTime;
