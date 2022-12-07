@@ -60,11 +60,30 @@ public class CacheHelper {
         log.info(CLEAR_MSG, key);
     }
 
+    public <I> void acceptWithPerformanceFirstAsync(String keyPrefix, I id, Consumer<I> consumer) {
+        String key = keyPrefix + PERFORMANCE_FIRST_PREFIX + id;
+        consumer.accept(id);
+        CACHE_REBUILD_ES.execute(() -> {
+            kvOperator.delete(key);
+            log.info(CLEAR_MSG, key);
+        });
+    }
+
     public <I, R> R applyWithPerformanceFirst(String keyPrefix, I id, Function<I, R> function) {
         String key = keyPrefix + PERFORMANCE_FIRST_PREFIX + id;
         R apply = function.apply(id);
         kvOperator.delete(key);
         log.info(CLEAR_MSG, key);
+        return apply;
+    }
+
+    public <I, R> R applyWithPerformanceFirstAsync(String keyPrefix, I id, Function<I, R> function) {
+        String key = keyPrefix + PERFORMANCE_FIRST_PREFIX + id;
+        R apply = function.apply(id);
+        CACHE_REBUILD_ES.execute(() -> {
+            kvOperator.delete(key);
+            log.info(CLEAR_MSG, key);
+        });
         return apply;
     }
 
@@ -173,11 +192,30 @@ public class CacheHelper {
         log.info(CLEAR_MSG, key);
     }
 
+    public <I> void acceptWithRTDataFirstAsync(String keyPrefix, I id, Consumer<I> consumer) {
+        String key = keyPrefix + RT_DATA_FIRST_PREFIX + id;
+        consumer.accept(id);
+        CACHE_REBUILD_ES.execute(() -> {
+            kvOperator.delete(key);
+            log.info(CLEAR_MSG, key);
+        });
+    }
+
     public <I, R> R applyWithRTDataFirst(String keyPrefix, I id, Function<I, R> function) {
         String key = keyPrefix + RT_DATA_FIRST_PREFIX + id;
         R apply = function.apply(id);
         kvOperator.delete(key);
         log.info(CLEAR_MSG, key);
+        return apply;
+    }
+
+    public <I, R> R applyWithRTDataFirstAsync(String keyPrefix, I id, Function<I, R> function) {
+        String key = keyPrefix + RT_DATA_FIRST_PREFIX + id;
+        R apply = function.apply(id);
+        CACHE_REBUILD_ES.execute(() -> {
+            kvOperator.delete(key);
+            log.info(CLEAR_MSG, key);
+        });
         return apply;
     }
 
