@@ -24,4 +24,8 @@ public class BEAssertUtils {
         Assert.isNull(condition, filedName + " cannot be modified. ");
     }
 
+    public static void notApplied(Object condition, String filedName) {
+        Assert.isNull(condition, filedName + " cannot be applied. ");
+    }
+
 }
