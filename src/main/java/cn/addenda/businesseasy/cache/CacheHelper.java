@@ -1,5 +1,6 @@
 package cn.addenda.businesseasy.cache;
 
+import cn.addenda.businesseasy.concurrent.SimpleNamedThreadFactory;
 import cn.addenda.businesseasy.json.LocalDateTimeStrDeSerializer;
 import cn.addenda.businesseasy.json.LocalDateTimeStrSerializer;
 import cn.addenda.businesseasy.lock.LockService;
@@ -16,8 +17,10 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -26,7 +29,13 @@ public class CacheHelper {
 
     private static final Logger log = LoggerFactory.getLogger(CacheHelper.class);
 
-    private static final ExecutorService CACHE_REBUILD_ES = Executors.newFixedThreadPool(2);
+    private static final ExecutorService CACHE_REBUILD_ES = new ThreadPoolExecutor(
+            2,
+            2,
+            30,
+            TimeUnit.SECONDS,
+            new LinkedBlockingQueue<>(10),
+            new SimpleNamedThreadFactory("CacheHelper-Rebuild"));
 
     public static final Long CACHE_NULL_TTL = 5 * 60 * 1000L;
 
@@ -146,8 +155,9 @@ public class CacheHelper {
             }
             // 4.2 判断是否过期，已过期，需要缓存重建
             else {
+                long threadId = UUID.randomUUID().toString().hashCode();
                 // 5.1 获取互斥锁，成功，开启独立线程，进行缓存重建
-                if (lockService.tryLock(getLockKey(key))) {
+                if (lockService.tryLock(getLockKey(key), threadId)) {
                     CACHE_REBUILD_ES.submit(() -> {
                         try {
                             // 查询数据库
@@ -158,14 +168,14 @@ public class CacheHelper {
                             log.error("构建缓存 [{}] 失败！", key, e);
                         } finally {
                             // 释放锁
-                            lockService.forceUnlock(getLockKey(key));
+                            lockService.unlock(getLockKey(key), threadId);
                         }
                     });
-                    log.debug("获取锁 [{}] 成功，提交了缓存重建任务，返回过期数据 [{}]。", getLockKey(key), data);
+                    log.info("获取锁 [{}] 成功，提交了缓存重建任务，返回过期数据 [{}]。", getLockKey(key), data);
                 }
                 // 5.2 获取互斥锁，未成功不进行缓存重建
                 else {
-                    log.debug("获取锁 [{}] 失败，未提交缓存重建任务，返回过期数据 [{}]。", getLockKey(key), data);
+                    log.info("获取锁 [{}] 失败，未提交缓存重建任务，返回过期数据 [{}]。", getLockKey(key), data);
                 }
             }
             return data;
