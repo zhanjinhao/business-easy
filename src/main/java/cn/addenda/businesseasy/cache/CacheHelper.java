@@ -4,10 +4,14 @@ import cn.addenda.businesseasy.concurrent.SimpleNamedThreadFactory;
 import cn.addenda.businesseasy.json.LocalDateTimeStrDeSerializer;
 import cn.addenda.businesseasy.json.LocalDateTimeStrSerializer;
 import cn.addenda.businesseasy.lock.LockService;
+import cn.addenda.businesseasy.trafficlimit.RequestIntervalTrafficLimiter;
+import cn.addenda.businesseasy.trafficlimit.TrafficLimiter;
 import cn.addenda.businesseasy.util.BEJsonUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl;
@@ -45,6 +49,7 @@ public class CacheHelper {
     public static final String RT_DATA_FIRST_PREFIX = "rtf:";
     private static final String BUILD_SUCCESS_MSG = "构建缓存 [{}] 成功，获取到数据 [{}]。";
     private static final String UNEXPIRED_MSG = "获取到 [{}] 的数据 [{}] 未过期。";
+    private static final String EXPIRED_MSG = "获取到 [{}] 的数据 [{}] 已过期。";
     private static final String CLEAR_MSG = "清理缓存 [{}] 成功。";
 
     private static final Class<?> TYPE_REFERENCE_CLASS = TypeReference.class;
@@ -57,9 +62,23 @@ public class CacheHelper {
 
     private final LockService lockService;
 
+    /**
+     * 性能优先模式下过期检测间隔（ms）
+     */
+    private final long ppfExpirationDetectionInterval;
+
+    private final Map<String, TrafficLimiter> trafficLimiterMap = new ConcurrentHashMap<>();
+
+    public CacheHelper(KVOperator<String, String> kvOperator, LockService lockService, long ppfExpirationDetectionInterval) {
+        this.kvOperator = kvOperator;
+        this.lockService = lockService;
+        this.ppfExpirationDetectionInterval = ppfExpirationDetectionInterval;
+    }
+
     public CacheHelper(KVOperator<String, String> kvOperator, LockService lockService) {
         this.kvOperator = kvOperator;
         this.lockService = lockService;
+        this.ppfExpirationDetectionInterval = 100L;
     }
 
     public <I> void acceptWithPerformanceFirst(String keyPrefix, I id, Consumer<I> consumer) {
@@ -176,6 +195,13 @@ public class CacheHelper {
                 // 5.2 获取互斥锁，未成功不进行缓存重建
                 else {
                     log.info("获取锁 [{}] 失败，未提交缓存重建任务，返回过期数据 [{}]。", getLockKey(key), data);
+                }
+                // 如果过期了，输出告警信息。
+                // 使用限流器防止高并发下大量打印日志。
+                TrafficLimiter trafficLimiter = trafficLimiterMap.computeIfAbsent(
+                    keyPrefix + PERFORMANCE_FIRST_PREFIX, s -> new RequestIntervalTrafficLimiter(ppfExpirationDetectionInterval));
+                if (trafficLimiter.acquire()) {
+                    log.warn(EXPIRED_MSG, key, data);
                 }
             }
             return data;
