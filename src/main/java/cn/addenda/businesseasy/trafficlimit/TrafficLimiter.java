@@ -7,7 +7,16 @@ package cn.addenda.businesseasy.trafficlimit;
 public interface TrafficLimiter {
 
     /**
-     * 当前请求能否满足
+     * @return =0 : 当前请求可以通过；<p/>
+     * >0：当前请求能通过，但需要等待指定的时间；<p/>
+     * <0: 当前请求不允许通过
      */
-    boolean tryAcquire();
+    long tryAcquire();
+
+    /**
+     * @return true: 当前请求可以通过。在返回true之前可能陷入等待。<p/>
+     * false：当前请求不允许通过。在返回false之前不会陷入等待。
+     */
+    boolean acquire();
+
 }

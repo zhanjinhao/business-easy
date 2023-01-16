@@ -1,96 +1,96 @@
 package cn.addenda.businesseasy.trafficlimit;
 
-import java.util.concurrent.atomic.AtomicLong;
+import cn.addenda.businesseasy.concurrent.CallerWaitUtils;
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.concurrent.TimeUnit;
 
 /**
- * copy from sentinel project
+ * 漏桶限流：限制请求的时间间隔 & 时间间隔不到且等待的请求不超过桶容量时在桶里等待
  *
  * @author addenda
  * @datetime 2022/12/28 14:15
  */
+@Slf4j
 public class LeakyBucketTrafficLimiter implements TrafficLimiter {
 
     /**
      * 最大等待时间（ms）
      */
-    private final int maxQueueingTime;
+    private final long maxQueueingTime;
     /**
      * 每秒允许通过的请求数量
      */
-    private final double qps;
+    private final double permitsPerSecond;
+    /**
+     * 每两次请求之间的间隔（ms）
+     */
+    private final long interval;
+    /**
+     * 桶的总容量
+     */
+    private final long capacity;
     /**
      * 上一次成功的时间
      */
-    private final AtomicLong latestPassedTime = new AtomicLong(-1);
+    private long latestPassedTime = -1;
 
-    public LeakyBucketTrafficLimiter(int maxQueueingTime, double qps) {
+    public LeakyBucketTrafficLimiter(long maxQueueingTime, double permitsPerSecond) {
         this.maxQueueingTime = maxQueueingTime;
-        this.qps = qps;
+        this.permitsPerSecond = permitsPerSecond;
+        this.interval = Math.round(1000 / permitsPerSecond);
+        this.capacity = Math.round(maxQueueingTime * permitsPerSecond / 1000);
+        attributeCheck();
+    }
+
+    private void attributeCheck() {
+        if (interval * permitsPerSecond != 1000) {
+            log.warn("interval * permitsPerSecond != 1000, interval: {}, permitsSecond: {}. ", interval, permitsPerSecond);
+        }
+        if (capacity * 1000 != maxQueueingTime * permitsPerSecond) {
+            log.warn("capacity * 1000 != maxQueueingTime * permitsPerSecond, capacity: {}, maxQueueingTime: {}, permitsPerSecond: {}. ",
+                    capacity, maxQueueingTime, permitsPerSecond);
+        }
+    }
+
+    @Override
+    public synchronized long tryAcquire() {
+        long now = System.currentTimeMillis();
+        long expectedTime = interval + latestPassedTime;
+
+        if (expectedTime <= now) {
+            latestPassedTime = now;
+            return 0;
+        } else {
+            long waitTime = expectedTime - now;
+            if (waitTime > maxQueueingTime) {
+                return -1;
+            }
+            latestPassedTime = expectedTime;
+            return waitTime;
+        }
     }
 
     /**
      * 能通过的请求是匀速的。
      */
     @Override
-    public boolean tryAcquire() {
-        // Reject when count is less or equal than 0.
-        // Otherwise,the costTime will be max of long and waitTime will overflow in some cases.
-        if (qps <= 0) {
-            return false;
-        }
-
-        long currentTime = System.currentTimeMillis();
-        // Calculate the interval between every two requests.
-        long costTime = Math.round(1000 / qps);
-
-        // Expected pass time of this request.
-        long expectedTime = costTime + latestPassedTime.get();
-
-        // 当前时间 > 期望时间
-        if (expectedTime <= currentTime) {
-            // Contention may exist here, but it's okay.
-            return latestPassedTime.compareAndSet(latestPassedTime.get(), currentTime);
-        } else {
-            // Calculate the time to wait.
-            // 不使用expectedTime，是为了重新获取一遍latestPassedTime，有可能别的线程修改值了
-            long waitTime = costTime + latestPassedTime.get() - System.currentTimeMillis();
-            // 等待时间 > 最大排队时间
-            if (waitTime > maxQueueingTime) {
-                return false;
-            }
-
-            // 上次时间 + 间隔时间
-            expectedTime = latestPassedTime.addAndGet(costTime);
-            // 等待时间
-            waitTime = expectedTime - System.currentTimeMillis();
-            // 等待时间 > 最大排队时间
-            if (waitTime > maxQueueingTime) {
-                latestPassedTime.addAndGet(-costTime);
-                return false;
-            }
-
-            // in race condition waitTime may <= 0
-            if (waitTime > 0) {
-                sleepMs(waitTime);
-            }
-            // 等待完了，就放行
+    public boolean acquire() {
+        long waitTime = tryAcquire();
+        if (waitTime > 0) {
+            CallerWaitUtils.waitWithLock(TimeUnit.MILLISECONDS, waitTime);
             return true;
         }
-    }
-
-    private void sleepMs(long ms) {
-        try {
-            Thread.sleep(ms);
-        } catch (InterruptedException e) {
-        }
+        return waitTime == 0;
     }
 
     @Override
     public String toString() {
         return "LeakyBucketTrafficLimiter{" +
-            "maxQueueingTime=" + maxQueueingTime +
-            ", qps=" + qps +
-            ", latestPassedTime=" + latestPassedTime +
-            '}';
+                "maxQueueingTime=" + maxQueueingTime +
+                ", permitsPerSecond=" + permitsPerSecond +
+                ", interval=" + interval +
+                ", capacity=" + capacity +
+                '}';
     }
 }

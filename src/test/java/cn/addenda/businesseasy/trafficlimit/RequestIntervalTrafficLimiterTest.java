@@ -10,8 +10,8 @@ public class RequestIntervalTrafficLimiterTest {
 
     @Test
     public void test1() throws Exception {
-        RequestIntervalTrafficLimiter requestIntervalTrafficLimiter = new RequestIntervalTrafficLimiter(100);
-        new BaseTest(requestIntervalTrafficLimiter).test();
+        RequestIntervalTrafficLimiter requestIntervalTrafficLimiter = new RequestIntervalTrafficLimiter(10d);
+        new TrafficLimiterBaseTest(requestIntervalTrafficLimiter).test(true);
     }
 
 }
