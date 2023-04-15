@@ -37,11 +37,12 @@ public abstract class EliminableKVCache<K, V> extends KVCacheWrapper<K, V> {
 
     @Override
     public void set(K k, V v, long timeout, TimeUnit timeunit) {
-        if (containsKey(k)) {
-            setWhenContainsKey(k, v, timeout, timeunit);
-            return;
-        }
-        setWhenNonContainsKey(k, v, timeout, timeunit);
+        throw new UnsupportedOperationException("EliminableKVCache不支持缓存过期！");
+//        if (containsKey(k)) {
+//            setWhenContainsKey(k, v, timeout, timeunit);
+//            return;
+//        }
+//        setWhenNonContainsKey(k, v, timeout, timeunit);
     }
 
     protected abstract void setWhenContainsKey(K k, V v, long timeout, TimeUnit timeunit);
