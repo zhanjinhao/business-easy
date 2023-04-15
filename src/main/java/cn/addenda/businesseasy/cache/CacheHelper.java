@@ -58,7 +58,7 @@ public class CacheHelper {
 
     private static final int LOOP = 3;
 
-    private final KVOperator<String, String> kvOperator;
+    private final KVCache<String, String> kvCache;
 
     private final LockService lockService;
 
@@ -69,14 +69,14 @@ public class CacheHelper {
 
     private final Map<String, TrafficLimiter> trafficLimiterMap = new ConcurrentHashMap<>();
 
-    public CacheHelper(KVOperator<String, String> kvOperator, LockService lockService, long ppfExpirationDetectionInterval) {
-        this.kvOperator = kvOperator;
+    public CacheHelper(KVCache<String, String> kvCache, LockService lockService, long ppfExpirationDetectionInterval) {
+        this.kvCache = kvCache;
         this.lockService = lockService;
         this.ppfExpirationDetectionInterval = ppfExpirationDetectionInterval;
     }
 
-    public CacheHelper(KVOperator<String, String> kvOperator, LockService lockService) {
-        this.kvOperator = kvOperator;
+    public CacheHelper(KVCache<String, String> kvCache, LockService lockService) {
+        this.kvCache = kvCache;
         this.lockService = lockService;
         this.ppfExpirationDetectionInterval = 100L;
     }
@@ -84,7 +84,7 @@ public class CacheHelper {
     public <I> void acceptWithPerformanceFirst(String keyPrefix, I id, Consumer<I> consumer) {
         String key = keyPrefix + PERFORMANCE_FIRST_PREFIX + id;
         consumer.accept(id);
-        kvOperator.delete(key);
+        kvCache.delete(key);
         log.info(CLEAR_MSG, key);
     }
 
@@ -92,7 +92,7 @@ public class CacheHelper {
         String key = keyPrefix + PERFORMANCE_FIRST_PREFIX + id;
         consumer.accept(id);
         CACHE_REBUILD_ES.execute(() -> {
-            kvOperator.delete(key);
+            kvCache.delete(key);
             log.info(CLEAR_MSG, key);
         });
     }
@@ -100,7 +100,7 @@ public class CacheHelper {
     public <I, R> R applyWithPerformanceFirst(String keyPrefix, I id, Function<I, R> function) {
         String key = keyPrefix + PERFORMANCE_FIRST_PREFIX + id;
         R apply = function.apply(id);
-        kvOperator.delete(key);
+        kvCache.delete(key);
         log.info(CLEAR_MSG, key);
         return apply;
     }
@@ -109,7 +109,7 @@ public class CacheHelper {
         String key = keyPrefix + PERFORMANCE_FIRST_PREFIX + id;
         R apply = function.apply(id);
         CACHE_REBUILD_ES.execute(() -> {
-            kvOperator.delete(key);
+            kvCache.delete(key);
             log.info(CLEAR_MSG, key);
         });
         return apply;
@@ -153,7 +153,7 @@ public class CacheHelper {
             String keyPrefix, I id, TypeReference<R> rType, Function<I, R> rTQuery, Long ttl) {
         String key = keyPrefix + PERFORMANCE_FIRST_PREFIX + id;
         // 1 查询缓存
-        String cachedJson = kvOperator.get(key);
+        String cachedJson = kvCache.get(key);
         // 2.1 缓存不存在则基于互斥锁构建缓存
         if (cachedJson == null) {
             // 查询数据库
@@ -199,7 +199,7 @@ public class CacheHelper {
                 // 如果过期了，输出告警信息。
                 // 使用限流器防止高并发下大量打印日志。
                 TrafficLimiter trafficLimiter = trafficLimiterMap.computeIfAbsent(
-                    keyPrefix + PERFORMANCE_FIRST_PREFIX, s -> new RequestIntervalTrafficLimiter(ppfExpirationDetectionInterval));
+                        keyPrefix + PERFORMANCE_FIRST_PREFIX, s -> new RequestIntervalTrafficLimiter(ppfExpirationDetectionInterval));
                 if (trafficLimiter.acquire()) {
                     log.warn(EXPIRED_MSG, key, data);
                 }
@@ -217,14 +217,14 @@ public class CacheHelper {
             newCacheData.setExpireTime(LocalDateTime.now().plus(ttl, ChronoUnit.MILLIS));
         }
         // 写缓存
-        kvOperator.set(key, BEJsonUtils.objectToString(newCacheData));
+        kvCache.set(key, BEJsonUtils.objectToString(newCacheData));
         log.info(BUILD_SUCCESS_MSG, key, r);
     }
 
     public <I> void acceptWithRTDataFirst(String keyPrefix, I id, Consumer<I> consumer) {
         String key = keyPrefix + RT_DATA_FIRST_PREFIX + id;
         consumer.accept(id);
-        kvOperator.delete(key);
+        kvCache.delete(key);
         log.info(CLEAR_MSG, key);
     }
 
@@ -232,7 +232,7 @@ public class CacheHelper {
         String key = keyPrefix + RT_DATA_FIRST_PREFIX + id;
         consumer.accept(id);
         CACHE_REBUILD_ES.execute(() -> {
-            kvOperator.delete(key);
+            kvCache.delete(key);
             log.info(CLEAR_MSG, key);
         });
     }
@@ -240,7 +240,7 @@ public class CacheHelper {
     public <I, R> R applyWithRTDataFirst(String keyPrefix, I id, Function<I, R> function) {
         String key = keyPrefix + RT_DATA_FIRST_PREFIX + id;
         R apply = function.apply(id);
-        kvOperator.delete(key);
+        kvCache.delete(key);
         log.info(CLEAR_MSG, key);
         return apply;
     }
@@ -249,7 +249,7 @@ public class CacheHelper {
         String key = keyPrefix + RT_DATA_FIRST_PREFIX + id;
         R apply = function.apply(id);
         CACHE_REBUILD_ES.execute(() -> {
-            kvOperator.delete(key);
+            kvCache.delete(key);
             log.info(CLEAR_MSG, key);
         });
         return apply;
@@ -350,7 +350,7 @@ public class CacheHelper {
             String keyPrefix, I id, TypeReference<R> rType, Function<I, R> rTQuery, Long ttl, int itr, boolean cache) {
         String key = keyPrefix + RT_DATA_FIRST_PREFIX + id;
         // 1.查询缓存
-        String resultJson = kvOperator.get(key);
+        String resultJson = kvCache.get(key);
         // 2.如果返回的是占位的空值，返回null
         if (NULL_OBJECT.equals(resultJson)) {
             log.debug("获取到 [{}] 的数据为空占位。", key);
@@ -387,9 +387,9 @@ public class CacheHelper {
                     R r = rTQuery.apply(id);
                     if (cache) {
                         if (r == null) {
-                            kvOperator.set(key, NULL_OBJECT, Math.min(CACHE_NULL_TTL, ttl), TimeUnit.MILLISECONDS);
+                            kvCache.set(key, NULL_OBJECT, Math.min(CACHE_NULL_TTL, ttl), TimeUnit.MILLISECONDS);
                         } else {
-                            kvOperator.set(key, BEJsonUtils.objectToString(r), ttl, TimeUnit.MILLISECONDS);
+                            kvCache.set(key, BEJsonUtils.objectToString(r), ttl, TimeUnit.MILLISECONDS);
                         }
                         log.info(BUILD_SUCCESS_MSG, key, r);
                     }
