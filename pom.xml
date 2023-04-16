@@ -15,7 +15,11 @@
         <spring.version>5.3.22</spring.version>
         <lombok.version>1.18.22</lombok.version>
         <slf4j.version>1.7.36</slf4j.version>
+        <guava.version>31.1-jre</guava.version>
+
         <junit.version>4.13.2</junit.version>
+        <spring.version>5.3.21</spring.version>
+        <mybatis.version>3.5.9</mybatis.version>
 
         <redisson.version>3.13.6</redisson.version>
     </properties>
@@ -62,11 +66,46 @@
             <version>${slf4j.version}</version>
         </dependency>
 
+        <!--Guava-->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>${guava.version}</version>
+        </dependency>
+
         <!--junit依赖-->
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!--spring依赖-->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+            <version>${spring.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-tx</artifactId>
+            <version>${spring.version}</version>
+          <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-jdbc</artifactId>
+            <version>${spring.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!--mybatis依赖-->
+        <dependency>
+            <groupId>org.mybatis</groupId>
+            <artifactId>mybatis</artifactId>
+            <version>${mybatis.version}</version>
             <scope>test</scope>
         </dependency>
 
