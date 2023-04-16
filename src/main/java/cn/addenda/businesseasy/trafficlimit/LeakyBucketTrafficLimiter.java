@@ -1,9 +1,8 @@
 package cn.addenda.businesseasy.trafficlimit;
 
-import cn.addenda.businesseasy.concurrent.CallerWaitUtils;
-import lombok.extern.slf4j.Slf4j;
-
+import cn.addenda.businesseasy.util.BESleepUtils;
 import java.util.concurrent.TimeUnit;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 漏桶限流：限制请求的时间间隔 & 时间间隔不到且等待的请求不超过桶容量时在桶里等待
@@ -78,7 +77,7 @@ public class LeakyBucketTrafficLimiter implements TrafficLimiter {
     public boolean acquire() {
         long waitTime = tryAcquire();
         if (waitTime > 0) {
-            CallerWaitUtils.waitWithLock(TimeUnit.MILLISECONDS, waitTime);
+            BESleepUtils.sleep(TimeUnit.MILLISECONDS, waitTime);
             return true;
         }
         return waitTime == 0;
