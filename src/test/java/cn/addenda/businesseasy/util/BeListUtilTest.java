@@ -1,10 +1,10 @@
 package cn.addenda.businesseasy.util;
 
-import org.junit.Test;
-
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.function.BiFunction;
 import java.util.function.Function;
+import org.junit.Test;
 
 /**
  * @author addenda
@@ -14,25 +14,38 @@ public class BeListUtilTest {
 
     @Test
     public void test1() {
-        BEListUtils.inList(BEArrayUtils.asArrayList("a", "b"),
-                new Function<List<String>, List<Void>>() {
-                    @Override
-                    public List<Void> apply(List<String> objects) {
-                        System.out.println(objects);
-                        return null;
-                    }
-                }, 1);
+        BEListUtils.acceptInBatches(BEArrayUtils.asArrayList("a", "b"), System.out::println, 1);
+    }
+
+    @Test
+    public void test2() {
+        BEListUtils.applyInBatches(BEArrayUtils.asArrayList("a", "b"), new Function<List<String>, List<Void>>() {
+            @Override
+            public List<Void> apply(List<String> objects) {
+                System.out.println(objects);
+                return null;
+            }
+        }, 1);
     }
 
 
     @Test
-    public void test2() {
-        BEListUtils.inList(BEArrayUtils.asArrayList("a", "b"), BEArrayUtils.asArrayList(1, 2),
-                (BiFunction<List<String>, List<Integer>, List<Void>>) (objects, objects2) -> {
-                    System.out.println(objects);
-                    System.out.println(objects2);
-                    return null;
-                }, 1);
+    public void test3() {
+        BEListUtils.acceptInBatches(
+            BEArrayUtils.asArrayList("a", "b"),
+            BEArrayUtils.asArrayList(1, 2),
+            (objects, objects2) -> System.out.println(objects.toString() + objects2.toString()), 1);
+    }
+
+    @Test
+    public void test4() {
+        List<String> list = BEListUtils.applyInBatches(
+            BEArrayUtils.asArrayList("a", "b"),
+            BEArrayUtils.asArrayList(1, 2),
+            (objects, objects2) -> {
+                return new ArrayList<>(Collections.singletonList(objects.toString() + objects2.toString()));
+            }, 1);
+        list.forEach(System.out::println);
     }
 
 }
