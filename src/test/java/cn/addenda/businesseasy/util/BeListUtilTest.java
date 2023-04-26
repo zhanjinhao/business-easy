@@ -1,7 +1,9 @@
 package cn.addenda.businesseasy.util;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.function.Function;
 import org.junit.Test;
@@ -46,6 +48,15 @@ public class BeListUtilTest {
                 return new ArrayList<>(Collections.singletonList(objects.toString() + objects2.toString()));
             }, 1);
         list.forEach(System.out::println);
+    }
+
+
+    @Test
+    public void test5() {
+        List<String> list = Arrays.asList("1", "2", "1");
+        System.out.println(BEListUtils.deDuplicate(list, Comparator.comparing(String::toString)));
+        System.out.println(BEListUtils.deDuplicate(list, String::toString));
+        System.out.println(BEListUtils.deDuplicate(list, Comparator.comparing(String::toString), ArrayList::new));
     }
 
 }

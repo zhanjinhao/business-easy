@@ -2,12 +2,15 @@ package cn.addenda.businesseasy.util;
 
 import cn.addenda.businesseasy.asynctask.TernaryResult;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.TreeSet;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.CollectionUtils;
 
@@ -84,6 +87,25 @@ public class BEListUtils {
         result.addAll(a);
         result.addAll(b);
         return result;
+    }
+
+    public static <T, R extends Comparable<? super R>> List<T> deDuplicate(List<T> list, Function<T, R> function) {
+        return deDuplicate(list, Comparator.comparing(function), ArrayList::new);
+    }
+
+    public static <T> List<T> deDuplicate(List<T> list, Comparator<T> comparator) {
+        return deDuplicate(list, comparator, ArrayList::new);
+    }
+
+    public static <T> List<T> deDuplicate(List<T> list, Comparator<T> comparator, Function<TreeSet<T>, List<T>> finisher) {
+        if (list == null) {
+            return null;
+        }
+        log.debug("去重前 size: {}，集合: {}", list.size(), BEJsonUtils.objectToString(list));
+        List<T> collect = list.stream().collect(Collectors.collectingAndThen(
+            Collectors.toCollection(() -> new TreeSet<>(comparator)), finisher));
+        log.debug("去重后 size: {}，集合: {}", collect.size(), BEJsonUtils.objectToString(collect));
+        return collect;
     }
 
     public static <T> void acceptInBatches(List<T> paramList, Consumer<List<T>> consumer) {
