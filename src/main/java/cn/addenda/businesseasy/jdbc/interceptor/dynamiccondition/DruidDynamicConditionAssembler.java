@@ -1,5 +1,6 @@
 package cn.addenda.businesseasy.jdbc.interceptor.dynamiccondition;
 
+import cn.addenda.businesseasy.jdbc.interceptor.DruidSQLUtils;
 import com.alibaba.druid.DbType;
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLStatement;

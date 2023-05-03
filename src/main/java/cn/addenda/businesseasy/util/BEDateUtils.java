@@ -96,6 +96,40 @@ public class BEDateUtils {
         return Date.from(instant);
     }
 
+    public static Date localDateToDate(LocalDate localDate) {
+        return localDateToDate(localDate, defaultZoneId);
+    }
+
+    public static Date localDateToDate(LocalDate localDate, ZoneId zoneId) {
+        if (localDate == null) {
+            return null;
+        }
+        if (zoneId == null) {
+            zoneId = defaultZoneId;
+        }
+        LocalDateTime localDateTime = localDate.atTime(0, 0, 0);
+        ZonedDateTime zonedDateTime = localDateTime.atZone(zoneId);
+        Instant instant = zonedDateTime.toInstant();
+        return Date.from(instant);
+    }
+
+    public static Date localTimeToDate(LocalTime localTime) {
+        return localTimeToDate(localTime, defaultZoneId);
+    }
+
+    public static Date localTimeToDate(LocalTime localTime, ZoneId zoneId) {
+        if (localTime == null) {
+            return null;
+        }
+        if (zoneId == null) {
+            zoneId = defaultZoneId;
+        }
+        LocalDateTime localDateTime = localTime.atDate(LocalDate.of(1970, 1, 1));
+        ZonedDateTime zonedDateTime = localDateTime.atZone(zoneId);
+        Instant instant = zonedDateTime.toInstant();
+        return Date.from(instant);
+    }
+
     public static String format(LocalDateTime localDateTime, String formatter) {
         DateTimeFormatter dateTimeFormatter =
                 formatterMap.computeIfAbsent(formatter, s -> DateTimeFormatter.ofPattern(formatter));
