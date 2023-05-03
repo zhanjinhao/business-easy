@@ -1,6 +1,7 @@
 package cn.addenda.businesseasy.jdbc.interceptor.dynamiccondition;
 
 import cn.addenda.businesseasy.jdbc.interceptor.ConnectionPrepareStatementInterceptor;
+import cn.addenda.businesseasy.util.ExceptionUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
@@ -19,30 +20,44 @@ public class DynamicConditionInterceptor extends ConnectionPrepareStatementInter
         this.dynamicConditionAssembler = dynamicConditionAssembler;
     }
 
-    protected String process(String oldSql) {
+    protected String process(String sql) {
         Map<String, String> viewConstraints = DynamicConditionContext.getViewConditions();
         Map<String, String> tableConstraints = DynamicConditionContext.getTableConditions();
 
         if (viewConstraints == null && tableConstraints == null) {
-            return oldSql;
+            return sql;
         }
-        log.debug("Dynamic Condition, before sql rewriting: [{}].", oldSql);
+        log.debug("Dynamic Condition, before sql rewriting: [{}].", sql);
+        String newSql;
+        try {
+            newSql = doProcess(sql, viewConstraints, tableConstraints);
+        } catch (Throwable throwable) {
+            throw new DynamicConditionException(
+                    "拼装动态条件时出错，SQL：" + sql
+                            + "，viewConstraints：" + viewConstraints
+                            + "，tableConstraints" + tableConstraints + "。",
+                    ExceptionUtil.unwrapThrowable(throwable));
+        }
 
-        String newSql = oldSql;
+        log.debug("Dynamic Condition, after sql rewriting: [{}].", newSql);
+        return newSql;
+    }
+
+    private String doProcess(String sql, Map<String, String> viewConstraints, Map<String, String> tableConstraints) {
+        String newSql = sql;
 
         // view 过滤条件
         if (viewConstraints != null && !viewConstraints.isEmpty()) {
-            newSql = apply(oldSql, viewConstraints,
+            newSql = apply(sql, viewConstraints,
                     (t1, t2, t3) -> dynamicConditionAssembler.viewAddCondition(t1, t2, t3));
         }
 
         // table 过滤条件
         if (tableConstraints != null && !tableConstraints.isEmpty()) {
-            newSql = apply(oldSql, tableConstraints,
+            newSql = apply(sql, tableConstraints,
                     (t1, t2, t3) -> dynamicConditionAssembler.tableAddCondition(t1, t2, t3));
         }
 
-        log.debug("Dynamic Condition, after sql rewriting: [{}].", newSql);
         return newSql;
     }
 
