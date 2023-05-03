@@ -20,7 +20,7 @@ public class LockingReadsInterceptor extends ConnectionPrepareStatementIntercept
         } else if (LockingReadsContext.W_LOCK.equals(lock)) {
             sql = sql + " for update";
         } else {
-            throw new LockingReadsException("不支持的LOCK类型，当前LOCK类型：" + lock + "。");
+            throw new LockingReadsException("不支持的LOCK类型，SQL：" + sql + "，当前LOCK类型：" + lock + "。");
         }
 
         log.debug("Locking Reads, after sql rewriting: [{}].", sql);
