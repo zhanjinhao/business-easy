@@ -68,4 +68,20 @@ public class JdbcSQLUtils {
         return false;
     }
 
+    public static String extractColumnName(String value) {
+        int i = value.indexOf(".");
+        if (i == -1) {
+            return value;
+        }
+        return value.substring(i + 1);
+    }
+
+    public static String extractColumnOwner(String value) {
+        int i = value.indexOf(".");
+        if (i == -1) {
+            return null;
+        }
+        return value.substring(0, i);
+    }
+
 }
