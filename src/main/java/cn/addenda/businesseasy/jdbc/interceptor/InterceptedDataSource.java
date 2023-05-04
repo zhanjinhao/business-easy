@@ -2,19 +2,26 @@ package cn.addenda.businesseasy.jdbc.interceptor;
 
 import cn.addenda.businesseasy.jdbc.WrapperAdapter;
 import com.alibaba.druid.filter.Filter;
-import com.alibaba.druid.proxy.jdbc.*;
-
-import javax.sql.DataSource;
+import com.alibaba.druid.proxy.jdbc.ConnectionProxy;
+import com.alibaba.druid.proxy.jdbc.ConnectionProxyImpl;
+import com.alibaba.druid.proxy.jdbc.DataSourceProxy;
+import com.alibaba.druid.proxy.jdbc.DataSourceProxyConfig;
+import com.alibaba.druid.proxy.jdbc.DataSourceProxyImpl;
 import java.io.PrintWriter;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.Driver;
+import java.sql.DriverPropertyInfo;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.logging.Logger;
+import javax.sql.DataSource;
 
 /**
  * @author addenda
- * @datetime 2023/4/23 18:58
+ * @since 2023/4/23 18:58
  */
 public class InterceptedDataSource extends WrapperAdapter implements DataSource {
 
@@ -22,12 +29,20 @@ public class InterceptedDataSource extends WrapperAdapter implements DataSource 
 
     private DataSourceProxy dataSourceProxy;
 
-    public InterceptedDataSource(DataSource dataSource, List<Interceptor> filterList) {
+    public InterceptedDataSource(DataSource dataSource, Driver rawDriver, DataSourceProxyConfig config, List<Interceptor> interceptorList) {
         this.dataSource = dataSource;
-        if (filterList == null) {
-            throw new IllegalArgumentException("filterList不能为空。");
+        if (interceptorList == null) {
+            throw new IllegalArgumentException("interceptorList不能为空。");
         }
-        dataSourceProxy = new InnerDataSourceProxyImpl(filterList);
+        dataSourceProxy = new InnerDataSourceProxyImpl(rawDriver, config, interceptorList);
+    }
+
+    public InterceptedDataSource(DataSource dataSource, List<Interceptor> interceptorList) {
+        this.dataSource = dataSource;
+        if (interceptorList == null) {
+            throw new IllegalArgumentException("interceptorList不能为空。");
+        }
+        dataSourceProxy = new InnerDataSourceProxyImpl(interceptorList);
     }
 
     @Override
@@ -83,6 +98,11 @@ public class InterceptedDataSource extends WrapperAdapter implements DataSource 
 
         List<Filter> filterList;
 
+        public InnerDataSourceProxyImpl(Driver rawDriver, DataSourceProxyConfig config, List<Interceptor> interceptorList) {
+            super(rawDriver, config);
+            this.filterList = new ArrayList<>(interceptorList);
+        }
+
         public InnerDataSourceProxyImpl(List<Interceptor> interceptorList) {
             super(new Driver() {
 
@@ -103,12 +123,12 @@ public class InterceptedDataSource extends WrapperAdapter implements DataSource 
 
                 @Override
                 public int getMajorVersion() {
-                    return 0;
+                    return -1;
                 }
 
                 @Override
                 public int getMinorVersion() {
-                    return 0;
+                    return -1;
                 }
 
                 @Override
