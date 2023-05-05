@@ -1,4 +1,4 @@
-  select productline, ordervalue, round(percent_rank() over(order by ordervalue), 2) as percentile_rank from t
+  select productline, ordervalue, round(percent_rank() over(order by ordervalue), 2) as percentile_rank from t t1
   select extract(year from date_add(now(), interval 2 day)) as plus2Day from dual where #{aaa} = b
   select '\'a\'' from dual
   select timestampdiff(day, '2010-01-01', '2010-06-01') as result from dual
