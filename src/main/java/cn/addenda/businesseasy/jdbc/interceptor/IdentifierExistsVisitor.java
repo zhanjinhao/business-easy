@@ -5,32 +5,56 @@ import cn.addenda.businesseasy.jdbc.JdbcSQLUtils;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
 import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
-import com.alibaba.druid.sql.ast.statement.*;
+import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
+import com.alibaba.druid.sql.ast.statement.SQLSelectQueryBlock;
 import com.alibaba.druid.sql.visitor.SQLASTVisitorAdapter;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.*;
-
+/**
+ * @author addenda
+ * @since 2023/5/3 20:55
+ */
 @Slf4j
 public class IdentifierExistsVisitor extends SQLASTVisitorAdapter {
 
-    private List<String> avaliableList;
+    private final List<String> availableList;
 
-    private String identifier;
+    private final String identifier;
 
-    private final Deque<List<String>> identifierListStack = new ArrayDeque<>();
+    private final boolean reportAmbiguous;
+
+    private String ambiguousInfo;
 
     private boolean exists = false;
 
-    public IdentifierExistsVisitor(List<String> avaliableList, String identifier) {
-        this.avaliableList = avaliableList;
-        this.identifier = identifier;
+    private final Deque<List<String>> identifierListStack = new ArrayDeque<>();
 
+    public IdentifierExistsVisitor(List<String> availableList, String identifier, boolean reportAmbiguous) {
+        this.availableList = availableList;
+        this.identifier = identifier;
+        this.reportAmbiguous = reportAmbiguous;
+    }
+
+    public IdentifierExistsVisitor(List<String> availableList, String identifier) {
+        this.availableList = availableList;
+        this.identifier = identifier;
+        this.reportAmbiguous = false;
     }
 
     public IdentifierExistsVisitor(String identifier) {
-        this.avaliableList = null;
+        this.availableList = null;
         this.identifier = identifier;
+        this.reportAmbiguous = false;
+    }
+
+    @Override
+    public boolean visit(SQLPropertyExpr x) {
+        return false;
     }
 
     @Override
@@ -70,7 +94,7 @@ public class IdentifierExistsVisitor extends SQLASTVisitorAdapter {
     public void endVisit(SQLSelectQueryBlock x) {
         Map<String, String> viewToTableMap = ViewToTableVisitor.getViewToTableMap(x.getFrom());
         List<String> identifierList = identifierListStack.peek();
-        log.debug("SQLObject: [{}], viewToTableMap: [{}], identifierList: [{}], exists: [{}].", DruidSQLUtils.toLowerCaseSQL(x, false), viewToTableMap, identifierList, exists);
+        log.debug("SQLObject: [{}], viewToTableMap: [{}], identifierList: [{}], exists: [{}].", DruidSQLUtils.toLowerCaseSQL(x), viewToTableMap, identifierList, exists);
 
         if (exists) {
             // 如果已经存在，就直接返回了
@@ -80,7 +104,7 @@ public class IdentifierExistsVisitor extends SQLASTVisitorAdapter {
                 if (owner == null) {
                     List<String> declaredTableList = new ArrayList<>();
                     viewToTableMap.forEach((view, table) -> {
-                        if (table != null && JdbcSQLUtils.contains(table, avaliableList, null)) {
+                        if (table != null && JdbcSQLUtils.contains(table, availableList, null)) {
                             declaredTableList.add(table);
                         }
                     });
@@ -91,16 +115,21 @@ public class IdentifierExistsVisitor extends SQLASTVisitorAdapter {
                     }
                     // 如果多个表存在字段，则抛出异常
                     else if (declaredTableList.size() > 1) {
-                        log.debug("SQLObject: [{}], Ambiguous identifier: [{}], declaredTableList: [{}].", DruidSQLUtils.toLowerCaseSQL(x, false), identifier, declaredTableList);
-                        throw new JdbcException("SQLObject: [" + DruidSQLUtils.toLowerCaseSQL(x, false) + "], Ambiguous identifier: [" + identifier + "], declaredTableList: [" + declaredTableList + "].");
+                        ambiguousInfo = "SQLObject: [" + DruidSQLUtils.toLowerCaseSQL(x) + "], Ambiguous identifier: [" + identifier + "], declaredTableList: [" + declaredTableList + "].";
+                        exists = true;
+                        if (reportAmbiguous) {
+                            throw new JdbcException(ambiguousInfo);
+                        } else {
+                            log.debug(ambiguousInfo);
+                        }
                     }
-                    // 如果没有表存在字段，则表示不是avaliableList里的表
+                    // 如果没有表存在字段，则表示不是availableList里的表
                     else {
                         // no-op
                     }
                 } else {
                     String tableName = viewToTableMap.get(owner);
-                    if (tableName != null && JdbcSQLUtils.contains(tableName, avaliableList, null)) {
+                    if (tableName != null && JdbcSQLUtils.contains(tableName, availableList, null)) {
                         exists = true;
                     }
                 }
@@ -117,6 +146,10 @@ public class IdentifierExistsVisitor extends SQLASTVisitorAdapter {
 
     public boolean isExists() {
         return exists;
+    }
+
+    public String getAmbiguousInfo() {
+        return ambiguousInfo;
     }
 
 }

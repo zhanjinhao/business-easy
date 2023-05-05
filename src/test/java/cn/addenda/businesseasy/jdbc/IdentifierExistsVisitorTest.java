@@ -5,16 +5,16 @@ import cn.addenda.businesseasy.jdbc.interceptor.ViewToTableVisitor;
 import com.alibaba.druid.DbType;
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLStatement;
-
 import java.util.List;
+import org.junit.Assert;
 
 /**
  * @author addenda
  * @since 2023/5/3 20:55
  */
-public class IdentifierExistsVisitorTest {
+class IdentifierExistsVisitorTest {
+
     private static String[] sqls = new String[]{
-            " select  case a  when b  + 1  then '1' when b  + 2  then '2' else '3' end as A from  (  select 2 as a, 1 as b from dual   where a  = ?  )  A  where a  = ?"
     };
 
     public static void main(String[] args) {
@@ -22,15 +22,30 @@ public class IdentifierExistsVisitorTest {
     }
 
     private static void test1() {
-        for (String sql : SqlReader.read("src/test/resources/select.test", sqls)) {
+        for (String sql : SqlReader.read("src/test/resources/identifier_select.test", sqls)) {
+            String source = sql;
+            int i = source.lastIndexOf(";");
+            sql = source.substring(0, i);
+            boolean flag = Boolean.valueOf(source.substring(i + 1));
             List<SQLStatement> sqlStatements = SQLUtils.parseStatements(sql, DbType.mysql);
             SQLStatement sqlStatement = sqlStatements.get(0);
             System.out.println("------------------------------------------------------------------------------------");
-            System.out.println(sql);
-            IdentifierExistsVisitor identifierExistsVisitor = new IdentifierExistsVisitor("a");
+            System.out.println();
+            IdentifierExistsVisitor identifierExistsVisitor = new IdentifierExistsVisitor(null, "a", false);
             sqlStatement.accept(new ViewToTableVisitor());
             sqlStatement.accept(identifierExistsVisitor);
-            System.out.println(identifierExistsVisitor.isExists());
+            boolean exists = identifierExistsVisitor.isExists();
+            if (exists == flag) {
+                System.out.println(source + " : " + exists + ":" + identifierExistsVisitor.getAmbiguousInfo());
+            } else {
+                System.err.println(source + " : " + exists + ":" + identifierExistsVisitor.getAmbiguousInfo());
+                Assert.assertEquals(flag, exists);
+            }
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
