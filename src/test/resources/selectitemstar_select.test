@@ -1,3 +1,4 @@
+  select count(a) from a1 group by b having count(*) > 1 and c > 2;true
   select count(a.*) from a1;true
   select a.* from a1;true
   select c, (select a from b where c > 1) from b2 where c < 1;false
