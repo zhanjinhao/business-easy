@@ -1,20 +1,20 @@
 package cn.addenda.businesseasy.jdbc;
 
 import cn.addenda.businesseasy.jdbc.interceptor.IdentifierExistsVisitor;
+import cn.addenda.businesseasy.jdbc.interceptor.SelectItemIdentifierExistsVisitor;
 import cn.addenda.businesseasy.jdbc.interceptor.ViewToTableVisitor;
 import com.alibaba.druid.DbType;
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLStatement;
+import org.junit.Assert;
 
 import java.util.List;
-
-import org.junit.Assert;
 
 /**
  * @author addenda
  * @since 2023/5/3 20:55
  */
-class IdentifierExistsVisitorTest {
+class SelectItemIdentifierExistsVisitorTest {
 
     private static String[] sqls = new String[]{
     };
@@ -24,7 +24,7 @@ class IdentifierExistsVisitorTest {
     }
 
     private static void test1() {
-        for (String sql : SqlReader.read("src/test/resources/identifier_select.test", sqls)) {
+        for (String sql : SqlReader.read("src/test/resources/selectitemidentifier_select.test", sqls)) {
             String source = sql;
             int i = source.lastIndexOf(";");
             sql = source.substring(0, i);
@@ -33,7 +33,7 @@ class IdentifierExistsVisitorTest {
             SQLStatement sqlStatement = sqlStatements.get(0);
             System.out.println("------------------------------------------------------------------------------------");
             System.out.println();
-            IdentifierExistsVisitor identifierExistsVisitor = new IdentifierExistsVisitor("a");
+            IdentifierExistsVisitor identifierExistsVisitor = new SelectItemIdentifierExistsVisitor("a");
             sqlStatement.accept(new ViewToTableVisitor());
             sqlStatement.accept(identifierExistsVisitor);
             boolean exists = identifierExistsVisitor.isExists();

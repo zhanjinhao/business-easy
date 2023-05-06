@@ -7,22 +7,30 @@ import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
 import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
 import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQueryBlock;
+import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.visitor.SQLASTVisitorAdapter;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
+
 import lombok.extern.slf4j.Slf4j;
 
 /**
+ * 假如有表A、B、C，其中B和C是存在列name的，要检测SQL里面有没有B和C的name列。<br/>
+ * 如果表集合为空，检测全部的表。
+ *
  * @author addenda
  * @since 2023/5/3 20:55
  */
 @Slf4j
 public class IdentifierExistsVisitor extends SQLASTVisitorAdapter {
 
-    private final List<String> availableList;
+    private final List<String> identifierTableNameList;
+
+    private final List<String> unIdentifierTableNameList;
 
     private final String identifier;
 
@@ -34,20 +42,23 @@ public class IdentifierExistsVisitor extends SQLASTVisitorAdapter {
 
     private final Deque<List<String>> identifierListStack = new ArrayDeque<>();
 
-    public IdentifierExistsVisitor(List<String> availableList, String identifier, boolean reportAmbiguous) {
-        this.availableList = availableList;
+    public IdentifierExistsVisitor(List<String> identifierTableNameList, List<String> unIdentifierTableNameList, String identifier, boolean reportAmbiguous) {
+        this.identifierTableNameList = identifierTableNameList;
+        this.unIdentifierTableNameList = unIdentifierTableNameList;
         this.identifier = identifier;
         this.reportAmbiguous = reportAmbiguous;
     }
 
-    public IdentifierExistsVisitor(List<String> availableList, String identifier) {
-        this.availableList = availableList;
+    public IdentifierExistsVisitor(List<String> identifierTableNameList, String identifier) {
+        this.identifierTableNameList = identifierTableNameList;
+        this.unIdentifierTableNameList = null;
         this.identifier = identifier;
         this.reportAmbiguous = false;
     }
 
     public IdentifierExistsVisitor(String identifier) {
-        this.availableList = null;
+        this.identifierTableNameList = null;
+        this.unIdentifierTableNameList = null;
         this.identifier = identifier;
         this.reportAmbiguous = false;
     }
@@ -94,7 +105,6 @@ public class IdentifierExistsVisitor extends SQLASTVisitorAdapter {
     public void endVisit(SQLSelectQueryBlock x) {
         Map<String, String> viewToTableMap = ViewToTableVisitor.getViewToTableMap(x.getFrom());
         List<String> identifierList = identifierListStack.peek();
-        log.debug("SQLObject: [{}], viewToTableMap: [{}], identifierList: [{}], exists: [{}].", DruidSQLUtils.toLowerCaseSQL(x), viewToTableMap, identifierList, exists);
 
         if (exists) {
             // 如果已经存在，就直接返回了
@@ -104,7 +114,7 @@ public class IdentifierExistsVisitor extends SQLASTVisitorAdapter {
                 if (owner == null) {
                     List<String> declaredTableList = new ArrayList<>();
                     viewToTableMap.forEach((view, table) -> {
-                        if (table != null && JdbcSQLUtils.contains(table, availableList, null)) {
+                        if (table != null && JdbcSQLUtils.contains(table, identifierTableNameList, unIdentifierTableNameList)) {
                             declaredTableList.add(table);
                         }
                     });
@@ -129,12 +139,14 @@ public class IdentifierExistsVisitor extends SQLASTVisitorAdapter {
                     }
                 } else {
                     String tableName = viewToTableMap.get(owner);
-                    if (tableName != null && JdbcSQLUtils.contains(tableName, availableList, null)) {
+                    if (tableName != null && JdbcSQLUtils.contains(tableName, identifierTableNameList, unIdentifierTableNameList)) {
                         exists = true;
                     }
                 }
             }
         }
+
+        log.debug("SQLObject: [{}], viewToTableMap: [{}], identifierList: [{}], exists: [{}].", DruidSQLUtils.toLowerCaseSQL(x), viewToTableMap, identifierList, exists);
         identifierListStack.pop();
     }
 
@@ -142,6 +154,11 @@ public class IdentifierExistsVisitor extends SQLASTVisitorAdapter {
     public boolean visit(SQLSelectQueryBlock x) {
         identifierListStack.push(new ArrayList<>());
         return true;
+    }
+
+    @Override
+    public void endVisit(SQLSelectStatement x) {
+        log.debug("SQLObject: [{}], exists: [{}].", DruidSQLUtils.toLowerCaseSQL(x), exists);
     }
 
     public boolean isExists() {
