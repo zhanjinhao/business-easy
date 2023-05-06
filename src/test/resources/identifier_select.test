@@ -1,3 +1,6 @@
+  select c, (select count(a) from b2 where c > 1) from b1 where c > 1;true
+  select c, (select count(b2.a) from b2 where c > 1) from b1 where c > 1;true
+  select c, (select count(a.b2) from b2 where c > 1) from b1 where c > 1;false
   select productline, ordervalue, round(percent_rank() over(order by ordervalue), 2) as percentile_rank from t t1;false
   select extract(year from date_add(now(), interval 2 day)) as plus2Day from dual where #{aaa} = b;false
   select '\'a\'' from dual;false
