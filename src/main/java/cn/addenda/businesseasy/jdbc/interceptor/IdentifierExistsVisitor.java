@@ -73,6 +73,7 @@ public class IdentifierExistsVisitor extends AbstractIdentifierVisitor {
                     // 如果只有一个表存在字段，则identifier存在
                     if (declaredTableList.size() == 1) {
                         exists = true;
+                        break;
                     }
                     // 如果多个表存在字段，则抛出异常
                     else if (declaredTableList.size() > 1) {
@@ -83,6 +84,7 @@ public class IdentifierExistsVisitor extends AbstractIdentifierVisitor {
                         } else {
                             log.debug(ambiguousInfo);
                         }
+                        break;
                     }
                     // 如果没有表存在字段，则表示不是availableList里的表
                     else {
@@ -92,6 +94,7 @@ public class IdentifierExistsVisitor extends AbstractIdentifierVisitor {
                     String tableName = viewToTableMap.get(owner);
                     if (tableName != null && JdbcSQLUtils.contains(tableName, identifierTableNameList, unIdentifierTableNameList)) {
                         exists = true;
+                        break;
                     }
                 }
             }

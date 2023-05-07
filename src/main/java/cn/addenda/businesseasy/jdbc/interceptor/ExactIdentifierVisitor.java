@@ -33,6 +33,7 @@ public class ExactIdentifierVisitor extends AbstractIdentifierVisitor {
                 String owner = JdbcSQLUtils.extractColumnOwner(identifier);
                 if (owner == null) {
                     exact = false;
+                    break;
                 }
             }
         }
