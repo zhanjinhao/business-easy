@@ -1,3 +1,6 @@
+  -- select t1.a from t1 nature join t2 where t1.a > 1 and t2.b < 2;false
+  select t1.a from t1 join t2 using (c) where t1.a > 1 and t2.b < 2; false
+  select #{flightId1}, 1 , orderdate , lead ( orderdate  , 1  ) over ( partition by customernumber  order by orderdate   )   as nextorderdate from orders join customers;false
   select c, (select count(a) from b2 where c > 1) from b1 where c > 1;true
   select c, (select count(b2.a) from b2 where c > 1) from b1 where c > 1;true
   select c, (select count(a.b2) from b2 where c > 1) from b1 where c > 1;true
