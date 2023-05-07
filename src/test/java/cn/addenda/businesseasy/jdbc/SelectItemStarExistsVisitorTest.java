@@ -13,7 +13,7 @@ import java.util.List;
  * @author addenda
  * @since 2023/5/3 20:55
  */
-class SelectItemStarExistsVisitorTest {
+public class SelectItemStarExistsVisitorTest {
 
     private static String[] sqls = new String[]{
     };
@@ -41,11 +41,6 @@ class SelectItemStarExistsVisitorTest {
             } else {
                 System.err.println(source + " : " + exists);
                 Assert.assertEquals(flag, exists);
-            }
-            try {
-                Thread.sleep(10);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
             }
         }
     }

@@ -14,7 +14,7 @@ import org.junit.Assert;
  * @author addenda
  * @since 2023/5/3 20:55
  */
-class IdentifierExistsVisitorTest {
+public class IdentifierExistsVisitorTest {
 
     private static String[] sqls = new String[]{
     };
@@ -43,11 +43,7 @@ class IdentifierExistsVisitorTest {
                 System.err.println(source + " : " + exists + ":" + identifierExistsVisitor.getAmbiguousInfo());
                 Assert.assertEquals(flag, exists);
             }
-            try {
-                Thread.sleep(10);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+
         }
     }
 

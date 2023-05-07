@@ -1,7 +1,6 @@
 package cn.addenda.businesseasy.jdbc;
 
-import cn.addenda.businesseasy.jdbc.interceptor.IdentifierExistsVisitor;
-import cn.addenda.businesseasy.jdbc.interceptor.SelectItemIdentifierExistsVisitor;
+import cn.addenda.businesseasy.jdbc.interceptor.ExactIdentifierVisitor;
 import cn.addenda.businesseasy.jdbc.interceptor.ViewToTableVisitor;
 import com.alibaba.druid.DbType;
 import com.alibaba.druid.sql.SQLUtils;
@@ -14,9 +13,10 @@ import java.util.List;
  * @author addenda
  * @since 2023/5/3 20:55
  */
-public class SelectItemIdentifierExistsVisitorTest {
+public class ExactIdentifierVisitorTest {
 
     private static String[] sqls = new String[]{
+            "select #{flightId1}, 1 , orderdate , lead ( orderdate  , 1  ) over ( partition by customernumber  order by orderdate   )   as nextorderdate from orders join customers;false"
     };
 
     public static void main(String[] args) {
@@ -24,7 +24,7 @@ public class SelectItemIdentifierExistsVisitorTest {
     }
 
     private static void test1() {
-        for (String sql : SqlReader.read("src/test/resources/selectitemidentifier_select.test", sqls)) {
+        for (String sql : SqlReader.read("src/test/resources/exactidentifier_select.test", sqls)) {
             String source = sql;
             int i = source.lastIndexOf(";");
             sql = source.substring(0, i);
@@ -33,14 +33,14 @@ public class SelectItemIdentifierExistsVisitorTest {
             SQLStatement sqlStatement = sqlStatements.get(0);
             System.out.println("------------------------------------------------------------------------------------");
             System.out.println();
-            IdentifierExistsVisitor identifierExistsVisitor = new SelectItemIdentifierExistsVisitor("a");
+            ExactIdentifierVisitor identifierExistsVisitor = new ExactIdentifierVisitor();
             sqlStatement.accept(new ViewToTableVisitor());
             sqlStatement.accept(identifierExistsVisitor);
-            boolean exists = identifierExistsVisitor.isExists();
+            boolean exists = identifierExistsVisitor.isExact();
             if (exists == flag) {
-                System.out.println(source + " : " + exists + ":" + identifierExistsVisitor.getAmbiguousInfo());
+                System.out.println(source + " : " + exists);
             } else {
-                System.err.println(source + " : " + exists + ":" + identifierExistsVisitor.getAmbiguousInfo());
+                System.err.println(source + " : " + exists);
                 Assert.assertEquals(flag, exists);
             }
         }
