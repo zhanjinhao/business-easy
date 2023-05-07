@@ -1,6 +1,8 @@
 package cn.addenda.businesseasy.jdbc.interceptor.dynamiccondition;
 
 import cn.addenda.businesseasy.jdbc.interceptor.DruidSQLUtils;
+import cn.addenda.businesseasy.jdbc.interceptor.SqlAddTableConditionVisitor;
+import cn.addenda.businesseasy.jdbc.interceptor.SqlAddViewConditionVisitor;
 import com.alibaba.druid.DbType;
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLStatement;
@@ -31,7 +33,7 @@ public class DruidDynamicConditionAssembler implements DynamicConditionAssembler
         StringBuilder stringBuilder = new StringBuilder();
         for (SQLStatement sqlStatement : stmtList) {
             sqlStatement.accept(new SqlAddTableConditionVisitor(
-                    tableName, condition, useWhereConditionAsPossible, tableNameEqualCaseInsensitive));
+                    tableName, condition, useWhereConditionAsPossible));
             stringBuilder.append(DruidSQLUtils.toLowerCaseSQL(sqlStatement)).append("\n");
         }
         return stringBuilder.toString().trim();
@@ -44,7 +46,7 @@ public class DruidDynamicConditionAssembler implements DynamicConditionAssembler
         StringBuilder stringBuilder = new StringBuilder();
         for (SQLStatement sqlStatement : stmtList) {
             sqlStatement.accept(new SqlAddViewConditionVisitor(
-                    tableName, condition, useWhereConditionAsPossible, tableNameEqualCaseInsensitive));
+                    tableName, condition, useWhereConditionAsPossible));
             stringBuilder.append(DruidSQLUtils.toLowerCaseSQL(sqlStatement)).append("\n");
         }
         return stringBuilder.toString();

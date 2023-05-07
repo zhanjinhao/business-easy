@@ -1,4 +1,6 @@
-package cn.addenda.businesseasy.jdbc.interceptor.dynamiccondition;
+package cn.addenda.businesseasy.jdbc.interceptor;
+
+import java.util.List;
 
 /**
  * @author addenda
@@ -18,9 +20,8 @@ public class SqlAddViewConditionVisitor extends SqlAddTableConditionVisitor {
         super(tableName, condition, useWhereConditionAsPossible);
     }
 
-    public SqlAddViewConditionVisitor(
-            String tableName, String condition, boolean useWhereConditionAsPossible, boolean tableNameEqualCaseInsensitive) {
-        super(tableName, condition, useWhereConditionAsPossible, tableNameEqualCaseInsensitive);
+    public SqlAddViewConditionVisitor(List<String> tableNameList, List<String> unTableNameList, String condition, boolean useWhereConditionAsPossible) {
+        super(tableNameList, unTableNameList, condition, useWhereConditionAsPossible);
     }
 
     @Override

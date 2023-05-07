@@ -3,7 +3,7 @@ package cn.addenda.businesseasy.jdbc.interceptor.tombstone;
 import cn.addenda.businesseasy.jdbc.JdbcSQLUtils;
 import cn.addenda.businesseasy.jdbc.interceptor.AbstractDruidSqlRewriter;
 import cn.addenda.businesseasy.jdbc.interceptor.DruidSQLUtils;
-import cn.addenda.businesseasy.jdbc.interceptor.dynamiccondition.SqlAddTableConditionVisitor;
+import cn.addenda.businesseasy.jdbc.interceptor.SqlAddTableConditionVisitor;
 import com.alibaba.druid.DbType;
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLExpr;
@@ -124,7 +124,7 @@ public class DruidTombstoneSqlRewriter extends AbstractDruidSqlRewriter implemen
         for (String table : collect) {
             if (JdbcSQLUtils.contains(table, tombstoneTableNameList, unTombstoneTableNameList)) {
                 sqlSelectStatement.accept(new SqlAddTableConditionVisitor(
-                        table, tombstoneName + "=" + tombstoneValue, useWhereConditionAsPossible, tableNameEqualCaseInsensitive));
+                        table, tombstoneName + "=" + tombstoneValue, useWhereConditionAsPossible));
             }
         }
         return DruidSQLUtils.toLowerCaseSQL(sqlStatement);
