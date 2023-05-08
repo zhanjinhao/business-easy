@@ -13,4 +13,6 @@ public interface TxTestMapper {
 
     List<TxTest> selectAll();
 
+    List<TxTest> selectJoin();
+
 }

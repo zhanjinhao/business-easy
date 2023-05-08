@@ -1,9 +1,11 @@
 package cn.addenda.businesseasy.jdbc.interceptor;
 
 import cn.addenda.businesseasy.util.BEDateUtils;
+import com.alibaba.druid.DbType;
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLObject;
+import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.*;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlOutputVisitor;
 
@@ -12,6 +14,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Date;
+import java.util.List;
 import java.util.TimeZone;
 
 import static com.alibaba.druid.sql.visitor.VisitorFeature.OutputUCase;
@@ -75,6 +78,15 @@ public class DruidSQLUtils extends SQLUtils {
             return new SQLCharExpr(String.valueOf(o));
         }
         throw new UnsupportedOperationException("不支持的数据类型，class：" + o.getClass() + "， object：" + o + "。");
+    }
+
+    public static String removeEnter(String sql) {
+        StringBuilder stringBuilder = new StringBuilder();
+        List<SQLStatement> sqlStatements = SQLUtils.parseStatements(sql, DbType.mysql);
+        for (SQLStatement statement : sqlStatements) {
+            stringBuilder.append(DruidSQLUtils.toLowerCaseSQL(statement)).append("\n");
+        }
+        return stringBuilder.toString().trim();
     }
 
 }
