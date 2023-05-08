@@ -48,19 +48,19 @@ public class JdbcSQLUtils {
         return true;
     }
 
-    public static boolean contains(
-            String tableName, List<String> contains, List<String> unContains) {
-        if (unContains != null) {
-            for (String unContain : unContains) {
+    public static boolean include(
+            String tableName, List<String> included, List<String> notIncluded) {
+        if (notIncluded != null) {
+            for (String unContain : notIncluded) {
                 if (unContain.equalsIgnoreCase(tableName)) {
                     return false;
                 }
             }
         }
-        if (contains == null) {
+        if (included == null) {
             return true;
         }
-        for (String contain : contains) {
+        for (String contain : included) {
             if (contain.equalsIgnoreCase(tableName)) {
                 return true;
             }

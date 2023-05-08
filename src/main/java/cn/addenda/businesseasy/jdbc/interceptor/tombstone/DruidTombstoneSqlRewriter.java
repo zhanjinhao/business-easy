@@ -31,8 +31,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class DruidTombstoneSqlRewriter extends AbstractDruidSqlRewriter implements TombstoneSqlRewriter {
 
-    private String tombstoneName = "if_del";
-    private Short tombstoneValue = 0;
+    private static final String TOMBSTONE_NAME = "if_del";
+    private static final Short TOMBSTONE_VALUE = 0;
 
     private boolean useWhereConditionAsPossible = true;
 
@@ -41,25 +41,23 @@ public class DruidTombstoneSqlRewriter extends AbstractDruidSqlRewriter implemen
     /**
      * 逻辑删除的表
      */
-    private List<String> tombstoneTableNameList;
+    private final List<String> included;
 
     /**
      * 非逻辑删除的表
      */
-    private List<String> unTombstoneTableNameList = new ArrayList<>(Arrays.asList("dual"));
+    private final List<String> notIncluded = new ArrayList<>(Collections.singletonList("dual"));
 
-    public DruidTombstoneSqlRewriter(List<String> tombstoneTableNameList,
+    public DruidTombstoneSqlRewriter(List<String> included,
                                      boolean useWhereConditionAsPossible, boolean tableNameEqualCaseInsensitive) {
-        this(tombstoneTableNameList);
+        this(included);
         this.useWhereConditionAsPossible = useWhereConditionAsPossible;
         this.tableNameEqualCaseInsensitive = tableNameEqualCaseInsensitive;
     }
 
-    public DruidTombstoneSqlRewriter(List<String> tombstoneTableNameList) {
-        if (tombstoneTableNameList != null) {
-            this.tombstoneTableNameList = new ArrayList<>();
-            this.tombstoneTableNameList.addAll(tombstoneTableNameList);
-        } else {
+    public DruidTombstoneSqlRewriter(List<String> included) {
+        this.included = included;
+        if (included == null) {
             log.warn("未声明逻辑删除的表集合，所有的表都会进行逻辑删除改写！");
         }
     }
@@ -76,19 +74,19 @@ public class DruidTombstoneSqlRewriter extends AbstractDruidSqlRewriter implemen
     private String doRewriteInsertSql(SQLStatement sqlStatement) {
         MySqlInsertStatement insertStatement = (MySqlInsertStatement) sqlStatement;
         SQLName tableName = insertStatement.getTableName();
-        if (!JdbcSQLUtils.contains(tableName.toString(), tombstoneTableNameList, unTombstoneTableNameList)) {
+        if (!JdbcSQLUtils.include(tableName.toString(), included, notIncluded)) {
             return DruidSQLUtils.toLowerCaseSQL(sqlStatement);
         }
         List<SQLExpr> columns = insertStatement.getColumns();
         for (SQLExpr sqlExpr : columns) {
-            if (tombstoneName.equalsIgnoreCase(sqlExpr.toString())) {
+            if (TOMBSTONE_NAME.equalsIgnoreCase(sqlExpr.toString())) {
                 return DruidSQLUtils.toLowerCaseSQL(sqlStatement);
             }
         }
-        columns.add(SQLUtils.toSQLExpr(tombstoneName));
+        columns.add(SQLUtils.toSQLExpr(TOMBSTONE_NAME));
         List<SQLInsertStatement.ValuesClause> valuesList = insertStatement.getValuesList();
         for (SQLInsertStatement.ValuesClause value : valuesList) {
-            value.addValue(new SQLIntegerExpr(tombstoneValue));
+            value.addValue(new SQLIntegerExpr(TOMBSTONE_VALUE));
         }
         return DruidSQLUtils.toLowerCaseSQL(sqlStatement);
     }
@@ -101,12 +99,12 @@ public class DruidTombstoneSqlRewriter extends AbstractDruidSqlRewriter implemen
     private String doRewriteDeleteSql(SQLStatement sqlStatement) {
         MySqlDeleteStatement mySqlDeleteStatement = (MySqlDeleteStatement) sqlStatement;
         SQLName tableName = mySqlDeleteStatement.getTableName();
-        if (!JdbcSQLUtils.contains(tableName.toString(), tombstoneTableNameList, unTombstoneTableNameList)) {
+        if (!JdbcSQLUtils.include(tableName.toString(), included, notIncluded)) {
             return DruidSQLUtils.toLowerCaseSQL(sqlStatement);
         }
         SQLExpr where = mySqlDeleteStatement.getWhere();
         where = SQLUtils.buildCondition(SQLBinaryOperator.BooleanAnd,
-                SQLUtils.toSQLExpr(tombstoneName + "=" + tombstoneValue, DbType.mysql), false, where);
+                SQLUtils.toSQLExpr(TOMBSTONE_NAME + "=" + TOMBSTONE_VALUE, DbType.mysql), false, where);
         return "delete from " + mySqlDeleteStatement.getTableName() + " where " + DruidSQLUtils.toLowerCaseSQL(where);
     }
 
@@ -122,9 +120,9 @@ public class DruidTombstoneSqlRewriter extends AbstractDruidSqlRewriter implemen
         Map<TableStat.Name, TableStat> tables = schemaStatVisitor.getTables();
         Set<String> collect = tables.keySet().stream().map(TableStat.Name::getName).collect(Collectors.toSet());
         for (String table : collect) {
-            if (JdbcSQLUtils.contains(table, tombstoneTableNameList, unTombstoneTableNameList)) {
+            if (JdbcSQLUtils.include(table, included, notIncluded)) {
                 sqlSelectStatement.accept(new SqlAddTableConditionVisitor(
-                        table, tombstoneName + "=" + tombstoneValue, useWhereConditionAsPossible));
+                        table, TOMBSTONE_NAME + "=" + TOMBSTONE_VALUE, useWhereConditionAsPossible));
             }
         }
         return DruidSQLUtils.toLowerCaseSQL(sqlStatement);
@@ -138,19 +136,19 @@ public class DruidTombstoneSqlRewriter extends AbstractDruidSqlRewriter implemen
     private String doRewriteUpdateSql(SQLStatement sqlStatement) {
         MySqlUpdateStatement mySqlUpdateStatement = (MySqlUpdateStatement) sqlStatement;
         SQLName tableName = mySqlUpdateStatement.getTableName();
-        if (!JdbcSQLUtils.contains(tableName.toString(), tombstoneTableNameList, unTombstoneTableNameList)) {
+        if (!JdbcSQLUtils.include(tableName.toString(), included, notIncluded)) {
             return DruidSQLUtils.toLowerCaseSQL(sqlStatement);
         }
         List<SQLUpdateSetItem> items = mySqlUpdateStatement.getItems();
         for (SQLUpdateSetItem item : items) {
             SQLExpr column = item.getColumn();
-            if (tombstoneName.equals(column.toString())) {
+            if (TOMBSTONE_NAME.equals(column.toString())) {
                 return DruidSQLUtils.toLowerCaseSQL(sqlStatement);
             }
         }
         SQLUpdateSetItem item = new SQLUpdateSetItem();
-        item.setColumn(SQLUtils.toSQLExpr(tombstoneName));
-        item.setValue(new SQLIntegerExpr(tombstoneValue));
+        item.setColumn(SQLUtils.toSQLExpr(TOMBSTONE_NAME));
+        item.setValue(new SQLIntegerExpr(TOMBSTONE_VALUE));
         items.add(item);
         return DruidSQLUtils.toLowerCaseSQL(sqlStatement);
     }

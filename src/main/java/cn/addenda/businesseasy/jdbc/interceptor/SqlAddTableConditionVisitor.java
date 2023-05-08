@@ -21,43 +21,43 @@ import java.util.List;
  */
 public class SqlAddTableConditionVisitor extends MySqlASTVisitorAdapter {
 
-    private final List<String> tableNameList;
-    private final List<String> unTableNameList;
+    private final List<String> included;
+    private final List<String> notIncluded;
 
     private final String condition;
 
-    private boolean useWhereConditionAsPossible;
+    private final boolean useWhereConditionAsPossible;
 
     private static final String TABLE_NAME_KEY = "tableNameKey";
     private static final String ALIAS_KEY = "aliasKey";
 
     public SqlAddTableConditionVisitor(String condition) {
-        this.tableNameList = null;
-        this.unTableNameList = null;
+        this.included = null;
+        this.notIncluded = null;
         this.condition = condition;
         this.useWhereConditionAsPossible = false;
     }
 
     public SqlAddTableConditionVisitor(String tableName, String condition) {
-        this.tableNameList = new ArrayList<>();
-        tableNameList.add(tableName);
-        this.unTableNameList = null;
+        this.included = new ArrayList<>();
+        included.add(tableName);
+        this.notIncluded = null;
         this.condition = condition;
         this.useWhereConditionAsPossible = false;
     }
 
     public SqlAddTableConditionVisitor(String tableName, String condition, boolean useWhereConditionAsPossible) {
-        this.tableNameList = new ArrayList<>();
-        tableNameList.add(tableName);
-        this.unTableNameList = null;
+        this.included = new ArrayList<>();
+        included.add(tableName);
+        this.notIncluded = null;
         this.condition = condition;
         this.useWhereConditionAsPossible = useWhereConditionAsPossible;
     }
 
     public SqlAddTableConditionVisitor(
-            List<String> tableNameList, List<String> unTableNameList, String condition, boolean useWhereConditionAsPossible) {
-        this.tableNameList = tableNameList;
-        this.unTableNameList = unTableNameList;
+            List<String> included, List<String> notIncluded, String condition, boolean useWhereConditionAsPossible) {
+        this.included = included;
+        this.notIncluded = notIncluded;
         this.condition = condition;
         this.useWhereConditionAsPossible = useWhereConditionAsPossible;
     }
@@ -66,7 +66,7 @@ public class SqlAddTableConditionVisitor extends MySqlASTVisitorAdapter {
     public void endVisit(SQLExprTableSource x) {
         String aAlias = x.getAlias();
         String aTableName = x.getTableName();
-        if (tableNameList != null && !JdbcSQLUtils.contains(getTableName(aTableName, aAlias), tableNameList, unTableNameList)) {
+        if (included != null && !JdbcSQLUtils.include(getTableName(aTableName, aAlias), included, notIncluded)) {
             return;
         }
         x.putAttribute(TABLE_NAME_KEY, aTableName);

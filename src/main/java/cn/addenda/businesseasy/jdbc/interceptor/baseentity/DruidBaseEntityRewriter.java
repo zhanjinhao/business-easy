@@ -27,17 +27,17 @@ import java.util.stream.Collectors;
 @Slf4j
 public class DruidBaseEntityRewriter extends AbstractDruidSqlRewriter implements BaseEntityRewriter {
 
-    private BaseEntitySource baseEntitySource;
+    private final BaseEntitySource baseEntitySource;
 
     /**
      * 需要基础字段的表
      */
-    private List<String> baseEntityTableNameList;
+    private final List<String> included;
 
     /**
      * 不需要基础字段的表
      */
-    private List<String> unBaseEntityTableNameList = new ArrayList<>(Arrays.asList("dual"));
+    private final List<String> notIncluded = new ArrayList<>(Arrays.asList("dual"));
 
     private static final List<String> INSERT_COLUMN_NAME_LIST;
     private static final List<String> INSERT_FIELD_NAME_LIST;
@@ -51,12 +51,10 @@ public class DruidBaseEntityRewriter extends AbstractDruidSqlRewriter implements
         UPDATE_FIELD_NAME_LIST = BaseEntity.getUpdateFieldNameList();
     }
 
-    public DruidBaseEntityRewriter(List<String> baseEntityTableNameList, BaseEntitySource baseEntitySource) {
+    public DruidBaseEntityRewriter(List<String> included, BaseEntitySource baseEntitySource) {
         this.baseEntitySource = baseEntitySource;
-        if (baseEntityTableNameList != null) {
-            this.baseEntityTableNameList = new ArrayList<>();
-            this.baseEntityTableNameList.addAll(baseEntityTableNameList);
-        } else {
+        this.included = included;
+        if (included == null) {
             log.warn("未声明需填充的基础字段的表集合，所有的表都会进行基础字段填充改写！");
         }
     }
@@ -69,7 +67,7 @@ public class DruidBaseEntityRewriter extends AbstractDruidSqlRewriter implements
     private String doRewriteInsertSql(SQLStatement sqlStatement) {
         MySqlInsertStatement mySqlInsertStatement = (MySqlInsertStatement) sqlStatement;
         SQLName tableName = mySqlInsertStatement.getTableName();
-        if (!JdbcSQLUtils.contains(tableName.toString(), baseEntityTableNameList, unBaseEntityTableNameList)) {
+        if (!JdbcSQLUtils.include(tableName.toString(), included, notIncluded)) {
             return DruidSQLUtils.toLowerCaseSQL(sqlStatement);
         }
         byte[] injects = new byte[INSERT_COLUMN_NAME_LIST.size()];
@@ -121,9 +119,9 @@ public class DruidBaseEntityRewriter extends AbstractDruidSqlRewriter implements
         Map<TableStat.Name, TableStat> tables = schemaStatVisitor.getTables();
         Set<String> collect = tables.keySet().stream().map(TableStat.Name::getName).collect(Collectors.toSet());
         for (String table : collect) {
-            if (JdbcSQLUtils.contains(table, baseEntityTableNameList, unBaseEntityTableNameList)) {
+            if (JdbcSQLUtils.include(table, included, notIncluded)) {
                 sqlSelectStatement = new DruidSelectAddBaseEntityVisitor(
-                        baseEntityTableNameList, unBaseEntityTableNameList, masterView, sqlSelectStatement).visit();
+                        included, notIncluded, masterView, sqlSelectStatement).visit();
             }
         }
         return DruidSQLUtils.toLowerCaseSQL(sqlStatement);
@@ -137,7 +135,7 @@ public class DruidBaseEntityRewriter extends AbstractDruidSqlRewriter implements
     private String doRewriteUpdateSql(SQLStatement sqlStatement) {
         MySqlUpdateStatement mySqlUpdateStatement = (MySqlUpdateStatement) sqlStatement;
         SQLName tableName = mySqlUpdateStatement.getTableName();
-        if (!JdbcSQLUtils.contains(tableName.toString(), baseEntityTableNameList, unBaseEntityTableNameList)) {
+        if (!JdbcSQLUtils.include(tableName.toString(), included, notIncluded)) {
             return DruidSQLUtils.toLowerCaseSQL(sqlStatement);
         }
 

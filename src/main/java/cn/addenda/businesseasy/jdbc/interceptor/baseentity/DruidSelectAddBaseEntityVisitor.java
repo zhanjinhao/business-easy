@@ -25,8 +25,8 @@ public class DruidSelectAddBaseEntityVisitor extends MySqlASTVisitorAdapter {
 
     private static final String ITEM_KEY = "BaseEntitySelectItemList";
 
-    private List<String> baseEntityTableNameList;
-    private List<String> unBaseEntityTableNameList;
+    private final List<String> included;
+    private final List<String> notIncluded;
 
     private String masterView;
 
@@ -45,10 +45,10 @@ public class DruidSelectAddBaseEntityVisitor extends MySqlASTVisitorAdapter {
     }
 
     public DruidSelectAddBaseEntityVisitor(
-            List<String> baseEntityTableNameList, List<String> unBaseEntityTableNameList,
+            List<String> included, List<String> notIncluded,
             String masterView, String sql, boolean reportAmbiguous) {
-        this.baseEntityTableNameList = baseEntityTableNameList;
-        this.unBaseEntityTableNameList = unBaseEntityTableNameList;
+        this.included = included;
+        this.notIncluded = notIncluded;
         this.masterView = masterView;
         this.sql = sql;
         this.reportAmbiguous = reportAmbiguous;
@@ -56,10 +56,10 @@ public class DruidSelectAddBaseEntityVisitor extends MySqlASTVisitorAdapter {
     }
 
     public DruidSelectAddBaseEntityVisitor(
-            List<String> baseEntityTableNameList, List<String> unBaseEntityTableNameList,
+            List<String> included, List<String> notIncluded,
             String masterView, SQLSelectStatement sqlSelectStatement, boolean reportAmbiguous) {
-        this.baseEntityTableNameList = baseEntityTableNameList;
-        this.unBaseEntityTableNameList = unBaseEntityTableNameList;
+        this.included = included;
+        this.notIncluded = notIncluded;
         this.masterView = masterView;
         this.sqlSelectStatement = sqlSelectStatement;
         this.reportAmbiguous = reportAmbiguous;
@@ -67,10 +67,10 @@ public class DruidSelectAddBaseEntityVisitor extends MySqlASTVisitorAdapter {
     }
 
     public DruidSelectAddBaseEntityVisitor(
-            List<String> baseEntityTableNameList, List<String> unBaseEntityTableNameList,
+            List<String> included, List<String> notIncluded,
             String masterView, SQLSelectStatement sqlSelectStatement) {
-        this.baseEntityTableNameList = baseEntityTableNameList;
-        this.unBaseEntityTableNameList = unBaseEntityTableNameList;
+        this.included = included;
+        this.notIncluded = notIncluded;
         this.masterView = masterView;
         this.sqlSelectStatement = sqlSelectStatement;
         this.reportAmbiguous = false;
@@ -117,7 +117,7 @@ public class DruidSelectAddBaseEntityVisitor extends MySqlASTVisitorAdapter {
         // items 里面存在的基础列才能被注入到返回值
         List<SQLExpr> injectedList = new ArrayList<>();
         for (SQLExpr sqlExpr : items) {
-            if (JdbcSQLUtils.contains(JdbcSQLUtils.extractColumnName(sqlExpr.toString()), COLUMN_NAME_LIST, null)) {
+            if (JdbcSQLUtils.include(JdbcSQLUtils.extractColumnName(sqlExpr.toString()), COLUMN_NAME_LIST, null)) {
                 injectedList.add(sqlExpr);
             }
         }
@@ -133,7 +133,7 @@ public class DruidSelectAddBaseEntityVisitor extends MySqlASTVisitorAdapter {
             if (owner == null) {
                 List<String> declaredTableList = new ArrayList<>();
                 viewToTableMap.forEach((view, tableName) -> {
-                    if (tableName != null && JdbcSQLUtils.contains(tableName, baseEntityTableNameList, unBaseEntityTableNameList)) {
+                    if (tableName != null && JdbcSQLUtils.include(tableName, included, notIncluded)) {
                         declaredTableList.add(tableName);
                     }
                 });
@@ -155,7 +155,7 @@ public class DruidSelectAddBaseEntityVisitor extends MySqlASTVisitorAdapter {
 
             } else {
                 String tableName = viewToTableMap.get(owner);
-                if (tableName != null && JdbcSQLUtils.contains(tableName, baseEntityTableNameList, unBaseEntityTableNameList)) {
+                if (tableName != null && JdbcSQLUtils.include(tableName, included, notIncluded)) {
                     baseEntitySelectItemList.add(new BaseEntitySelectItem(sqlExpr, sqlExpr.toString().replace(".", "_")));
                 }
             }
@@ -169,7 +169,7 @@ public class DruidSelectAddBaseEntityVisitor extends MySqlASTVisitorAdapter {
         String alias = x.getAlias();
         String tableName = x.getTableName();
         String view = alias == null ? tableName : alias;
-        if (!JdbcSQLUtils.contains(tableName, baseEntityTableNameList, unBaseEntityTableNameList)) {
+        if (!JdbcSQLUtils.include(tableName, included, notIncluded)) {
             return;
         }
         List<BaseEntitySelectItem> baseEntitySelectItemList = new ArrayList<>();
@@ -368,6 +368,10 @@ public class DruidSelectAddBaseEntityVisitor extends MySqlASTVisitorAdapter {
 
     private List<BaseEntitySelectItem> getItemList(SQLObject sqlObject) {
         return (List<BaseEntitySelectItem>) sqlObject.getAttribute(ITEM_KEY);
+    }
+
+    public String getAmbiguousInfo() {
+        return ambiguousInfo;
     }
 
     private class BaseEntitySelectItem extends SQLSelectItem {

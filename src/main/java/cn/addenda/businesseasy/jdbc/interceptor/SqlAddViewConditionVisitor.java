@@ -20,8 +20,8 @@ public class SqlAddViewConditionVisitor extends SqlAddTableConditionVisitor {
         super(tableName, condition, useWhereConditionAsPossible);
     }
 
-    public SqlAddViewConditionVisitor(List<String> tableNameList, List<String> unTableNameList, String condition, boolean useWhereConditionAsPossible) {
-        super(tableNameList, unTableNameList, condition, useWhereConditionAsPossible);
+    public SqlAddViewConditionVisitor(List<String> included, List<String> notIncluded, String condition, boolean useWhereConditionAsPossible) {
+        super(included, notIncluded, condition, useWhereConditionAsPossible);
     }
 
     @Override

@@ -17,12 +17,12 @@ public class SelectItemIdentifierExistsVisitor extends IdentifierExistsVisitor {
 
     private final Deque<Boolean> flagStack = new ArrayDeque<>();
 
-    public SelectItemIdentifierExistsVisitor(List<String> identifierTableNameList, List<String> unIdentifierTableNameList, String identifier, boolean reportAmbiguous) {
-        super(identifierTableNameList, unIdentifierTableNameList, identifier, reportAmbiguous);
+    public SelectItemIdentifierExistsVisitor(List<String> included, List<String> notIncluded, String identifier, boolean reportAmbiguous) {
+        super(included, notIncluded, identifier, reportAmbiguous);
     }
 
-    public SelectItemIdentifierExistsVisitor(List<String> identifierTableNameList, String identifier) {
-        super(identifierTableNameList, identifier);
+    public SelectItemIdentifierExistsVisitor(List<String> included, String identifier) {
+        super(included, identifier);
     }
 
     public SelectItemIdentifierExistsVisitor(String identifier) {

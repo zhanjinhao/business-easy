@@ -21,9 +21,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class IdentifierExistsVisitor extends AbstractIdentifierVisitor {
 
-    private final List<String> identifierTableNameList;
+    private final List<String> included;
 
-    private final List<String> unIdentifierTableNameList;
+    private final List<String> notIncluded;
 
     private final boolean reportAmbiguous;
 
@@ -31,24 +31,24 @@ public class IdentifierExistsVisitor extends AbstractIdentifierVisitor {
 
     private boolean exists = false;
 
-    public IdentifierExistsVisitor(List<String> identifierTableNameList, List<String> unIdentifierTableNameList, String identifier, boolean reportAmbiguous) {
+    public IdentifierExistsVisitor(List<String> included, List<String> notIncluded, String identifier, boolean reportAmbiguous) {
         super(identifier);
-        this.identifierTableNameList = identifierTableNameList;
-        this.unIdentifierTableNameList = unIdentifierTableNameList;
+        this.included = included;
+        this.notIncluded = notIncluded;
         this.reportAmbiguous = reportAmbiguous;
     }
 
-    public IdentifierExistsVisitor(List<String> identifierTableNameList, String identifier) {
+    public IdentifierExistsVisitor(List<String> included, String identifier) {
         super(identifier);
-        this.identifierTableNameList = identifierTableNameList;
-        this.unIdentifierTableNameList = null;
+        this.included = included;
+        this.notIncluded = null;
         this.reportAmbiguous = false;
     }
 
     public IdentifierExistsVisitor(String identifier) {
         super(identifier);
-        this.identifierTableNameList = null;
-        this.unIdentifierTableNameList = null;
+        this.included = null;
+        this.notIncluded = null;
         this.reportAmbiguous = false;
     }
 
@@ -65,7 +65,7 @@ public class IdentifierExistsVisitor extends AbstractIdentifierVisitor {
                 if (owner == null) {
                     List<String> declaredTableList = new ArrayList<>();
                     viewToTableMap.forEach((view, table) -> {
-                        if (table != null && JdbcSQLUtils.contains(table, identifierTableNameList, unIdentifierTableNameList)) {
+                        if (table != null && JdbcSQLUtils.include(table, included, notIncluded)) {
                             declaredTableList.add(table);
                         }
                     });
@@ -92,7 +92,7 @@ public class IdentifierExistsVisitor extends AbstractIdentifierVisitor {
                     }
                 } else {
                     String tableName = viewToTableMap.get(owner);
-                    if (tableName != null && JdbcSQLUtils.contains(tableName, identifierTableNameList, unIdentifierTableNameList)) {
+                    if (tableName != null && JdbcSQLUtils.include(tableName, included, notIncluded)) {
                         exists = true;
                         break;
                     }
