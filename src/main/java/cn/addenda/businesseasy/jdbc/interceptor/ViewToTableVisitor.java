@@ -6,6 +6,7 @@ import com.alibaba.druid.sql.visitor.SQLASTVisitorAdapter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -82,7 +83,7 @@ public class ViewToTableVisitor extends SQLASTVisitorAdapter {
         Map<String, String> map = new HashMap<>();
         map.put(view, tableName);
         x.putAttribute(VIEW_TO_TABLE_KEY, map);
-        log.debug("SQLObject: [{}], viewToTableMap: [{}].", x, map);
+        log.debug("SQLObject: [{}], viewToTableMap: [{}].", DruidSQLUtils.toLowerCaseSQL(x), map);
     }
 
     @Override
@@ -93,7 +94,7 @@ public class ViewToTableVisitor extends SQLASTVisitorAdapter {
         Map<String, String> map = new HashMap<>();
         map.put(alias, null);
         x.putAttribute(VIEW_TO_TABLE_KEY, map);
-        log.debug("SQLObject: [{}], viewToTableMap: [{}].", x, map);
+        log.debug("SQLObject: [{}], viewToTableMap: [{}].", DruidSQLUtils.toLowerCaseSQL(x), map);
     }
 
     @Override
@@ -104,7 +105,7 @@ public class ViewToTableVisitor extends SQLASTVisitorAdapter {
         Map<String, String> map = new HashMap<>();
         map.put(alias, null);
         x.putAttribute(VIEW_TO_TABLE_KEY, map);
-        log.debug("SQLObject: [{}], viewToTableMap: [{}].", x, map);
+        log.debug("SQLObject: [{}], viewToTableMap: [{}].", DruidSQLUtils.toLowerCaseSQL(x), map);
     }
 
     @Override
@@ -124,8 +125,29 @@ public class ViewToTableVisitor extends SQLASTVisitorAdapter {
         }
         if (!map.isEmpty()) {
             x.putAttribute(VIEW_TO_TABLE_KEY, map);
-            log.debug("SQLObject: [{}], viewToTableMap: [{}].", x, map);
+            log.debug("SQLObject: [{}], viewToTableMap: [{}].", DruidSQLUtils.toLowerCaseSQL(x), map);
         }
+    }
+
+    @Override
+    public void endVisit(SQLSelectQueryBlock x) {
+        Map<String, String> viewToTableMap = getViewToTableMap(x.getFrom());
+        if (viewToTableMap != null) {
+            Map<String, String> map = new HashMap<>(viewToTableMap);
+            x.putAttribute(VIEW_TO_TABLE_KEY, map);
+            log.debug("SQLObject: [{}], viewToTableMap: [{}].", DruidSQLUtils.toLowerCaseSQL(x), map);
+        }
+    }
+
+    @Override
+    public void endVisit(SQLUnionQuery x) {
+        List<SQLSelectQuery> relations = x.getRelations();
+        Map<String, String> map = new HashMap<>();
+        for (SQLSelectQuery sqlSelectQuery : relations) {
+            map.putAll(getViewToTableMap(sqlSelectQuery));
+        }
+        x.putAttribute(VIEW_TO_TABLE_KEY, map);
+        log.debug("SQLObject: [{}], viewToTableMap: [{}].", DruidSQLUtils.toLowerCaseSQL(x), map);
     }
 
     public static Map<String, String> getViewToTableMap(SQLObject sqlObject) {
