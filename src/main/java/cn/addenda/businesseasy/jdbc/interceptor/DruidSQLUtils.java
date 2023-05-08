@@ -6,8 +6,6 @@ import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLObject;
 import com.alibaba.druid.sql.ast.expr.*;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlOutputVisitor;
-import com.alibaba.druid.sql.visitor.SQLASTOutputVisitor;
-import com.alibaba.druid.sql.visitor.VisitorFeature;
 
 import java.sql.Time;
 import java.time.LocalDate;
@@ -25,21 +23,19 @@ import static com.alibaba.druid.sql.visitor.VisitorFeature.OutputUCase;
 public class DruidSQLUtils extends SQLUtils {
 
     public static String toLowerCaseSQL(SQLObject sqlObject) {
-        StringBuilder out = new StringBuilder();
-        SQLASTOutputVisitor visitor = new MySqlOutputVisitor(out, false);
-        FormatOption formatOption = new FormatOption(false, true);
+        return toLowerCaseSQL(sqlObject, false);
+    }
 
-        visitor.setUppCase(formatOption.isUppCase());
+    public static String toLowerCaseSQL(SQLObject sqlObject, boolean printEnter) {
+        StringBuilder out = new StringBuilder();
+        MySqlOutputVisitor visitor = new MySqlOutputVisitor(out, false);
+
+        visitor.setUppCase(false);
         // 兼容druid某些版本setUppCase不生效的问题
         visitor.config(OutputUCase, false);
 
-        visitor.setParameterized(formatOption.isParameterized());
-
-        int featuresValue = VisitorFeature.of(
-                VisitorFeature.OutputPrettyFormat
-        );
-
-        visitor.setFeatures(featuresValue);
+        visitor.setParameterized(false);
+        visitor.setPrettyFormat(printEnter);
         sqlObject.accept(visitor);
         return out.toString();
     }
