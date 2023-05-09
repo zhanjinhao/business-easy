@@ -1,12 +1,11 @@
 package cn.addenda.businesseasy.jdbc.interceptor;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
 import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
 import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQueryBlock;
-import com.alibaba.druid.sql.visitor.SQLASTVisitorAdapter;
-
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -16,13 +15,19 @@ import java.util.List;
  * @author addenda
  * @since 2023/5/7 11:43
  */
-public class AbstractIdentifierVisitor extends SQLASTVisitorAdapter {
+public abstract class AbstractIdentifierVisitor extends SQLBoundVisitor<SQLStatement> {
 
     protected final String identifier;
 
     protected final Deque<List<String>> identifierListStack = new ArrayDeque<>();
 
-    public AbstractIdentifierVisitor(String identifier) {
+    protected AbstractIdentifierVisitor(String sql, String identifier) {
+        super(sql);
+        this.identifier = identifier;
+    }
+
+    protected AbstractIdentifierVisitor(SQLStatement sql, String identifier) {
+        super(sql);
         this.identifier = identifier;
     }
 

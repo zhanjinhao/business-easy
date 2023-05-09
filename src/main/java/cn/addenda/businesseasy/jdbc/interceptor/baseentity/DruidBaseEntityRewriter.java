@@ -15,10 +15,13 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
 import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
 import com.alibaba.druid.stat.TableStat;
-import lombok.extern.slf4j.Slf4j;
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author addenda
@@ -120,8 +123,8 @@ public class DruidBaseEntityRewriter extends AbstractDruidSqlRewriter implements
         Set<String> collect = tables.keySet().stream().map(TableStat.Name::getName).collect(Collectors.toSet());
         for (String table : collect) {
             if (JdbcSQLUtils.include(table, included, notIncluded)) {
-                sqlSelectStatement = new DruidSelectAddBaseEntityVisitor(
-                        included, notIncluded, masterView, sqlSelectStatement).visit();
+                sqlSelectStatement = new DruidSelectAddBaseEntityVisitor(sqlSelectStatement,
+                    included, notIncluded, masterView).visitAndOutputAst();
             }
         }
         return DruidSQLUtils.toLowerCaseSQL(sqlStatement);

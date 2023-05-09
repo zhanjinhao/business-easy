@@ -1,5 +1,6 @@
 package cn.addenda.businesseasy.jdbc.interceptor.sqlcheck;
 
+import cn.addenda.businesseasy.jdbc.JdbcSQLUtils;
 import cn.addenda.businesseasy.jdbc.interceptor.ConnectionPrepareStatementInterceptor;
 import cn.addenda.businesseasy.jdbc.interceptor.DruidSQLUtils;
 
@@ -40,11 +41,13 @@ public class SQLCheckInterceptor extends ConnectionPrepareStatementInterceptor {
 
     @Override
     protected String process(String sql) {
-        if (checkAllColumn && SQLCheckContext.getCheckAllColumn() && sqlChecker.allColumnExists(sql)) {
+        if (checkAllColumn && SQLCheckContext.getCheckAllColumn()
+            && JdbcSQLUtils.isSelect(sql) && sqlChecker.allColumnExists(sql)) {
             String msg = String.format("SQL: [%s], 返回字段包含了*或tableName.*语法！", removeEnter(sql));
             throw new SQLCheckException(msg);
         }
-        if (checkExactIdentifier && SQLCheckContext.getCheckExactIdentifier() && !sqlChecker.exactIdentifier((sql))) {
+        if (checkExactIdentifier && SQLCheckContext.getCheckExactIdentifier()
+            && JdbcSQLUtils.isSelect(sql) && !sqlChecker.exactIdentifier((sql))) {
             String msg = String.format("SQL: [%s], 存在不精确的字段！", removeEnter(sql));
             throw new SQLCheckException(msg);
         }

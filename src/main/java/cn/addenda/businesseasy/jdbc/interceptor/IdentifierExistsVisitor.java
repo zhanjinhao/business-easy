@@ -2,13 +2,12 @@ package cn.addenda.businesseasy.jdbc.interceptor;
 
 import cn.addenda.businesseasy.jdbc.JdbcException;
 import cn.addenda.businesseasy.jdbc.JdbcSQLUtils;
+import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQueryBlock;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -31,25 +30,41 @@ public class IdentifierExistsVisitor extends AbstractIdentifierVisitor {
 
     private boolean exists = false;
 
-    public IdentifierExistsVisitor(List<String> included, List<String> notIncluded, String identifier, boolean reportAmbiguous) {
-        super(identifier);
+    public IdentifierExistsVisitor(String sql, String identifier,
+        List<String> included, List<String> notIncluded, boolean reportAmbiguous) {
+        super(sql, identifier);
         this.included = included;
         this.notIncluded = notIncluded;
         this.reportAmbiguous = reportAmbiguous;
     }
 
-    public IdentifierExistsVisitor(List<String> included, String identifier) {
-        super(identifier);
+    public IdentifierExistsVisitor(SQLStatement sql, String identifier,
+        List<String> included, List<String> notIncluded, boolean reportAmbiguous) {
+        super(sql, identifier);
         this.included = included;
+        this.notIncluded = notIncluded;
+        this.reportAmbiguous = reportAmbiguous;
+    }
+
+    public IdentifierExistsVisitor(String sql, String identifier) {
+        super(sql, identifier);
+        this.included = null;
         this.notIncluded = null;
         this.reportAmbiguous = false;
     }
 
-    public IdentifierExistsVisitor(String identifier) {
-        super(identifier);
+    public IdentifierExistsVisitor(SQLStatement sql, String identifier) {
+        super(sql, identifier);
         this.included = null;
         this.notIncluded = null;
         this.reportAmbiguous = false;
+    }
+
+    @Override
+    public SQLStatement visitAndOutputAst() {
+        sqlStatement.accept(new ViewToTableVisitor());
+        sqlStatement.accept(this);
+        return sqlStatement;
     }
 
     @Override

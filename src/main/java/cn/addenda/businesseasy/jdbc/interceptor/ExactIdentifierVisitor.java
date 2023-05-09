@@ -2,9 +2,9 @@ package cn.addenda.businesseasy.jdbc.interceptor;
 
 import cn.addenda.businesseasy.jdbc.JdbcSQLUtils;
 import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQueryBlock;
-
 import java.util.List;
 import java.util.Map;
 
@@ -16,9 +16,21 @@ public class ExactIdentifierVisitor extends AbstractIdentifierVisitor {
 
     private boolean exact;
 
-    public ExactIdentifierVisitor() {
-        super(null);
+    public ExactIdentifierVisitor(String sql) {
+        super(sql, null);
         this.exact = true;
+    }
+
+    public ExactIdentifierVisitor(SQLStatement sql) {
+        super(sql, null);
+        this.exact = true;
+    }
+
+    @Override
+    public SQLStatement visitAndOutputAst() {
+        sqlStatement.accept(new ViewToTableVisitor());
+        sqlStatement.accept(this);
+        return sqlStatement;
     }
 
     @Override
@@ -51,10 +63,10 @@ public class ExactIdentifierVisitor extends AbstractIdentifierVisitor {
     public void endVisit(SQLJoinTableSource x) {
         SQLJoinTableSource.JoinType joinType = x.getJoinType();
         if (SQLJoinTableSource.JoinType.NATURAL_JOIN == joinType ||
-                SQLJoinTableSource.JoinType.NATURAL_CROSS_JOIN == joinType ||
-                SQLJoinTableSource.JoinType.NATURAL_INNER_JOIN == joinType ||
-                SQLJoinTableSource.JoinType.NATURAL_LEFT_JOIN == joinType ||
-                SQLJoinTableSource.JoinType.NATURAL_RIGHT_JOIN == joinType
+            SQLJoinTableSource.JoinType.NATURAL_CROSS_JOIN == joinType ||
+            SQLJoinTableSource.JoinType.NATURAL_INNER_JOIN == joinType ||
+            SQLJoinTableSource.JoinType.NATURAL_LEFT_JOIN == joinType ||
+            SQLJoinTableSource.JoinType.NATURAL_RIGHT_JOIN == joinType
         ) {
             exact = false;
         }

@@ -1,10 +1,10 @@
 package cn.addenda.businesseasy.jdbc.interceptor;
 
+import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
 import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
 import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQueryBlock;
-
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
@@ -17,16 +17,22 @@ public class SelectItemIdentifierExistsVisitor extends IdentifierExistsVisitor {
 
     private final Deque<Boolean> flagStack = new ArrayDeque<>();
 
-    public SelectItemIdentifierExistsVisitor(List<String> included, List<String> notIncluded, String identifier, boolean reportAmbiguous) {
-        super(included, notIncluded, identifier, reportAmbiguous);
+    public SelectItemIdentifierExistsVisitor(String sql, String identifier,
+        List<String> included, List<String> notIncluded, boolean reportAmbiguous) {
+        super(sql, identifier, included, notIncluded, reportAmbiguous);
     }
 
-    public SelectItemIdentifierExistsVisitor(List<String> included, String identifier) {
-        super(included, identifier);
+    public SelectItemIdentifierExistsVisitor(SQLStatement sql, String identifier,
+        List<String> included, List<String> notIncluded, boolean reportAmbiguous) {
+        super(sql, identifier, included, notIncluded, reportAmbiguous);
     }
 
-    public SelectItemIdentifierExistsVisitor(String identifier) {
-        super(identifier);
+    public SelectItemIdentifierExistsVisitor(String sql, String identifier) {
+        super(sql, identifier);
+    }
+
+    public SelectItemIdentifierExistsVisitor(SQLStatement sql, String identifier) {
+        super(sql, identifier);
     }
 
     @Override
@@ -42,7 +48,6 @@ public class SelectItemIdentifierExistsVisitor extends IdentifierExistsVisitor {
         flagStack.push(true);
         return super.visit(x);
     }
-
 
     @Override
     public void endVisit(SQLPropertyExpr x) {

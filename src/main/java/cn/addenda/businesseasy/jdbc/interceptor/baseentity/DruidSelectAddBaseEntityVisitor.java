@@ -3,25 +3,37 @@ package cn.addenda.businesseasy.jdbc.interceptor.baseentity;
 import cn.addenda.businesseasy.jdbc.JdbcException;
 import cn.addenda.businesseasy.jdbc.JdbcSQLUtils;
 import cn.addenda.businesseasy.jdbc.interceptor.DruidSQLUtils;
+import cn.addenda.businesseasy.jdbc.interceptor.SQLBoundVisitor;
 import cn.addenda.businesseasy.jdbc.interceptor.ViewToTableVisitor;
-import com.alibaba.druid.DbType;
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLObject;
-import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.sql.ast.statement.*;
-import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlASTVisitorAdapter;
-import lombok.extern.slf4j.Slf4j;
-
-import java.util.*;
+import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
+import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
+import com.alibaba.druid.sql.ast.statement.SQLSelect;
+import com.alibaba.druid.sql.ast.statement.SQLSelectGroupByClause;
+import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
+import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
+import com.alibaba.druid.sql.ast.statement.SQLSelectQueryBlock;
+import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
+import com.alibaba.druid.sql.ast.statement.SQLSubqueryTableSource;
+import com.alibaba.druid.sql.ast.statement.SQLTableSource;
+import com.alibaba.druid.sql.ast.statement.SQLUnionQuery;
+import com.alibaba.druid.sql.ast.statement.SQLUnionQueryTableSource;
+import com.alibaba.druid.sql.ast.statement.SQLValuesQuery;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author addenda
  * @since 2023/5/1 13:28
  */
 @Slf4j
-public class DruidSelectAddBaseEntityVisitor extends MySqlASTVisitorAdapter {
+public class DruidSelectAddBaseEntityVisitor extends SQLBoundVisitor<SQLSelectStatement> {
 
     private static final String ITEM_KEY = "BaseEntitySelectItemList";
 
@@ -29,10 +41,6 @@ public class DruidSelectAddBaseEntityVisitor extends MySqlASTVisitorAdapter {
     private final List<String> notIncluded;
 
     private String masterView;
-
-    private String sql;
-
-    private SQLSelectStatement sqlSelectStatement;
 
     private final boolean reportAmbiguous;
 
@@ -44,68 +52,38 @@ public class DruidSelectAddBaseEntityVisitor extends MySqlASTVisitorAdapter {
         COLUMN_NAME_LIST = BaseEntity.getAllColumnNameList();
     }
 
-    public DruidSelectAddBaseEntityVisitor(
-            List<String> included, List<String> notIncluded,
-            String masterView, String sql, boolean reportAmbiguous) {
+    public DruidSelectAddBaseEntityVisitor(String sql,
+        List<String> included, List<String> notIncluded, String masterView, boolean reportAmbiguous) {
+        super(sql);
         this.included = included;
         this.notIncluded = notIncluded;
         this.masterView = masterView;
-        this.sql = sql;
         this.reportAmbiguous = reportAmbiguous;
-        this.init();
     }
 
-    public DruidSelectAddBaseEntityVisitor(
-            List<String> included, List<String> notIncluded,
-            String masterView, SQLSelectStatement sqlSelectStatement, boolean reportAmbiguous) {
+    public DruidSelectAddBaseEntityVisitor(SQLSelectStatement sqlSelectStatement,
+        List<String> included, List<String> notIncluded, String masterView, boolean reportAmbiguous) {
+        super(sqlSelectStatement);
         this.included = included;
         this.notIncluded = notIncluded;
         this.masterView = masterView;
-        this.sqlSelectStatement = sqlSelectStatement;
         this.reportAmbiguous = reportAmbiguous;
-        this.init();
     }
 
-    public DruidSelectAddBaseEntityVisitor(
-            List<String> included, List<String> notIncluded,
-            String masterView, SQLSelectStatement sqlSelectStatement) {
+    public DruidSelectAddBaseEntityVisitor(SQLSelectStatement sqlSelectStatement,
+        List<String> included, List<String> notIncluded, String masterView) {
+        super(sqlSelectStatement);
         this.included = included;
         this.notIncluded = notIncluded;
         this.masterView = masterView;
-        this.sqlSelectStatement = sqlSelectStatement;
         this.reportAmbiguous = false;
-        this.init();
     }
 
-    private void init() {
-        if (sqlSelectStatement == null && sql == null) {
-            throw new NullPointerException("SQL 不存在！");
-        }
-        if (sql == null) {
-            this.sql = DruidSQLUtils.toLowerCaseSQL(sqlSelectStatement);
-        }
-        if (!JdbcSQLUtils.isSelect(sql)) {
-            throw new IllegalArgumentException("请传入select语句，当前SQL：" + sql + "。");
-        }
-        if (sqlSelectStatement == null) {
-            if (!JdbcSQLUtils.isSelect(sql)) {
-                throw new IllegalArgumentException("请传入select语句，当前SQL：" + sql + "。");
-            }
-            List<SQLStatement> stmtList = SQLUtils.parseStatements(sql, DbType.mysql);
-            if (stmtList.size() != 1) {
-                throw new IllegalArgumentException("字段填充仅支持单条SQL，当前SQL：" + sql + "。");
-            }
-            if (stmtList.get(0) instanceof SQLSelectStatement) {
-                throw new IllegalArgumentException("字段填充仅支持单条SQL，当前SQL：" + sql + "。");
-            }
-            this.sqlSelectStatement = (SQLSelectStatement) stmtList.get(0);
-        }
-        sqlSelectStatement.accept(new ViewToTableVisitor());
-    }
-
-    public SQLSelectStatement visit() {
-        sqlSelectStatement.accept(this);
-        return sqlSelectStatement;
+    @Override
+    public SQLSelectStatement visitAndOutputAst() {
+        sqlStatement.accept(new ViewToTableVisitor());
+        sqlStatement.accept(this);
+        return sqlStatement;
     }
 
     private int deepth = 0;
@@ -142,7 +120,8 @@ public class DruidSelectAddBaseEntityVisitor extends MySqlASTVisitorAdapter {
                     String view = declaredTableList.get(0);
                     baseEntitySelectItemList.add(new BaseEntitySelectItem(SQLUtils.toSQLExpr(view + "." + sqlExpr), view + "_" + sqlExpr));
                 } else if (declaredTableList.size() > 1) {
-                    ambiguousInfo = "SQLObject: [" + DruidSQLUtils.toLowerCaseSQL(x) + "], Ambiguous identifier: [" + DruidSQLUtils.toLowerCaseSQL(sqlExpr) + "], declaredTableList: [" + declaredTableList + "].";
+                    ambiguousInfo =
+                        "SQLObject: [" + DruidSQLUtils.toLowerCaseSQL(x) + "], Ambiguous identifier: [" + DruidSQLUtils.toLowerCaseSQL(sqlExpr) + "], declaredTableList: [" + declaredTableList + "].";
                     baseEntitySelectItemList.add(new BaseEntitySelectItem(sqlExpr, sqlExpr.toString()));
                     if (reportAmbiguous) {
                         throw new JdbcException(ambiguousInfo);
@@ -160,8 +139,7 @@ public class DruidSelectAddBaseEntityVisitor extends MySqlASTVisitorAdapter {
                 }
             }
         }
-
-        x.putAttribute(ITEM_KEY, baseEntitySelectItemList);
+        putItemList(x, baseEntitySelectItemList);
     }
 
     @Override
@@ -175,9 +153,9 @@ public class DruidSelectAddBaseEntityVisitor extends MySqlASTVisitorAdapter {
         List<BaseEntitySelectItem> baseEntitySelectItemList = new ArrayList<>();
         for (String item : COLUMN_NAME_LIST) {
             baseEntitySelectItemList.add(
-                    new BaseEntitySelectItem(SQLUtils.toSQLExpr(view + "." + item), view + "_" + item));
+                new BaseEntitySelectItem(SQLUtils.toSQLExpr(view + "." + item), view + "_" + item));
         }
-        x.putAttribute(ITEM_KEY, baseEntitySelectItemList);
+        putItemList(x, baseEntitySelectItemList);
     }
 
     @Override
@@ -189,9 +167,9 @@ public class DruidSelectAddBaseEntityVisitor extends MySqlASTVisitorAdapter {
             List<BaseEntitySelectItem> xBaseEntitySelectItemList = new ArrayList<>();
             for (BaseEntitySelectItem item : baseEntitySelectItemList) {
                 xBaseEntitySelectItemList.add(new BaseEntitySelectItem(
-                        SQLUtils.toSQLExpr(alias + "." + item.getAlias()), alias + "_" + item.getAlias()));
+                    SQLUtils.toSQLExpr(alias + "." + item.getAlias()), alias + "_" + item.getAlias()));
             }
-            x.putAttribute(ITEM_KEY, xBaseEntitySelectItemList);
+            putItemList(x, xBaseEntitySelectItemList);
         }
     }
 
@@ -208,7 +186,7 @@ public class DruidSelectAddBaseEntityVisitor extends MySqlASTVisitorAdapter {
         if (rightBaseEntitySelectItemList != null) {
             baseEntitySelectItemList.addAll(rightBaseEntitySelectItemList);
         }
-        x.putAttribute(ITEM_KEY, baseEntitySelectItemList);
+        putItemList(x, baseEntitySelectItemList);
     }
 
 
@@ -220,10 +198,9 @@ public class DruidSelectAddBaseEntityVisitor extends MySqlASTVisitorAdapter {
         List<BaseEntitySelectItem> xBaseEntitySelectItemList = new ArrayList<>();
         for (BaseEntitySelectItem item : baseEntitySelectItemList) {
             xBaseEntitySelectItemList.add(new BaseEntitySelectItem(
-                    SQLUtils.toSQLExpr(alias + "." + item.getAlias()), alias + "_" + item.getAlias()));
+                SQLUtils.toSQLExpr(alias + "." + item.getAlias()), alias + "_" + item.getAlias()));
         }
-        x.putAttribute(ITEM_KEY, xBaseEntitySelectItemList);
-
+        putItemList(x, xBaseEntitySelectItemList);
     }
 
     @Override
@@ -255,7 +232,7 @@ public class DruidSelectAddBaseEntityVisitor extends MySqlASTVisitorAdapter {
             }
         }
         if (flag) {
-            x.putAttribute(ITEM_KEY, new ArrayList<>(list));
+            putItemList(x, new ArrayList<>(list));
         } else {
             clear(x);
         }
@@ -289,7 +266,7 @@ public class DruidSelectAddBaseEntityVisitor extends MySqlASTVisitorAdapter {
             baseEntitySelectItemList = getItemList(from);
         }
         if (baseEntitySelectItemList != null) {
-            x.putAttribute(ITEM_KEY, new ArrayList<>(baseEntitySelectItemList));
+            putItemList(x, new ArrayList<>(baseEntitySelectItemList));
             List<String> debugInfo = new ArrayList<>();
             for (BaseEntitySelectItem baseEntitySelectItem : baseEntitySelectItemList) {
                 SQLExpr expr = baseEntitySelectItem.getExpr();
@@ -300,7 +277,6 @@ public class DruidSelectAddBaseEntityVisitor extends MySqlASTVisitorAdapter {
             }
             log.debug("SQLObject: [{}], 注入列：[{}].", DruidSQLUtils.toLowerCaseSQL(x), debugInfo);
         }
-
 
         if (deepth == 1) {
             boolean flag = false;
@@ -319,7 +295,6 @@ public class DruidSelectAddBaseEntityVisitor extends MySqlASTVisitorAdapter {
                     masterView = sqlUnionQueryTableSource.getAlias();
                 }
             }
-
 
             if (masterView == null) {
                 // no-op
@@ -357,7 +332,7 @@ public class DruidSelectAddBaseEntityVisitor extends MySqlASTVisitorAdapter {
         SQLSelectQuery query = select.getQuery();
         List<BaseEntitySelectItem> itemList = getItemList(query);
         if (itemList != null) {
-            select.putAttribute(ITEM_KEY, new ArrayList<>(itemList));
+            putItemList(select, new ArrayList<>(itemList));
         }
         deepth--;
     }
@@ -368,6 +343,12 @@ public class DruidSelectAddBaseEntityVisitor extends MySqlASTVisitorAdapter {
 
     private List<BaseEntitySelectItem> getItemList(SQLObject sqlObject) {
         return (List<BaseEntitySelectItem>) sqlObject.getAttribute(ITEM_KEY);
+    }
+
+    private void putItemList(SQLObject sqlObject, List<BaseEntitySelectItem> baseEntitySelectItemList) {
+        if (baseEntitySelectItemList != null && !baseEntitySelectItemList.isEmpty()) {
+            sqlObject.putAttribute(ITEM_KEY, baseEntitySelectItemList);
+        }
     }
 
     public String getAmbiguousInfo() {

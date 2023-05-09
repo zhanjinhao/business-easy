@@ -6,12 +6,15 @@ import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLObject;
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOperator;
-import com.alibaba.druid.sql.ast.statement.*;
+import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
+import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
+import com.alibaba.druid.sql.ast.statement.SQLSelectQueryBlock;
+import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
+import com.alibaba.druid.sql.ast.statement.SQLTableSource;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlASTVisitorAdapter;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -85,6 +88,7 @@ public class SqlAddTableConditionVisitor extends MySqlASTVisitorAdapter {
             } else {
                 x.setLeft(newFrom(leftTableName, leftAlias));
             }
+            clear(left);
         }
 
         SQLTableSource right = x.getRight();
@@ -96,6 +100,7 @@ public class SqlAddTableConditionVisitor extends MySqlASTVisitorAdapter {
             } else {
                 x.setRight(newFrom(rightTableName, rightAlias));
             }
+            clear(right);
         }
     }
 
@@ -110,6 +115,7 @@ public class SqlAddTableConditionVisitor extends MySqlASTVisitorAdapter {
             } else {
                 x.setFrom(newFrom(aTableName, aAlias));
             }
+            clear(from);
         }
     }
 
@@ -120,6 +126,7 @@ public class SqlAddTableConditionVisitor extends MySqlASTVisitorAdapter {
         String aAlias = getAlias(tableSource);
         if (aTableName != null) {
             x.setWhere(newWhere(x.getWhere(), aTableName, aAlias));
+            clear(tableSource);
         }
     }
 
@@ -130,6 +137,7 @@ public class SqlAddTableConditionVisitor extends MySqlASTVisitorAdapter {
         String aAlias = getAlias(tableSource);
         if (aTableName != null) {
             x.setWhere(newWhere(x.getWhere(), aTableName, aAlias));
+            clear(tableSource);
         }
     }
 
@@ -158,6 +166,11 @@ public class SqlAddTableConditionVisitor extends MySqlASTVisitorAdapter {
 
     private String getAlias(SQLObject sqlObject) {
         return (String) sqlObject.getAttribute(ALIAS_KEY);
+    }
+
+    private void clear(SQLObject sqlObject) {
+        sqlObject.getAttributes().remove(TABLE_NAME_KEY);
+        sqlObject.getAttributes().remove(ALIAS_KEY);
     }
 
 }
