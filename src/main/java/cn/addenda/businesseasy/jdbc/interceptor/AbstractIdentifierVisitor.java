@@ -6,6 +6,10 @@ import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
 import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
 import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQueryBlock;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -76,6 +80,39 @@ public abstract class AbstractIdentifierVisitor extends SQLBoundVisitor<SQLState
 
     @Override
     public void endVisit(SQLSelectQueryBlock x) {
+        identifierListStack.pop();
+    }
+
+    @Override
+    public boolean visit(MySqlInsertStatement x) {
+        identifierListStack.push(new ArrayList<>());
+        return true;
+    }
+
+    @Override
+    public void endVisit(MySqlInsertStatement x) {
+        identifierListStack.pop();
+    }
+
+    @Override
+    public boolean visit(MySqlUpdateStatement x) {
+        identifierListStack.push(new ArrayList<>());
+        return true;
+    }
+
+    @Override
+    public void endVisit(MySqlUpdateStatement x) {
+        identifierListStack.pop();
+    }
+
+    @Override
+    public boolean visit(MySqlDeleteStatement x) {
+        identifierListStack.push(new ArrayList<>());
+        return true;
+    }
+
+    @Override
+    public void endVisit(MySqlDeleteStatement x) {
         identifierListStack.pop();
     }
 

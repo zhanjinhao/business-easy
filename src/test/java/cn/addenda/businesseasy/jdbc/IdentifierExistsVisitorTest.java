@@ -19,7 +19,7 @@ public class IdentifierExistsVisitorTest {
 
     @Test
     public void test1() {
-        for (String sql : SqlReader.read("src/test/resources/identifier_select.test", sqls)) {
+        for (String sql : SqlReader.read("src/test/resources/identifierexistsvisitor.test", sqls)) {
             String source = sql;
             int i = source.lastIndexOf(";");
             sql = source.substring(0, i);

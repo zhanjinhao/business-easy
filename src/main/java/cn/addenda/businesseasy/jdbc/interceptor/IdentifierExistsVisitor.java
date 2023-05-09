@@ -2,12 +2,18 @@ package cn.addenda.businesseasy.jdbc.interceptor;
 
 import cn.addenda.businesseasy.jdbc.JdbcException;
 import cn.addenda.businesseasy.jdbc.JdbcSQLUtils;
+import com.alibaba.druid.sql.ast.SQLObject;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQueryBlock;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -31,7 +37,7 @@ public class IdentifierExistsVisitor extends AbstractIdentifierVisitor {
     private boolean exists = false;
 
     public IdentifierExistsVisitor(String sql, String identifier,
-        List<String> included, List<String> notIncluded, boolean reportAmbiguous) {
+                                   List<String> included, List<String> notIncluded, boolean reportAmbiguous) {
         super(sql, identifier);
         this.included = included;
         this.notIncluded = notIncluded;
@@ -39,7 +45,7 @@ public class IdentifierExistsVisitor extends AbstractIdentifierVisitor {
     }
 
     public IdentifierExistsVisitor(SQLStatement sql, String identifier,
-        List<String> included, List<String> notIncluded, boolean reportAmbiguous) {
+                                   List<String> included, List<String> notIncluded, boolean reportAmbiguous) {
         super(sql, identifier);
         this.included = included;
         this.notIncluded = notIncluded;
@@ -75,53 +81,81 @@ public class IdentifierExistsVisitor extends AbstractIdentifierVisitor {
         if (exists) {
             // 如果已经存在，就直接返回了
         } else {
-            for (String _identifier : identifierList) {
-                String owner = JdbcSQLUtils.extractColumnOwner(_identifier);
-                if (owner == null) {
-                    List<String> declaredTableList = new ArrayList<>();
-                    viewToTableMap.forEach((view, table) -> {
-                        if (table != null && JdbcSQLUtils.include(table, included, notIncluded)) {
-                            declaredTableList.add(table);
-                        }
-                    });
-
-                    // 如果只有一个表存在字段，则identifier存在
-                    if (declaredTableList.size() == 1) {
-                        exists = true;
-                        break;
-                    }
-                    // 如果多个表存在字段，则抛出异常
-                    else if (declaredTableList.size() > 1) {
-                        ambiguousInfo = "SQLObject: [" + DruidSQLUtils.toLowerCaseSQL(x) + "], Ambiguous identifier: [" + identifier + "], declaredTableList: [" + declaredTableList + "].";
-                        exists = true;
-                        if (reportAmbiguous) {
-                            throw new JdbcException(ambiguousInfo);
-                        } else {
-                            log.debug(ambiguousInfo);
-                        }
-                        break;
-                    }
-                    // 如果没有表存在字段，则表示不是availableList里的表
-                    else {
-                        // no-op
-                    }
-                } else {
-                    String tableName = viewToTableMap.get(owner);
-                    if (tableName != null && JdbcSQLUtils.include(tableName, included, notIncluded)) {
-                        exists = true;
-                        break;
-                    }
-                }
-            }
+            handle(identifierList, viewToTableMap, x);
         }
 
         log.debug("SQLObject: [{}], viewToTableMap: [{}], identifierList: [{}], exists: [{}].", DruidSQLUtils.toLowerCaseSQL(x), viewToTableMap, identifierList, exists);
         super.endVisit(x);
     }
 
+    private void handle(List<String> identifierList, Map<String, String> viewToTableMap, SQLObject x) {
+        for (String _identifier : identifierList) {
+            String owner = JdbcSQLUtils.extractColumnOwner(_identifier);
+            if (owner == null) {
+                List<String> declaredTableList = new ArrayList<>();
+                viewToTableMap.forEach((view, table) -> {
+                    if (table != null && JdbcSQLUtils.include(table, included, notIncluded)) {
+                        declaredTableList.add(table);
+                    }
+                });
+
+                // 如果只有一个表存在字段，则identifier存在
+                if (declaredTableList.size() == 1) {
+                    exists = true;
+                    break;
+                }
+                // 如果多个表存在字段，则抛出异常
+                else if (declaredTableList.size() > 1) {
+                    ambiguousInfo = "SQLObject: [" + DruidSQLUtils.toLowerCaseSQL(x) + "], Ambiguous identifier: [" + identifier + "], declaredTableList: [" + declaredTableList + "].";
+                    exists = true;
+                    if (reportAmbiguous) {
+                        throw new JdbcException(ambiguousInfo);
+                    } else {
+                        log.debug(ambiguousInfo);
+                    }
+                    break;
+                }
+                // 如果没有表存在字段，则表示不是availableList里的表
+                else {
+                    // no-op
+                }
+            } else {
+                String tableName = viewToTableMap.get(owner);
+                if (tableName != null && JdbcSQLUtils.include(tableName, included, notIncluded)) {
+                    exists = true;
+                    break;
+                }
+            }
+        }
+    }
+
     @Override
     public void endVisit(SQLSelectStatement x) {
         log.debug("SQLObject: [{}], exists: [{}].", DruidSQLUtils.toLowerCaseSQL(x), exists);
+    }
+
+    @Override
+    public void endVisit(MySqlInsertStatement x) {
+        List<String> identifierList = identifierListStack.peek();
+        Map<String, String> viewToTableMap = ViewToTableVisitor.getViewToTableMap(x.getTableSource());
+        handle(identifierList, viewToTableMap, x);
+        super.endVisit(x);
+    }
+
+    @Override
+    public void endVisit(MySqlUpdateStatement x) {
+        List<String> identifierList = identifierListStack.peek();
+        Map<String, String> viewToTableMap = ViewToTableVisitor.getViewToTableMap(x.getTableSource());
+        handle(identifierList, viewToTableMap, x);
+        super.endVisit(x);
+    }
+
+    @Override
+    public void endVisit(MySqlDeleteStatement x) {
+        List<String> identifierList = identifierListStack.peek();
+        Map<String, String> viewToTableMap = ViewToTableVisitor.getViewToTableMap(x.getTableSource());
+        handle(identifierList, viewToTableMap, x);
+        super.endVisit(x);
     }
 
     public boolean isExists() {
