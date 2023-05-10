@@ -8,6 +8,7 @@
   update runoob_tbl set runoob_title=replace( runoob_title , 'c++', 'python' ) , a=a  + 1 , b=c;true
   insert  into table_listnames ( name, address, tele )   select *  from  (  select 'rupert', 'somewhere', '022' from dual   )  tmp  where  not exists  (  select name  from table_listnames   where name  = 'rupert'  )  limit 1;true
   insert  into table_listnames ( name, address, tele )   select *  from  (  select 'rupert', 'somewhere', '022' from dual   )  tmp  where  not exists  (  select name  from table_listnames   where a  = 'rupert'  )  limit 1;true
+  insert  into table_listnames ( name, address, tele )   select *  from  (  select 'rupert', 'somewhere', '022',c from dual,a   )  tmp  where  not exists  (  select name  from table_listnames   where a  = 'rupert'  )  limit 1;false
   insert into auto_filled_test(name) values ('1\\2');true
   insert into auto_filled_test(name) values ('1\'2');true
   insert  into table_listnames ( name, address, tele )  select *  from  (  select 'rupert', 'somewhere', '022' from dual   )  tmp  where  not exists  (  select name  from table_listnames   where name  = 'rupert'  )  limit 1;true
