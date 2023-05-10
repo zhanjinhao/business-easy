@@ -19,7 +19,7 @@ public class ExactIdentifierVisitorTest {
 
     @Test
     public void test1() {
-        for (String sql : SqlReader.read("src/test/resources/exactidentifier_select.test", sqls)) {
+        for (String sql : SqlReader.read("src/test/resources/exactidentifier.test", sqls)) {
             String source = sql;
             int i = source.lastIndexOf(";");
             sql = source.substring(0, i);

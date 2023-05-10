@@ -20,7 +20,7 @@ public class SelectItemIdentifierExistsVisitorTest {
 
     @Test
     public void test1() {
-        for (String sql : SqlReader.read("src/test/resources/selectitemidentifier_select.test", sqls)) {
+        for (String sql : SqlReader.read("src/test/resources/selectitemidentifierexists.test", sqls)) {
             String source = sql;
             int i = source.lastIndexOf(";");
             sql = source.substring(0, i);

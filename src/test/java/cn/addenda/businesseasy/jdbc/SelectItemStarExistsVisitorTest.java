@@ -19,7 +19,7 @@ public class SelectItemStarExistsVisitorTest {
 
     @Test
     public void test1() {
-        for (String sql : SqlReader.read("src/test/resources/selectitemstar_select.test", sqls)) {
+        for (String sql : SqlReader.read("src/test/resources/selectitemstarexists.test", sqls)) {
             String source = sql;
             int i = source.lastIndexOf(";");
             sql = source.substring(0, i);
