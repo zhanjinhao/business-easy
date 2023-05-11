@@ -1,13 +1,25 @@
 package cn.addenda.businesseasy.jdbc.interceptor;
 
 import com.alibaba.druid.sql.ast.SQLObject;
-import com.alibaba.druid.sql.ast.statement.*;
-import com.alibaba.druid.sql.visitor.SQLASTVisitorAdapter;
-import lombok.extern.slf4j.Slf4j;
-
+import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
+import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
+import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
+import com.alibaba.druid.sql.ast.statement.SQLSelectQueryBlock;
+import com.alibaba.druid.sql.ast.statement.SQLSubqueryTableSource;
+import com.alibaba.druid.sql.ast.statement.SQLTableSource;
+import com.alibaba.druid.sql.ast.statement.SQLUnionQuery;
+import com.alibaba.druid.sql.ast.statement.SQLUnionQueryTableSource;
+import com.alibaba.druid.sql.ast.statement.SQLUnnestTableSource;
+import com.alibaba.druid.sql.ast.statement.SQLValuesTableSource;
+import com.alibaba.druid.sql.ast.statement.SQLWithSubqueryClause;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
+import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlASTVisitorAdapter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 最终的结果有三种场景：<br/>
@@ -21,7 +33,7 @@ import java.util.Map;
  * @datetime 2023/5/03 20:09
  */
 @Slf4j
-public class ViewToTableVisitor extends SQLASTVisitorAdapter {
+public class ViewToTableVisitor extends MySqlASTVisitorAdapter {
 
     public static final String VIEW_TO_TABLE_KEY = "view_to_table_key";
 
@@ -130,16 +142,6 @@ public class ViewToTableVisitor extends SQLASTVisitorAdapter {
     }
 
     @Override
-    public void endVisit(SQLSelectQueryBlock x) {
-        Map<String, String> viewToTableMap = getViewToTableMap(x.getFrom());
-        if (viewToTableMap != null) {
-            Map<String, String> map = new HashMap<>(viewToTableMap);
-            x.putAttribute(VIEW_TO_TABLE_KEY, map);
-            log.debug("SQLObject: [{}], viewToTableMap: [{}].", DruidSQLUtils.toLowerCaseSQL(x), map);
-        }
-    }
-
-    @Override
     public void endVisit(SQLUnionQuery x) {
         List<SQLSelectQuery> relations = x.getRelations();
         Map<String, String> map = new HashMap<>();
@@ -148,6 +150,38 @@ public class ViewToTableVisitor extends SQLASTVisitorAdapter {
         }
         x.putAttribute(VIEW_TO_TABLE_KEY, map);
         log.debug("SQLObject: [{}], viewToTableMap: [{}].", DruidSQLUtils.toLowerCaseSQL(x), map);
+    }
+
+    @Override
+    public void endVisit(SQLSelectQueryBlock x) {
+        Map<String, String> viewToTableMap = getViewToTableMap(x.getFrom());
+        baseEndVisit(x, viewToTableMap);
+    }
+
+    @Override
+    public void endVisit(MySqlUpdateStatement x) {
+        Map<String, String> viewToTableMap = getViewToTableMap(x.getTableSource());
+        baseEndVisit(x, viewToTableMap);
+    }
+
+    @Override
+    public void endVisit(MySqlDeleteStatement x) {
+        Map<String, String> viewToTableMap = getViewToTableMap(x.getTableSource());
+        baseEndVisit(x, viewToTableMap);
+    }
+
+    @Override
+    public void endVisit(MySqlInsertStatement x) {
+        Map<String, String> viewToTableMap = getViewToTableMap(x.getTableSource());
+        baseEndVisit(x, viewToTableMap);
+    }
+
+    private void baseEndVisit(SQLObject x, Map<String, String> viewToTableMap) {
+        if (viewToTableMap != null) {
+            Map<String, String> map = new HashMap<>(viewToTableMap);
+            x.putAttribute(VIEW_TO_TABLE_KEY, map);
+            log.debug("SQLObject: [{}], viewToTableMap: [{}].", DruidSQLUtils.toLowerCaseSQL(x), map);
+        }
     }
 
     public static Map<String, String> getViewToTableMap(SQLObject sqlObject) {
