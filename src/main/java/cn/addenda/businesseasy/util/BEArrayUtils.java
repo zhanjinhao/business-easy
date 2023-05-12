@@ -10,8 +10,8 @@ import java.util.Set;
 import java.util.TreeSet;
 
 /**
- * @Author ISJINHAO
- * @Date 2022/2/7 12:37
+ * @author addenda
+ * @since 2022/2/7 12:37
  */
 public class BEArrayUtils {
 
@@ -39,6 +39,12 @@ public class BEArrayUtils {
 
     public static <T> Set<T> asTreeSet(Comparator<T> comparator, T... objs) {
         Set<T> set = new TreeSet<>(comparator);
+        Collections.addAll(set, objs);
+        return set;
+    }
+
+    public static <T extends Comparable<? super T>> Set<T> asTreeSet(T... objs) {
+        Set<T> set = new TreeSet<>();
         Collections.addAll(set, objs);
         return set;
     }
