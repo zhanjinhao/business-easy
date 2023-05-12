@@ -2,9 +2,8 @@ package cn.addenda.businesseasy.jdbc.interceptor.tombstone;
 
 import cn.addenda.businesseasy.jdbc.interceptor.ConnectionPrepareStatementInterceptor;
 import cn.addenda.businesseasy.util.ExceptionUtil;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author addenda
@@ -16,7 +15,7 @@ public class TombstoneInterceptor extends ConnectionPrepareStatementInterceptor 
     private TombstoneSqlRewriter tombstoneSqlRewriter;
 
     public TombstoneInterceptor(List<String> tombstoneTableNameList) {
-        this.tombstoneSqlRewriter = new DruidTombstoneSqlRewriter(tombstoneTableNameList);
+        this.tombstoneSqlRewriter = new DruidTombstoneSqlRewriter(tombstoneTableNameList, false, true);
     }
 
     public TombstoneInterceptor(TombstoneSqlRewriter tombstoneSqlRewriter) {
