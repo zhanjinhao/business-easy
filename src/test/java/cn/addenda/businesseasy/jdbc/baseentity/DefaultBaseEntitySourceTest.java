@@ -17,6 +17,14 @@ public class DefaultBaseEntitySourceTest {
         System.out.println(defaultBaseEntityContext.get(BaseEntity.N_MODIFIER));
         System.out.println(defaultBaseEntityContext.get(BaseEntity.N_MODIFIER_NAME));
         System.out.println(defaultBaseEntityContext.get(BaseEntity.N_MODIFY_TIME));
+        DefaultBaseEntitySource.setRemark("defaultBaseEntitySource1");
+        System.out.println(defaultBaseEntityContext.get(BaseEntity.N_REMARK));
+        System.out.println(defaultBaseEntityContext.get(BaseEntity.N_REMARK));
+
+        DefaultBaseEntitySource.execute("defaultBaseEntitySource2", () -> {
+            System.out.println(defaultBaseEntityContext.get(BaseEntity.N_REMARK));
+        });
+
         System.out.println(defaultBaseEntityContext.get(BaseEntity.N_REMARK));
     }
 

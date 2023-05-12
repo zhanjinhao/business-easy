@@ -4,7 +4,7 @@ package cn.addenda.businesseasy.jdbc.interceptor.baseentity;
  * @author addenda
  * @since 2023/5/2 19:37
  */
-public class DefaultBaseEntitySource implements BaseEntitySource {
+public class DefaultBaseEntitySource extends ThreadLocalRemarkBaseEntitySource {
 
     @Override
     public String getCreator() {
@@ -34,11 +34,6 @@ public class DefaultBaseEntitySource implements BaseEntitySource {
     @Override
     public Object getModifyTime() {
         return "now(3)";
-    }
-
-    @Override
-    public String getRemark() {
-        return "DefaultBaseEntityContext";
     }
 
 }
