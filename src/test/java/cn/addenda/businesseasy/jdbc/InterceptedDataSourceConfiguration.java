@@ -3,6 +3,10 @@ package cn.addenda.businesseasy.jdbc;
 import cn.addenda.businesseasy.jdbc.interceptor.InterceptedDataSource;
 import cn.addenda.businesseasy.jdbc.interceptor.Interceptor;
 import com.alibaba.druid.pool.DruidDataSource;
+import java.sql.Driver;
+import java.util.ArrayList;
+import java.util.List;
+import javax.sql.DataSource;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.SqlSessionFactoryBean;
 import org.mybatis.spring.mapper.MapperScannerConfigurer;
@@ -15,11 +19,6 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.TransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.util.StringValueResolver;
-
-import javax.sql.DataSource;
-import java.sql.Driver;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * @Author ISJINHAO
@@ -53,6 +52,26 @@ public class InterceptedDataSourceConfiguration implements EmbeddedValueResolver
 
         return interceptedDataSource;
     }
+
+//    @Bean
+//    public DataSource dataSource() {
+//        HikariDataSource druidDataSource = new HikariDataSource();
+//        try {
+//            druidDataSource.setDriverClassName(stringValueResolver.resolveStringValue("${db.driver}"));
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//
+//        // db.driver=com.alibaba.druid.proxy.DruidDriver
+//        // db.url=jdbc:wrap-jdbc:filters=slf4j:jdbc:mysql://foc2dev-m.db-inn.sfcloud.local:3306/foc_auth?
+//        // db.username=xxx
+//        // db.password=xxx
+//        druidDataSource.setJdbcUrl(stringValueResolver.resolveStringValue("${db.url}"));
+//        druidDataSource.setUsername(stringValueResolver.resolveStringValue("${db.username}"));
+//        druidDataSource.setPassword(stringValueResolver.resolveStringValue("${db.password}"));
+//
+//        return druidDataSource;
+//    }
 
     @Bean
     public TransactionManager transactionManager(DataSource dataSource) {
