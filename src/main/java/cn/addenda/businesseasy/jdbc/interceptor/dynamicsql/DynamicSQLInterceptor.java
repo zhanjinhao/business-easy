@@ -84,12 +84,10 @@ public class DynamicSQLInterceptor extends ConnectionPrepareStatementInterceptor
                 for (Map.Entry<String, Item> operationEntry : tableEntry.getValue()) {
                     String operation = operationEntry.getKey();
                     Item item = operationEntry.getValue();
-                    String itemKey = item.getItemKey();
-                    Object itemValue = item.getItemValue();
                     if (DynamicSQLContext.INSERT_ADD_ITEM.equals(operation)) {
-                        newSql = dynamicSQLAssembler.insertAddItem(newSql, tableName, itemKey, itemValue);
+                        newSql = dynamicSQLAssembler.insertAddItem(newSql, tableName, item);
                     } else if (DynamicSQLContext.UPDATE_ADD_ITEM.equals(operation)) {
-                        newSql = dynamicSQLAssembler.updateAddItem(newSql, tableName, itemKey, itemValue);
+                        newSql = dynamicSQLAssembler.updateAddItem(newSql, tableName, item);
                     } else {
                         String msg = String.format("不支持的SQL添加item作类型：[%s]，SQL：[%s]。", operation, removeEnter(sql));
                         throw new UnsupportedOperationException(msg);

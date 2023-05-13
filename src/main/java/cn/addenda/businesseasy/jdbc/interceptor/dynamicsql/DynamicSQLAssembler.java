@@ -1,5 +1,7 @@
 package cn.addenda.businesseasy.jdbc.interceptor.dynamicsql;
 
+import cn.addenda.businesseasy.jdbc.interceptor.Item;
+
 /**
  * @author addenda
  * @since 2023/4/30 16:56
@@ -14,8 +16,8 @@ public interface DynamicSQLAssembler {
 
     String viewAddWhereCondition(String sql, String tableName, String condition);
 
-    String insertAddItem(String sql, String tableName, String itemName, Object itemValue);
+    String insertAddItem(String sql, String tableName, Item item);
 
-    String updateAddItem(String sql, String tableName, String itemName, Object itemValue);
+    String updateAddItem(String sql, String tableName, Item item);
 
 }

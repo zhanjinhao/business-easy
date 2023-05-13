@@ -90,7 +90,7 @@ public class DynamicSQLUtils {
     }
 
     public static void viewAddWhereCondition(String tableName, String condition, Runnable runnable) {
-        DynamicSQLContext.tableAddWhereCondition(tableName, condition);
+        DynamicSQLContext.viewAddWhereCondition(tableName, condition);
         try {
             runnable.run();
         } finally {
@@ -115,8 +115,8 @@ public class DynamicSQLUtils {
         return viewAddWhereCondition(DynamicSQLContext.ALL_TABLE, condition, supplier);
     }
 
-    public static void insertAddItem(String tableName, String itemKey, Object itemValue, Runnable runnable) {
-        DynamicSQLContext.insertAddItem(tableName, itemKey, itemValue);
+    public static void insertAddItem(String tableName, String itemName, Object itemValue, Runnable runnable) {
+        DynamicSQLContext.insertAddItem(tableName, itemName, itemValue);
         try {
             runnable.run();
         } finally {
@@ -124,8 +124,8 @@ public class DynamicSQLUtils {
         }
     }
 
-    public static void insertAddItem(String itemKey, Object itemValue, Runnable runnable) {
-        DynamicSQLContext.insertAddItem(DynamicSQLContext.ALL_TABLE, itemKey, itemValue);
+    public static void insertAddItem(String itemName, Object itemValue, Runnable runnable) {
+        DynamicSQLContext.insertAddItem(DynamicSQLContext.ALL_TABLE, itemName, itemValue);
         try {
             runnable.run();
         } finally {
@@ -133,8 +133,8 @@ public class DynamicSQLUtils {
         }
     }
 
-    public static <T> T insertAddItem(String tableName, String itemKey, Object itemValue, Supplier<T> supplier) {
-        DynamicSQLContext.insertAddItem(tableName, itemKey, itemValue);
+    public static <T> T insertAddItem(String tableName, String itemName, Object itemValue, Supplier<T> supplier) {
+        DynamicSQLContext.insertAddItem(tableName, itemName, itemValue);
         try {
             return supplier.get();
         } finally {
@@ -142,12 +142,12 @@ public class DynamicSQLUtils {
         }
     }
 
-    public static <T> T insertAddItem(String itemKey, Object itemValue, Supplier<T> supplier) {
-        return insertAddItem(DynamicSQLContext.ALL_TABLE, itemKey, itemValue, supplier);
+    public static <T> T insertAddItem(String itemName, Object itemValue, Supplier<T> supplier) {
+        return insertAddItem(DynamicSQLContext.ALL_TABLE, itemName, itemValue, supplier);
     }
 
-    public static void updateAddItem(String tableName, String itemKey, Object itemValue, Runnable runnable) {
-        DynamicSQLContext.updateAddItem(tableName, itemKey, itemValue);
+    public static void updateAddItem(String tableName, String itemName, Object itemValue, Runnable runnable) {
+        DynamicSQLContext.updateAddItem(tableName, itemName, itemValue);
         try {
             runnable.run();
         } finally {
@@ -155,12 +155,12 @@ public class DynamicSQLUtils {
         }
     }
 
-    public static void updateAddItem(String itemKey, Object itemValue, Runnable runnable) {
-        updateAddItem(DynamicSQLContext.ALL_TABLE, itemKey, itemValue, runnable);
+    public static void updateAddItem(String itemName, Object itemValue, Runnable runnable) {
+        updateAddItem(DynamicSQLContext.ALL_TABLE, itemName, itemValue, runnable);
     }
 
-    public static <T> T updateAddItem(String tableName, String itemKey, Object itemValue, Supplier<T> supplier) {
-        DynamicSQLContext.updateAddItem(tableName, itemKey, itemValue);
+    public static <T> T updateAddItem(String tableName, String itemName, Object itemValue, Supplier<T> supplier) {
+        DynamicSQLContext.updateAddItem(tableName, itemName, itemValue);
         try {
             return supplier.get();
         } finally {
@@ -168,8 +168,8 @@ public class DynamicSQLUtils {
         }
     }
 
-    public static <T> T updateAddItem(String itemKey, Object itemValue, Supplier<T> supplier) {
-        return updateAddItem(DynamicSQLContext.ALL_TABLE, itemKey, itemValue, supplier);
+    public static <T> T updateAddItem(String itemName, Object itemValue, Supplier<T> supplier) {
+        return updateAddItem(DynamicSQLContext.ALL_TABLE, itemName, itemValue, supplier);
     }
 
 }

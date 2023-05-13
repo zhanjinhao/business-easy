@@ -30,21 +30,18 @@ public class InsertOrUpdateAddItemVisitor extends MySqlASTVisitorAdapter {
 
     private final List<String> included;
     private final List<String> notIncluded;
-    private final String itemName;
-    private final Object itemValue;
+    private final Item item;
 
-    public InsertOrUpdateAddItemVisitor(String tableName, String itemName, Object itemValue) {
+    public InsertOrUpdateAddItemVisitor(String tableName, Item item) {
         this.included = tableName == null ? null : BEArrayUtils.asArrayList(tableName);
         this.notIncluded = null;
-        this.itemName = itemName;
-        this.itemValue = itemValue;
+        this.item = item;
     }
 
-    public InsertOrUpdateAddItemVisitor(List<String> included, List<String> notIncluded, String itemName, Object itemValue) {
+    public InsertOrUpdateAddItemVisitor(List<String> included, List<String> notIncluded, Item item) {
         this.included = included;
         this.notIncluded = notIncluded;
-        this.itemName = itemName;
-        this.itemValue = itemValue;
+        this.item = item;
     }
 
     @Override
@@ -58,12 +55,12 @@ public class InsertOrUpdateAddItemVisitor extends MySqlASTVisitorAdapter {
                 SQLUpdateSetItem sqlUpdateSetItem = new SQLUpdateSetItem();
                 SQLExpr sqlExpr;
                 if (prefix) {
-                    sqlExpr = SQLUtils.toSQLExpr(view + "." + itemName);
+                    sqlExpr = SQLUtils.toSQLExpr(view + "." + item.getItemName());
                 } else {
-                    sqlExpr = SQLUtils.toSQLExpr(itemName);
+                    sqlExpr = SQLUtils.toSQLExpr(item.getItemName());
                 }
                 sqlUpdateSetItem.setColumn(sqlExpr);
-                sqlUpdateSetItem.setValue(DruidSQLUtils.objectToSQLExpr(itemValue));
+                sqlUpdateSetItem.setValue(DruidSQLUtils.objectToSQLExpr(item.getItemValue()));
                 log.debug("SQLObject: [{}], 增加 item：[{}]。", DruidSQLUtils.toLowerCaseSQL(x), sqlUpdateSetItem);
                 items.add(sqlUpdateSetItem);
             }
@@ -94,14 +91,14 @@ public class InsertOrUpdateAddItemVisitor extends MySqlASTVisitorAdapter {
 
         List<SQLExpr> columns = x.getColumns();
 
-        log.debug("SQLObject: [{}], 增加 itemKey：[{}]。", DruidSQLUtils.toLowerCaseSQL(x), itemName);
-        columns.add(SQLUtils.toSQLExpr(itemName));
+        log.debug("SQLObject: [{}], 增加 itemName：[{}]。", DruidSQLUtils.toLowerCaseSQL(x), item.getItemName());
+        columns.add(SQLUtils.toSQLExpr(item.getItemName()));
 
         List<ValuesClause> valuesList = x.getValuesList();
         if (valuesList != null) {
             for (ValuesClause valuesClause : valuesList) {
-                log.debug("SQLObject: [{}], 增加 itemValue：[{}]。", DruidSQLUtils.toLowerCaseSQL(x), itemValue);
-                valuesClause.addValue(DruidSQLUtils.objectToSQLExpr(itemValue));
+                log.debug("SQLObject: [{}], 增加 itemValue：[{}]。", DruidSQLUtils.toLowerCaseSQL(x), item.getItemValue());
+                valuesClause.addValue(DruidSQLUtils.objectToSQLExpr(item.getItemValue()));
             }
         }
 
@@ -116,7 +113,7 @@ public class InsertOrUpdateAddItemVisitor extends MySqlASTVisitorAdapter {
         if (query instanceof MySqlSelectQueryBlock) {
             MySqlSelectQueryBlock mySqlSelectQueryBlock = (MySqlSelectQueryBlock) query;
             SQLSelectItem sqlSelectItem = new SQLSelectItem();
-            sqlSelectItem.setAlias(itemName);
+            sqlSelectItem.setAlias(item.getItemName());
             sqlSelectItem.setExpr(DruidSQLUtils.objectToSQLExpr(0));
             log.debug("SQLObject: [{}], 增加 itemValue：[{}]。", DruidSQLUtils.toLowerCaseSQL(query), sqlSelectItem);
             mySqlSelectQueryBlock.addSelectItem(sqlSelectItem);

@@ -54,27 +54,27 @@ public class DruidDynamicSQLAssembler extends AbstractDruidSqlRewriter implement
     }
 
     @Override
-    public String insertAddItem(String sql, String tableName, String itemName, Object itemValue) {
-        return baseAddItem(sql, tableName, itemName, itemValue);
+    public String insertAddItem(String sql, String tableName, Item item) {
+        return baseAddItem(sql, tableName, item);
     }
 
     @Override
-    public String updateAddItem(String sql, String tableName, String itemName, Object itemValue) {
-        return baseAddItem(sql, tableName, itemName, itemValue);
+    public String updateAddItem(String sql, String tableName, Item item) {
+        return baseAddItem(sql, tableName, item);
     }
 
-    private String baseAddItem(String sql, String tableName, String itemName, Object itemValue) {
+    private String baseAddItem(String sql, String tableName, Item item) {
         return singleRewriteSql(sql, sqlStatement -> {
             IdentifierExistsVisitor identifierExistsVisitor = new InsertOrUpdateItemNameIdentifierExistsVisitor(
-                    sql, itemName, BEArrayUtils.asArrayList(tableName), null, false);
+                    sql, item.getItemName(), BEArrayUtils.asArrayList(tableName), null, false);
             identifierExistsVisitor.visit();
             if (identifierExistsVisitor.isExists()) {
                 String msg = String.format("itemName已存在，SQL: [%s]，itemName：[%s]，itemValue：[%s]。",
-                        sql, itemName, DruidSQLUtils.toLowerCaseSQL(DruidSQLUtils.objectToSQLExpr(itemName)));
+                        sql, item.getItemName(), DruidSQLUtils.toLowerCaseSQL(DruidSQLUtils.objectToSQLExpr(item.getItemValue())));
                 throw new DynamicSQLException(msg);
             }
             sqlStatement.accept(new ViewToTableVisitor());
-            sqlStatement.accept(new InsertOrUpdateAddItemVisitor(tableName, itemName, itemValue));
+            sqlStatement.accept(new InsertOrUpdateAddItemVisitor(tableName, item));
             return DruidSQLUtils.toLowerCaseSQL(sqlStatement);
         });
     }

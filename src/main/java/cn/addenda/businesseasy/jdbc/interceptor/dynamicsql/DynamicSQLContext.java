@@ -51,21 +51,21 @@ public class DynamicSQLContext {
         entries.add(conditionEntry);
     }
 
-    public static void insertAddItem(String tableName, String itemKey, Object itemValue) {
-        addItem(INSERT_ADD_ITEM, tableName, itemKey, itemValue);
+    public static void insertAddItem(String tableName, String itemName, Object itemValue) {
+        addItem(INSERT_ADD_ITEM, tableName, itemName, itemValue);
     }
 
-    public static void updateAddItem(String tableName, String itemKey, Object itemValue) {
-        addItem(UPDATE_ADD_ITEM, tableName, itemKey, itemValue);
+    public static void updateAddItem(String tableName, String itemName, Object itemValue) {
+        addItem(UPDATE_ADD_ITEM, tableName, itemName, itemValue);
     }
 
-    private static void addItem(String operation, String name, String itemKey, Object itemValue) {
+    private static void addItem(String operation, String name, String itemName, Object itemValue) {
         Map<String, List<Map.Entry<String, Item>>> stringListMap = ITEM_THREAD_LOCAL.get();
         if (name == null) {
             name = DynamicSQLContext.ALL_TABLE;
         }
         List<Map.Entry<String, Item>> entries = stringListMap.computeIfAbsent(name, k -> new ArrayList<>());
-        ItemEntry itemEntry = new ItemEntry(operation, new Item.ItemBuilder().withItemKey(itemKey).withItemValue(itemValue).build());
+        ItemEntry itemEntry = new ItemEntry(operation, new Item(itemName, itemValue));
         entries.add(itemEntry);
     }
 

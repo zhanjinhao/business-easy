@@ -27,6 +27,7 @@ public class DruidTombstoneSqlRewriter extends AbstractDruidSqlRewriter implemen
     private static final Integer TOMBSTONE_VALUE = 1;
     private static final String NON_TOMBSTONE = TOMBSTONE_NAME + "=" + NON_TOMBSTONE_VALUE;
     private static final String TOMBSTONE = TOMBSTONE_NAME + "=" + TOMBSTONE_VALUE;
+    private static final Item TOMBSTONE_ITEM = new Item(TOMBSTONE_NAME, NON_TOMBSTONE_VALUE);
 
     private final boolean useSubQuery;
     private final boolean rewriteCommaToJoin;
@@ -68,7 +69,7 @@ public class DruidTombstoneSqlRewriter extends AbstractDruidSqlRewriter implemen
     private String doRewriteInsertSql(SQLStatement sqlStatement) {
         doRewriteSql(sqlStatement, sql -> {
             // insert into A(..., if_del) values(..., 0)
-            sql.accept(new InsertOrUpdateAddItemVisitor(included, notIncluded, TOMBSTONE_NAME, NON_TOMBSTONE_VALUE));
+            sql.accept(new InsertOrUpdateAddItemVisitor(included, notIncluded, TOMBSTONE_ITEM));
             // 处理 insert A (...) select ... from B
             sql.accept(new TableAddJoinConditionVisitor(included, notIncluded, NON_TOMBSTONE, useSubQuery, rewriteCommaToJoin));
         });

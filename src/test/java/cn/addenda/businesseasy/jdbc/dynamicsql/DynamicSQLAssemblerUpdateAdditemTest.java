@@ -2,6 +2,7 @@ package cn.addenda.businesseasy.jdbc.dynamicsql;
 
 import cn.addenda.businesseasy.jdbc.SqlReader;
 import cn.addenda.businesseasy.jdbc.interceptor.DruidSQLUtils;
+import cn.addenda.businesseasy.jdbc.interceptor.Item;
 import cn.addenda.businesseasy.jdbc.interceptor.dynamicsql.DruidDynamicSQLAssembler;
 import cn.addenda.businesseasy.jdbc.interceptor.dynamicsql.DynamicSQLAssembler;
 import com.alibaba.druid.DbType;
@@ -36,7 +37,8 @@ public class DynamicSQLAssemblerUpdateAdditemTest {
             }
             System.out.println(line + " : ------------------------------------------------------------------------------------");
             DynamicSQLAssembler druidDynamicSQLAssembler = new DruidDynamicSQLAssembler();
-            String s = druidDynamicSQLAssembler.updateAddItem(DruidSQLUtils.toLowerCaseSQL(sqlStatements.get(0)), null, "if_del", 0);
+            Item item = new Item("if_del", 0);
+            String s = druidDynamicSQLAssembler.updateAddItem(DruidSQLUtils.toLowerCaseSQL(sqlStatements.get(0)), null, item);
             sqlStatements = SQLUtils.parseStatements(s, DbType.mysql);
             List<SQLStatement> expectSqlStatements = SQLUtils.parseStatements(expect, DbType.mysql);
             Assert.assertEquals(expectSqlStatements.get(0), sqlStatements.get(0));
