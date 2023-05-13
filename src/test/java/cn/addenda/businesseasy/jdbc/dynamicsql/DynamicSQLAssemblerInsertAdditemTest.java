@@ -1,29 +1,29 @@
-package cn.addenda.businesseasy.jdbc.tombstone;
+package cn.addenda.businesseasy.jdbc.dynamicsql;
 
 import cn.addenda.businesseasy.jdbc.SqlReader;
 import cn.addenda.businesseasy.jdbc.interceptor.DruidSQLUtils;
-import cn.addenda.businesseasy.jdbc.interceptor.tombstone.DruidTombstoneSqlRewriter;
+import cn.addenda.businesseasy.jdbc.interceptor.dynamicsql.DruidDynamicSQLAssembler;
+import cn.addenda.businesseasy.jdbc.interceptor.dynamicsql.DynamicSQLAssembler;
 import com.alibaba.druid.DbType;
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLStatement;
-
-import java.util.List;
-
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.List;
+
 /**
  * @author addenda
- * @since 2023/5/10 20:39
+ * @since 2023/5/13 12:41
  */
-public class DruidTombstoneConvertorSelectTest {
+public class DynamicSQLAssemblerInsertAdditemTest {
 
     private static String[] sqls = new String[]{
     };
 
     @Test
     public void test1() {
-        String[] read = SqlReader.read("src/test/resources/tombstoneselect.test", sqls);
+        String[] read = SqlReader.read("src/test/resources/sqlassemblerinsertadditem.test", sqls);
         for (int line = 0; line < read.length; line++) {
             String sql = read[line];
             String source = sql;
@@ -35,13 +35,12 @@ public class DruidTombstoneConvertorSelectTest {
                 continue;
             }
             System.out.println(line + " : ------------------------------------------------------------------------------------");
-            DruidTombstoneSqlRewriter druidTombstoneSqlRewriter = new DruidTombstoneSqlRewriter(null, false, false, false);
-            String s = druidTombstoneSqlRewriter.rewriteSelectSql(DruidSQLUtils.toLowerCaseSQL(sqlStatements.get(0)));
+            DynamicSQLAssembler druidDynamicSQLAssembler = new DruidDynamicSQLAssembler();
+            String s = druidDynamicSQLAssembler.insertAddItem(DruidSQLUtils.toLowerCaseSQL(sqlStatements.get(0)), null, "if_del", 0);
             sqlStatements = SQLUtils.parseStatements(s, DbType.mysql);
             List<SQLStatement> expectSqlStatements = SQLUtils.parseStatements(expect, DbType.mysql);
-//            Assert.assertEquals(DruidSQLUtils.toLowerCaseSQL(expectSqlStatements.get(0)).replaceAll("\\s+", ""),
-//                DruidSQLUtils.toLowerCaseSQL(sqlStatements.get(0)).replaceAll("\\s+", ""));
-            Assert.assertEquals(expectSqlStatements.get(0), sqlStatements.get(0));
+            Assert.assertEquals(DruidSQLUtils.toLowerCaseSQL(expectSqlStatements.get(0)).replaceAll("\\s+", ""),
+                    DruidSQLUtils.toLowerCaseSQL(sqlStatements.get(0)).replaceAll("\\s+", ""));
 
         }
     }

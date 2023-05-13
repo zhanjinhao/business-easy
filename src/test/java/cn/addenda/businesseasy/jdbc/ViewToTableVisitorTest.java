@@ -4,6 +4,7 @@ import cn.addenda.businesseasy.jdbc.interceptor.ViewToTableVisitor;
 import com.alibaba.druid.DbType;
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLStatement;
+import org.junit.Test;
 
 import java.util.List;
 
@@ -16,11 +17,8 @@ public class ViewToTableVisitorTest {
 
     };
 
-    public static void main(String[] args) {
-        test1();
-    }
-
-    private static void test1() {
+    @Test
+    public void test1() {
         for (String sql : SqlReader.read("src/test/resources/select.test", sqls)) {
             List<SQLStatement> sqlStatements = SQLUtils.parseStatements(sql, DbType.mysql);
             SQLStatement sqlStatement = sqlStatements.get(0);

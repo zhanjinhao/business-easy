@@ -34,7 +34,7 @@ public class IdentifierExistsVisitor extends AbstractIdentifierVisitor {
 
     private String ambiguousInfo;
 
-    private boolean exists = false;
+    protected boolean exists = false;
 
     public IdentifierExistsVisitor(String sql, String identifier,
                                    List<String> included, List<String> notIncluded, boolean reportAmbiguous) {

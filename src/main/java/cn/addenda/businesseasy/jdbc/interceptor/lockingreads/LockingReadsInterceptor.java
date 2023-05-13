@@ -10,8 +10,15 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class LockingReadsInterceptor extends ConnectionPrepareStatementInterceptor {
 
+    public LockingReadsInterceptor() {
+    }
+
+    public LockingReadsInterceptor(boolean removeEnter) {
+        super(removeEnter);
+    }
+
     protected String process(String sql) {
-        log.debug("Locking Reads, before sql rewriting: [{}].", sql);
+        log.debug("Locking Reads, before sql rewriting: [{}].", removeEnter(sql));
         String lock = LockingReadsContext.getLock();
         if (lock == null) {
             // no-op
@@ -20,10 +27,11 @@ public class LockingReadsInterceptor extends ConnectionPrepareStatementIntercept
         } else if (LockingReadsContext.W_LOCK.equals(lock)) {
             sql = sql + " for update";
         } else {
-            throw new LockingReadsException("不支持的LOCK类型，SQL：" + sql + "，当前LOCK类型：" + lock + "。");
+            String msg = String.format("不支持的Lock类型，SQL：[%s]，当前Lock类型：[%s]。", removeEnter(sql), lock);
+            throw new LockingReadsException(msg);
         }
 
-        log.debug("Locking Reads, after sql rewriting: [{}].", sql);
+        log.debug("Locking Reads, after sql rewriting: [{}].", removeEnter(sql));
         return sql;
     }
 

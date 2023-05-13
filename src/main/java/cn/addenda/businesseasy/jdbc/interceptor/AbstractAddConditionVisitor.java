@@ -13,12 +13,15 @@ import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.ast.statement.SQLTableSource;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlASTVisitorAdapter;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.List;
 
 /**
  * @author addenda
  * @since 2023/5/11 16:27
  */
+@Slf4j
 public abstract class AbstractAddConditionVisitor extends MySqlASTVisitorAdapter {
 
     protected final List<String> included;
@@ -54,7 +57,10 @@ public abstract class AbstractAddConditionVisitor extends MySqlASTVisitorAdapter
         String aAlias = getAlias(tableSource);
         if (aTableName != null) {
             // where 语句只能使用where条件，不能使用sub query或join
-            x.setWhere(newWhere(x.getWhere(), aTableName, aAlias));
+            SQLExpr where = newWhere(x.getWhere(), aTableName, aAlias);
+            log.debug("SQLObject: [{}]，旧的where：[{}]，新的where：[{}]。",
+                    DruidSQLUtils.toLowerCaseSQL(x), DruidSQLUtils.toLowerCaseSQL(x.getWhere()), DruidSQLUtils.toLowerCaseSQL(where));
+            x.setWhere(where);
             clear(tableSource);
         }
     }
@@ -62,7 +68,7 @@ public abstract class AbstractAddConditionVisitor extends MySqlASTVisitorAdapter
     protected SQLTableSource newFrom(String tableName, String alias) {
         String view = alias == null ? tableName : alias;
         SQLSelectStatement sqlStatement = (SQLSelectStatement) SQLUtils.parseStatements(
-            "select * from (select * from " + tableName + " where " + condition + ")", DbType.mysql).get(0);
+                "select * from (select * from " + tableName + " where " + condition + ")", DbType.mysql).get(0);
         SQLTableSource from = ((SQLSelectQueryBlock) sqlStatement.getSelect().getQuery()).getFrom();
         from.setAlias(view);
         return from;
@@ -71,7 +77,7 @@ public abstract class AbstractAddConditionVisitor extends MySqlASTVisitorAdapter
     protected SQLExpr newWhere(SQLExpr where, String tableName, String alias) {
         String view = alias == null ? tableName : alias;
         return SQLUtils.buildCondition(SQLBinaryOperator.BooleanAnd,
-            SQLUtils.toSQLExpr(view + "." + condition, DbType.mysql), false, where);
+                SQLUtils.toSQLExpr(view + "." + condition, DbType.mysql), false, where);
     }
 
     protected String getTableName(SQLObject sqlObject) {

@@ -15,50 +15,40 @@ public class SQLCheckInterceptor extends ConnectionPrepareStatementInterceptor {
 
     private final SQLChecker sqlChecker;
     private final boolean checkAllColumn;
-    private final boolean removeEnter;
     private final boolean checkExactIdentifier;
 
     public SQLCheckInterceptor() {
         this.sqlChecker = new DruidSQLChecker();
         this.checkAllColumn = true;
         this.checkExactIdentifier = true;
-        this.removeEnter = true;
     }
 
     public SQLCheckInterceptor(SQLChecker sqlChecker) {
         this.sqlChecker = sqlChecker;
         this.checkAllColumn = true;
         this.checkExactIdentifier = true;
-        this.removeEnter = true;
     }
 
     public SQLCheckInterceptor(boolean checkAllColumn, boolean checkExactIdentifier, boolean removeEnter, SQLChecker sqlChecker) {
+        super(removeEnter);
         this.sqlChecker = sqlChecker;
         this.checkAllColumn = checkAllColumn;
         this.checkExactIdentifier = checkExactIdentifier;
-        this.removeEnter = removeEnter;
     }
 
     @Override
     protected String process(String sql) {
         if (checkAllColumn && SQLCheckContext.getCheckAllColumn()
-            && JdbcSQLUtils.isSelect(sql) && sqlChecker.allColumnExists(sql)) {
+                && JdbcSQLUtils.isSelect(sql) && sqlChecker.allColumnExists(sql)) {
             String msg = String.format("SQL: [%s], 返回字段包含了*或tableName.*语法！", removeEnter(sql));
             throw new SQLCheckException(msg);
         }
         if (checkExactIdentifier && SQLCheckContext.getCheckExactIdentifier()
-            && JdbcSQLUtils.isSelect(sql) && !sqlChecker.exactIdentifier((sql))) {
+                && JdbcSQLUtils.isSelect(sql) && !sqlChecker.exactIdentifier((sql))) {
             String msg = String.format("SQL: [%s], 存在不精确的字段！", removeEnter(sql));
             throw new SQLCheckException(msg);
         }
 
-        return sql;
-    }
-
-    private String removeEnter(String sql) {
-        if (removeEnter) {
-            return DruidSQLUtils.removeEnter(sql);
-        }
         return sql;
     }
 

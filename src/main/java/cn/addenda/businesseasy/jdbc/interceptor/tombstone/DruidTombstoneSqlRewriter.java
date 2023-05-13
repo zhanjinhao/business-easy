@@ -1,19 +1,18 @@
 package cn.addenda.businesseasy.jdbc.interceptor.tombstone;
 
 import cn.addenda.businesseasy.jdbc.JdbcSQLUtils;
-import cn.addenda.businesseasy.jdbc.interceptor.AbstractDruidSqlRewriter;
-import cn.addenda.businesseasy.jdbc.interceptor.DruidSQLUtils;
-import cn.addenda.businesseasy.jdbc.interceptor.IdentifierExistsVisitor;
-import cn.addenda.businesseasy.jdbc.interceptor.InsertOrUpdateAddItemVisitor;
-import cn.addenda.businesseasy.jdbc.interceptor.TableAddJoinConditionVisitor;
+import cn.addenda.businesseasy.jdbc.interceptor.*;
+import cn.addenda.businesseasy.util.BEArrayUtils;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLName;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
-import java.util.ArrayList;
-import java.util.Collections;
+
 import java.util.List;
 import java.util.function.Consumer;
+
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -32,6 +31,8 @@ public class DruidTombstoneSqlRewriter extends AbstractDruidSqlRewriter implemen
     private final boolean useSubQuery;
     private final boolean rewriteCommaToJoin;
 
+    private final boolean hideTombstone;
+
     /**
      * 逻辑删除的表
      */
@@ -40,19 +41,20 @@ public class DruidTombstoneSqlRewriter extends AbstractDruidSqlRewriter implemen
     /**
      * 非逻辑删除的表
      */
-    private final List<String> notIncluded = new ArrayList<>(Collections.singletonList("dual"));
+    private final List<String> notIncluded = BEArrayUtils.asArrayList("dual");
 
-    public DruidTombstoneSqlRewriter(List<String> included, boolean useSubQuery, boolean rewriteCommaToJoin) {
+    public DruidTombstoneSqlRewriter(List<String> included, boolean useSubQuery, boolean rewriteCommaToJoin, boolean hideTombstone) {
         this.included = included;
         this.useSubQuery = useSubQuery;
         this.rewriteCommaToJoin = rewriteCommaToJoin;
+        this.hideTombstone = hideTombstone;
         if (included == null) {
             log.warn("未声明逻辑删除的表集合，所有的表都会进行逻辑删除改写！");
         }
     }
 
     public DruidTombstoneSqlRewriter() {
-        this(null, false, true);
+        this(null, false, true, false);
     }
 
     @Override
@@ -61,7 +63,7 @@ public class DruidTombstoneSqlRewriter extends AbstractDruidSqlRewriter implemen
     }
 
     /**
-     * insert语句或update语句set增加item
+     * insert语句增加item
      */
     private String doRewriteInsertSql(SQLStatement sqlStatement) {
         doRewriteSql(sqlStatement, sql -> {
@@ -126,10 +128,28 @@ public class DruidTombstoneSqlRewriter extends AbstractDruidSqlRewriter implemen
     }
 
     private void doRewriteSql(SQLStatement sqlStatement, Consumer<SQLStatement> consumer) {
-        IdentifierExistsVisitor identifierExistsVisitor =
-            new IdentifierExistsVisitor(sqlStatement, TOMBSTONE_NAME, included, notIncluded, false);
-        identifierExistsVisitor.visit();
-        if (identifierExistsVisitor.isExists()) {
+        IdentifierExistsVisitor identifierExistsVisitor = null;
+        boolean exists = false;
+        // 开启隐藏tombstone，则sql里不能存在 if_del
+        if (hideTombstone) {
+            identifierExistsVisitor = new IdentifierExistsVisitor(
+                    sqlStatement, TOMBSTONE_NAME, included, notIncluded, false);
+        }
+        // 不开启隐藏tombstone
+        else {
+            // insert 语句需要保证 values 里没有 if_del 字段
+            // update 语句需要保证 set 里没有 if_del 字段
+            if (sqlStatement instanceof MySqlInsertStatement || sqlStatement instanceof MySqlUpdateStatement) {
+                identifierExistsVisitor = new InsertOrUpdateItemNameIdentifierExistsVisitor(
+                        sqlStatement, TOMBSTONE_NAME, included, notIncluded, false);
+            }
+        }
+
+        if (identifierExistsVisitor != null) {
+            identifierExistsVisitor.visit();
+            exists = identifierExistsVisitor.isExists();
+        }
+        if (exists) {
             String msg = String.format("使用逻辑删除的表不能使用[%s]字段，SQL：[%s]。", TOMBSTONE_NAME, DruidSQLUtils.toLowerCaseSQL(sqlStatement));
             throw new TombstoneException(msg);
         }

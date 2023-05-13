@@ -1,9 +1,9 @@
-package cn.addenda.businesseasy.jdbc.dynamiccondition;
+package cn.addenda.businesseasy.jdbc.dynamicsql;
 
 import cn.addenda.businesseasy.jdbc.interceptor.InterceptedDataSource;
 import cn.addenda.businesseasy.jdbc.interceptor.Interceptor;
-import cn.addenda.businesseasy.jdbc.interceptor.dynamiccondition.DruidDynamicConditionAssembler;
-import cn.addenda.businesseasy.jdbc.interceptor.dynamiccondition.DynamicConditionInterceptor;
+import cn.addenda.businesseasy.jdbc.interceptor.dynamicsql.DruidDynamicSQLAssembler;
+import cn.addenda.businesseasy.jdbc.interceptor.dynamicsql.DynamicSQLInterceptor;
 import cn.addenda.businesseasy.jdbc.interceptor.lockingreads.LockingReadsInterceptor;
 import com.alibaba.druid.pool.DruidDataSource;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -30,7 +30,7 @@ import java.util.List;
  */
 @EnableTransactionManagement(order = Ordered.LOWEST_PRECEDENCE)
 @PropertySource(value = {"classpath:db.properties"})
-public class DynamicConditionConfiguration implements EmbeddedValueResolverAware {
+public class DynamicSQLConfiguration implements EmbeddedValueResolverAware {
 
     private StringValueResolver stringValueResolver;
 
@@ -50,7 +50,7 @@ public class DynamicConditionConfiguration implements EmbeddedValueResolverAware
 
         List<Interceptor> filterList = new ArrayList<>();
         filterList.add(new LockingReadsInterceptor());
-        filterList.add(new DynamicConditionInterceptor(new DruidDynamicConditionAssembler(true, true)));
+        filterList.add(new DynamicSQLInterceptor(new DruidDynamicSQLAssembler(false)));
         return new InterceptedDataSource(druidDataSource, filterList);
     }
 

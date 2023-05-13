@@ -1,11 +1,14 @@
 package cn.addenda.businesseasy.jdbc.interceptor;
 
+import cn.addenda.businesseasy.util.BEArrayUtils;
+import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLTableSource;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -14,6 +17,7 @@ import java.util.List;
  * @author addenda
  * @since 2023/5/11 12:30
  */
+@Slf4j
 public class TableAddWhereConditionVisitor extends AbstractAddConditionVisitor {
 
     public TableAddWhereConditionVisitor(String condition) {
@@ -21,11 +25,11 @@ public class TableAddWhereConditionVisitor extends AbstractAddConditionVisitor {
     }
 
     public TableAddWhereConditionVisitor(String tableName, String condition) {
-        super(new ArrayList<>(Collections.singletonList(tableName)), null, condition);
+        super(tableName == null ? null : BEArrayUtils.asArrayList(tableName), null, condition);
     }
 
     public TableAddWhereConditionVisitor(
-        List<String> included, List<String> notIncluded, String condition) {
+            List<String> included, List<String> notIncluded, String condition) {
         super(included, notIncluded, condition);
     }
 
@@ -38,7 +42,7 @@ public class TableAddWhereConditionVisitor extends AbstractAddConditionVisitor {
         List<String> tableNameList = new ArrayList<>();
         List<String> aliasList = new ArrayList<>();
         if (leftTableNameList != null) {
-            tableNameList.addAll(leftAliasList);
+            tableNameList.addAll(leftTableNameList);
             aliasList.addAll(leftAliasList);
             clear(left);
         }
@@ -63,11 +67,17 @@ public class TableAddWhereConditionVisitor extends AbstractAddConditionVisitor {
         SQLTableSource from = x.getFrom();
         List<String> tableNameList = getTableNameList(from);
         List<String> aliasList = getAliasList(from);
+        if (tableNameList == null) {
+            return;
+        }
         for (int i = 0; i < tableNameList.size(); i++) {
             String aTableName = tableNameList.get(i);
             String aAlias = aliasList.get(i);
             if (aTableName != null) {
-                x.setWhere(newWhere(x.getWhere(), aTableName, aAlias));
+                SQLExpr where = newWhere(x.getWhere(), aTableName, aAlias);
+                log.debug("SQLObject: [{}]，旧的where：[{}]，新的where：[{}]。",
+                        DruidSQLUtils.toLowerCaseSQL(x), DruidSQLUtils.toLowerCaseSQL(x.getWhere()), DruidSQLUtils.toLowerCaseSQL(where));
+                x.setWhere(where);
                 clear(from);
             }
         }
@@ -78,11 +88,17 @@ public class TableAddWhereConditionVisitor extends AbstractAddConditionVisitor {
         SQLTableSource from = x.getTableSource();
         List<String> tableNameList = getTableNameList(from);
         List<String> aliasList = getAliasList(from);
+        if (tableNameList == null) {
+            return;
+        }
         for (int i = 0; i < tableNameList.size(); i++) {
             String aTableName = tableNameList.get(i);
             String aAlias = aliasList.get(i);
             if (aTableName != null) {
-                x.setWhere(newWhere(x.getWhere(), aTableName, aAlias));
+                SQLExpr where = newWhere(x.getWhere(), aTableName, aAlias);
+                log.debug("SQLObject: [{}]，旧的where：[{}]，新的where：[{}]。",
+                        DruidSQLUtils.toLowerCaseSQL(x), DruidSQLUtils.toLowerCaseSQL(x.getWhere()), DruidSQLUtils.toLowerCaseSQL(where));
+                x.setWhere(where);
                 clear(from);
             }
         }

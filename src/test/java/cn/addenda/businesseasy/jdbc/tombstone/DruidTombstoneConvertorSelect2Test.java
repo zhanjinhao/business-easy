@@ -6,7 +6,9 @@ import cn.addenda.businesseasy.jdbc.interceptor.tombstone.DruidTombstoneSqlRewri
 import com.alibaba.druid.DbType;
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLStatement;
+
 import java.util.List;
+
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -33,7 +35,7 @@ public class DruidTombstoneConvertorSelect2Test {
                 continue;
             }
             System.out.println(line + " : ------------------------------------------------------------------------------------");
-            DruidTombstoneSqlRewriter druidTombstoneSqlRewriter = new DruidTombstoneSqlRewriter(null, false, true);
+            DruidTombstoneSqlRewriter druidTombstoneSqlRewriter = new DruidTombstoneSqlRewriter();
             String s = druidTombstoneSqlRewriter.rewriteSelectSql(DruidSQLUtils.toLowerCaseSQL(sqlStatements.get(0)));
             sqlStatements = SQLUtils.parseStatements(s, DbType.mysql);
             List<SQLStatement> expectSqlStatements = SQLUtils.parseStatements(expect, DbType.mysql);

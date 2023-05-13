@@ -5,6 +5,7 @@ import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
 import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
 import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQueryBlock;
+
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
@@ -18,12 +19,12 @@ public class SelectItemIdentifierExistsVisitor extends IdentifierExistsVisitor {
     private final Deque<Boolean> flagStack = new ArrayDeque<>();
 
     public SelectItemIdentifierExistsVisitor(String sql, String identifier,
-        List<String> included, List<String> notIncluded, boolean reportAmbiguous) {
+                                             List<String> included, List<String> notIncluded, boolean reportAmbiguous) {
         super(sql, identifier, included, notIncluded, reportAmbiguous);
     }
 
     public SelectItemIdentifierExistsVisitor(SQLStatement sql, String identifier,
-        List<String> included, List<String> notIncluded, boolean reportAmbiguous) {
+                                             List<String> included, List<String> notIncluded, boolean reportAmbiguous) {
         super(sql, identifier, included, notIncluded, reportAmbiguous);
     }
 

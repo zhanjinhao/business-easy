@@ -15,4 +15,6 @@ public interface TxTestMapper {
 
     List<TxTest> selectJoin();
 
+    void updateByName(TxTest txTest);
+
 }

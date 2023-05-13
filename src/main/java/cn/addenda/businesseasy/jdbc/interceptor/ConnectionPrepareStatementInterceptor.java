@@ -12,6 +12,16 @@ import java.sql.SQLException;
  */
 public abstract class ConnectionPrepareStatementInterceptor extends InterceptorAdapter {
 
+    private final boolean removeEnter;
+
+    protected ConnectionPrepareStatementInterceptor() {
+        this.removeEnter = true;
+    }
+
+    protected ConnectionPrepareStatementInterceptor(boolean removeEnter) {
+        this.removeEnter = removeEnter;
+    }
+
     @Override
     public PreparedStatementProxy connection_prepareStatement(
             FilterChain chain, ConnectionProxy connection, String sql) throws SQLException {
@@ -55,5 +65,12 @@ public abstract class ConnectionPrepareStatementInterceptor extends InterceptorA
     }
 
     protected abstract String process(String sql);
+
+    protected String removeEnter(String sql) {
+        if (removeEnter) {
+            return DruidSQLUtils.removeEnter(sql);
+        }
+        return sql;
+    }
 
 }

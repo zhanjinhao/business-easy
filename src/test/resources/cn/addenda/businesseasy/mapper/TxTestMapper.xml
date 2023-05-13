@@ -3,20 +3,27 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="cn.addenda.businesseasy.mapper.TxTestMapper">
+
     <insert id="insert">
         insert into t_tx_test(name, remark)
         values (#{name,jdbcType=VARCHAR}, #{remark,jdbcType=VARCHAR})
     </insert>
 
     <select id="selectAll" resultType="cn.addenda.businesseasy.mapper.TxTest">
-        select *
+        select name, remark
         from t_tx_test
     </select>
 
     <select id="selectJoin" resultType="cn.addenda.businesseasy.mapper.TxTest">
-        select name
+        select name, remark
         from t_tx_test t1,
              t_course t2
         where t1.name = t2.course_name
     </select>
+
+    <update id="updateByName">
+        update t_tx_test
+        set remark = #{remark,jdbcType=VARCHAR}
+        where name = #{name,jdbcType=VARCHAR}
+    </update>
 </mapper>
