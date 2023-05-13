@@ -30,6 +30,9 @@ public class DruidSQLUtils extends SQLUtils {
     }
 
     public static String toLowerCaseSQL(SQLObject sqlObject, boolean printEnter) {
+        if (sqlObject == null) {
+            return null;
+        }
         StringBuilder out = new StringBuilder();
         MySqlOutputVisitor visitor = new MySqlOutputVisitor(out, false);
 
