@@ -21,11 +21,10 @@ import com.alibaba.druid.sql.ast.statement.SQLTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLUnionQuery;
 import com.alibaba.druid.sql.ast.statement.SQLUnionQueryTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLValuesQuery;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+
+import java.util.*;
 import java.util.stream.Collectors;
+
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -53,7 +52,7 @@ public class DruidSelectAddBaseEntityVisitor extends SQLBoundVisitor<SQLSelectSt
     }
 
     public DruidSelectAddBaseEntityVisitor(String sql,
-        List<String> included, List<String> notIncluded, String masterView, boolean reportAmbiguous) {
+                                           List<String> included, List<String> notIncluded, String masterView, boolean reportAmbiguous) {
         super(sql);
         this.included = included;
         this.notIncluded = notIncluded;
@@ -62,7 +61,7 @@ public class DruidSelectAddBaseEntityVisitor extends SQLBoundVisitor<SQLSelectSt
     }
 
     public DruidSelectAddBaseEntityVisitor(SQLSelectStatement sqlSelectStatement,
-        List<String> included, List<String> notIncluded, String masterView, boolean reportAmbiguous) {
+                                           List<String> included, List<String> notIncluded, String masterView, boolean reportAmbiguous) {
         super(sqlSelectStatement);
         this.included = included;
         this.notIncluded = notIncluded;
@@ -71,7 +70,7 @@ public class DruidSelectAddBaseEntityVisitor extends SQLBoundVisitor<SQLSelectSt
     }
 
     public DruidSelectAddBaseEntityVisitor(SQLSelectStatement sqlSelectStatement,
-        List<String> included, List<String> notIncluded, String masterView) {
+                                           List<String> included, List<String> notIncluded, String masterView) {
         super(sqlSelectStatement);
         this.included = included;
         this.notIncluded = notIncluded;
@@ -121,7 +120,7 @@ public class DruidSelectAddBaseEntityVisitor extends SQLBoundVisitor<SQLSelectSt
                     baseEntitySelectItemList.add(new BaseEntitySelectItem(SQLUtils.toSQLExpr(view + "." + sqlExpr), view + "_" + sqlExpr));
                 } else if (declaredTableList.size() > 1) {
                     ambiguousInfo =
-                        "SQLObject: [" + DruidSQLUtils.toLowerCaseSQL(x) + "], Ambiguous identifier: [" + DruidSQLUtils.toLowerCaseSQL(sqlExpr) + "], declaredTableList: [" + declaredTableList + "].";
+                            "SQLObject: [" + DruidSQLUtils.toLowerCaseSQL(x) + "], Ambiguous identifier: [" + DruidSQLUtils.toLowerCaseSQL(sqlExpr) + "], declaredTableList: [" + declaredTableList + "].";
                     baseEntitySelectItemList.add(new BaseEntitySelectItem(sqlExpr, sqlExpr.toString()));
                     if (reportAmbiguous) {
                         throw new JdbcException(ambiguousInfo);
@@ -153,7 +152,7 @@ public class DruidSelectAddBaseEntityVisitor extends SQLBoundVisitor<SQLSelectSt
         List<BaseEntitySelectItem> baseEntitySelectItemList = new ArrayList<>();
         for (String item : COLUMN_NAME_LIST) {
             baseEntitySelectItemList.add(
-                new BaseEntitySelectItem(SQLUtils.toSQLExpr(view + "." + item), view + "_" + item));
+                    new BaseEntitySelectItem(SQLUtils.toSQLExpr(view + "." + item), view + "_" + item));
         }
         putItemList(x, baseEntitySelectItemList);
     }
@@ -167,7 +166,7 @@ public class DruidSelectAddBaseEntityVisitor extends SQLBoundVisitor<SQLSelectSt
             List<BaseEntitySelectItem> xBaseEntitySelectItemList = new ArrayList<>();
             for (BaseEntitySelectItem item : baseEntitySelectItemList) {
                 xBaseEntitySelectItemList.add(new BaseEntitySelectItem(
-                    SQLUtils.toSQLExpr(alias + "." + item.getAlias()), alias + "_" + item.getAlias()));
+                        SQLUtils.toSQLExpr(alias + "." + item.getAlias()), alias + "_" + item.getAlias()));
             }
             putItemList(x, xBaseEntitySelectItemList);
         }
@@ -198,7 +197,7 @@ public class DruidSelectAddBaseEntityVisitor extends SQLBoundVisitor<SQLSelectSt
         List<BaseEntitySelectItem> xBaseEntitySelectItemList = new ArrayList<>();
         for (BaseEntitySelectItem item : baseEntitySelectItemList) {
             xBaseEntitySelectItemList.add(new BaseEntitySelectItem(
-                SQLUtils.toSQLExpr(alias + "." + item.getAlias()), alias + "_" + item.getAlias()));
+                    SQLUtils.toSQLExpr(alias + "." + item.getAlias()), alias + "_" + item.getAlias()));
         }
         putItemList(x, xBaseEntitySelectItemList);
     }
@@ -382,4 +381,13 @@ public class DruidSelectAddBaseEntityVisitor extends SQLBoundVisitor<SQLSelectSt
 
     }
 
+    @Override
+    public String toString() {
+        return "DruidSelectAddBaseEntityVisitor{" +
+                "included=" + included +
+                ", notIncluded=" + notIncluded +
+                ", masterView='" + masterView + '\'' +
+                ", reportAmbiguous=" + reportAmbiguous +
+                "} " + super.toString();
+    }
 }

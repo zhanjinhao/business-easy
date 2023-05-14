@@ -136,4 +136,11 @@ public class TableAddJoinConditionVisitor extends AbstractAddConditionVisitor {
         }
     }
 
+    @Override
+    public String toString() {
+        return "TableAddJoinConditionVisitor{" +
+                "useSubQuery=" + useSubQuery +
+                ", rewriteCommaToJoin=" + rewriteCommaToJoin +
+                "} " + super.toString();
+    }
 }

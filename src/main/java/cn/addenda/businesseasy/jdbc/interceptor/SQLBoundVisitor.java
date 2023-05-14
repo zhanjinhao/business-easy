@@ -62,4 +62,12 @@ public abstract class SQLBoundVisitor<T extends SQLStatement> extends MySqlASTVi
     public void setToLowerCase(boolean toLowerCase) {
         this.toLowerCase = toLowerCase;
     }
+
+    @Override
+    public String toString() {
+        return "SQLBoundVisitor{" +
+                "toLowerCase=" + toLowerCase +
+                ", sql='" + sql + '\'' +
+                "} " + super.toString();
+    }
 }

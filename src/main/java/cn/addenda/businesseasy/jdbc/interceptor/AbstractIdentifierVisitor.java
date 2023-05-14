@@ -10,10 +10,7 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.List;
+import java.util.*;
 
 /**
  * @author addenda
@@ -116,4 +113,10 @@ public abstract class AbstractIdentifierVisitor extends SQLBoundVisitor<SQLState
         identifierListStack.pop();
     }
 
+    @Override
+    public String toString() {
+        return "AbstractIdentifierVisitor{" +
+                "identifier='" + identifier + '\'' +
+                "} " + super.toString();
+    }
 }

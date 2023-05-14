@@ -10,6 +10,7 @@ import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
@@ -166,5 +167,13 @@ public class IdentifierExistsVisitor extends AbstractIdentifierVisitor {
         return ambiguousInfo;
     }
 
+    @Override
+    public String toString() {
+        return "IdentifierExistsVisitor{" +
+                "included=" + included +
+                ", notIncluded=" + notIncluded +
+                ", reportAmbiguous=" + reportAmbiguous +
+                "} " + super.toString();
+    }
 }
 

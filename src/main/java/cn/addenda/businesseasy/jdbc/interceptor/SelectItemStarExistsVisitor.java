@@ -60,4 +60,10 @@ public class SelectItemStarExistsVisitor extends SQLBoundVisitor<SQLSelectStatem
         return sqlStatement;
     }
 
+    @Override
+    public String toString() {
+        return "SelectItemStarExistsVisitor{" +
+                "visitAggregateFunction=" + visitAggregateFunction +
+                "} " + super.toString();
+    }
 }

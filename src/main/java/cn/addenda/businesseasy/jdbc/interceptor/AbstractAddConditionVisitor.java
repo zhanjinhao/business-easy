@@ -113,4 +113,12 @@ public abstract class AbstractAddConditionVisitor extends MySqlASTVisitorAdapter
         return tableName;
     }
 
+    @Override
+    public String toString() {
+        return "AbstractAddConditionVisitor{" +
+                "included=" + included +
+                ", notIncluded=" + notIncluded +
+                ", condition='" + condition + '\'' +
+                "} " + super.toString();
+    }
 }
