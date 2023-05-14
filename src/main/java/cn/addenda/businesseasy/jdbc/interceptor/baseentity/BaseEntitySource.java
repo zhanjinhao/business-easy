@@ -25,6 +25,7 @@ public interface BaseEntitySource {
     String getRemark();
 
     default Object get(String fieldName) {
+        // todo methodinvoke 可以提升性能？
         Method method = ReflectionUtils.findMethod(this.getClass(),
                 "get" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1));
         return ReflectionUtils.invokeMethod(method, this);
