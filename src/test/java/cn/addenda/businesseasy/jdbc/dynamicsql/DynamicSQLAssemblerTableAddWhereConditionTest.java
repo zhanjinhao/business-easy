@@ -7,6 +7,8 @@ import cn.addenda.businesseasy.jdbc.interceptor.dynamicsql.DynamicSQLAssembler;
 import com.alibaba.druid.DbType;
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.statement.SQLDeleteStatement;
+import com.alibaba.druid.sql.ast.statement.SQLInsertStatement;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -39,7 +41,18 @@ public class DynamicSQLAssemblerTableAddWhereConditionTest {
             String s = druidDynamicSQLAssembler.tableAddWhereCondition(DruidSQLUtils.toLowerCaseSQL(sqlStatements.get(0)), null, "if_del=0");
             sqlStatements = SQLUtils.parseStatements(s, DbType.mysql);
             List<SQLStatement> expectSqlStatements = SQLUtils.parseStatements(expect, DbType.mysql);
-            Assert.assertEquals(expectSqlStatements.get(0), sqlStatements.get(0));
+
+            SQLStatement expectStatement = expectSqlStatements.get(0);
+            SQLStatement actualStatement = sqlStatements.get(0);
+            if (expectStatement instanceof SQLInsertStatement || expectStatement instanceof SQLDeleteStatement) {
+                Assert.assertEquals(
+                        DruidSQLUtils.toLowerCaseSQL(expectStatement),
+                        DruidSQLUtils.toLowerCaseSQL(actualStatement));
+            } else {
+                Assert.assertEquals(
+                        expectStatement,
+                        actualStatement);
+            }
 
         }
     }

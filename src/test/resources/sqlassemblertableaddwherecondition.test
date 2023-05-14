@@ -1,3 +1,22 @@
+update A set a = 1 where id in (1, 2, 3);update A set a = 1 where id in (1, 2, 3) and A.if_del = 0
+update A c set a = 1 where id in (1, 2, 3);update A c set a = 1 where id in (1, 2, 3) and c.if_del = 0
+UPDATE table1 alias SET (column_name,column_name ) = ( SELECT (column_name, column_name) FROM table2 WHERE column_name = alias.column_name) WHERE column_name = VALUE;UPDATE table1 alias SET (column_name,column_name ) = ( SELECT (column_name, column_name) FROM table2 WHERE column_name = alias.column_name and table2.if_del = 0) WHERE column_name = VALUE and alias.if_del = 0
+update runoob_tbl set runoob_title= replace( runoob_title , 'c++', 'python' ) where id in (select outer_id from A);update runoob_tbl set runoob_title= replace( runoob_title , 'c++', 'python' ) where id in (select outer_id from A  WHERE A.if_del = 0) and runoob_tbl.if_del = 0
+update runoob_tbl set runoob_title=replace( runoob_title , 'c++', 'python' ) , a=?  + 1 , b=?;update runoob_tbl set runoob_title=replace( runoob_title , 'c++', 'python' ) , a=?  + 1 , b=? where runoob_tbl.if_del = 0
+update runoob_tbl set runoob_title=replace( runoob_title , 'c++', 'python' )  where runoob_id  = 3;update runoob_tbl set runoob_title=replace( runoob_title , 'c++', 'python' )  where runoob_id  = 3 and runoob_tbl.if_del = 0
+update runoob_tbl set runoob_title=replace( runoob_title , 'c++', 'python' );update runoob_tbl set runoob_title=replace( runoob_title , 'c++', 'python' ) where runoob_tbl.if_del=0
+update runoob_tbl set runoob_title=replace( runoob_title , 'c++', 'python' ) , a=a  + 1 , b=c;update runoob_tbl set runoob_title=replace( runoob_title , 'c++', 'python' ) , a=a  + 1 , b=c where runoob_tbl.if_del=0
+update t_course t, t_tx_test t2, ttt t3 set t.course_name = '1' and t2.name = '2' where t.course_name = '2';UPDATE t_course  t  ,  t_tx_test  t2  , ttt  t3 SET  t.course_name = '1' AND t2.name = '2' WHERE t.course_name = '2' and  t.if_del = 0	AND t2.if_del = 0 AND t3.if_del = 0
+update t_course t join t_tx_test t2 join ttt t3 set t.course_name = '1' and t2.name = '2' where t.course_name = '2';UPDATE t_course t join t_tx_test t2 join ttt t3  SET t.course_name = '1' AND t2.name = '2' WHERE t.course_name = '2' and  t.if_del = 0	AND t2.if_del = 0 AND t3.if_del = 0
+ UPDATE  `table1` AS `dest`,  (  SELECT  *   FROM  `table2`  WHERE `id` = x  ) AS `src` SET `dest`.`col1` = `src`.`col1` WHERE `dest`.`id` = x;UPDATE  `table1` AS `dest` ,  ( SELECT  *   FROM  `table2`  WHERE `id` = x and `table2`.if_del=0 ) AS `src` SET `dest`.`col1` = `src`.`col1` WHERE `dest`.`id` = x and `dest`.if_del = 0
+  delete from score where id in (select outer_id from t1);delete from score where id in (select outer_id from t1 where t1.if_del=0) and score.if_del = 0
+  delete from A where id in (1, 2, 3);delete from A  where id in (1, 2, 3) and A.if_del = 0
+  delete from score where CREATE_TM  < date_add( now(),  interval 1 day )   and DEGREE  + 1  < 60 - 1;delete from score where CREATE_TM  < date_add( now(),  interval 1 day )   and DEGREE  + 1  < 60 - 1 and score.if_del = 0
+  delete from score where DEGREE  < 50;delete from score where DEGREE  < 50 and score.if_del = 0
+  delete from score where CREATE_TM  < now();delete from score   where CREATE_TM  < now() and score.if_del = 0
+  delete from score where CREATE_TM  < now(3);delete from score where CREATE_TM  < now(3)  and score.if_del = 0
+  delete from score where DEGREE  + 1  < 60 - 1;delete from score  where DEGREE  + 1  < 60 - 1  and score.if_del = 0
+  delete from score;delete from score where score.if_del = 0
   select count(a) from a1 group by b having count(*) > 1 and c > 2;  select count(a) from a1 where a1.if_del = 0 group by b having count(*) > 1 and c > 2
   select count(a.*) from a1;  select count(a.*) from a1 where a1.if_del = 0
   select a.* from a1;  select a.* from a1 where a1.if_del = 0
@@ -9,7 +28,7 @@
   select extract(year from date_add(now(), interval 2 day)) as plus2Day from dual where #{aaa} = b;  select extract(year from date_add(now(), interval 2 day)) as plus2Day from dual where #{aaa} = b and dual.if_del = 0
   select '\'a\'' from dual; select '\'a\'' from dual where dual.if_del=0
   select timestampdiff(day, '2010-01-01', '2010-06-01') as result from dual;  select timestampdiff(day, '2010-01-01', '2010-06-01') as result from dual where dual.if_del=0
-  select a from A where (select c from C) and (select d from D);  select a from A where (select c from C where c.if_del = 0) and (select d from D where D.if_del=0) and A.if_del = 0
+  select a from A where (select c from C) and (select d from D);  select a from A where (select c from C where C.if_del = 0) and (select d from D where D.if_del=0) and A.if_del = 0
   select b from a where (select c from C) and (select d from D);  select b from a where (select c from C where C.if_del=0) and (select d from D where D.if_del = 0) and a.if_del = 0
   select a, b, (select c from C) as c from AB;  select a, b, (select c from C where C.if_del = 0) as c from AB where AB.if_del = 0
   select employee_name , `count` , salary , nth_value ( employee_name  , 2  ) over ( partition by department  order by salary  desc range between interval 30 second preceding and unbounded following    )   as second_highest_salary from basic_pays;  select employee_name , `count` , salary , nth_value ( employee_name  , 2  ) over ( partition by department  order by salary  desc range between interval 30 second preceding and unbounded following    )   as second_highest_salary from basic_pays where basic_pays.if_del=0
