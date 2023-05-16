@@ -158,7 +158,7 @@ public class InsertOrUpdateAddItemVisitor extends MySqlASTVisitorAdapter {
                     }
                 }
 
-            } else if (mode == AddItemMode.ITEM || mode == AddItemMode.ITEM_FIRST) {
+            } else if (mode == AddItemMode.ITEM) {
                 addItemFromItem(mySqlSelectQueryBlock);
             }
         } else if (query instanceof SQLUnionQuery) {
@@ -236,7 +236,6 @@ public class InsertOrUpdateAddItemVisitor extends MySqlASTVisitorAdapter {
     public enum AddItemMode {
         ITEM,
         DB,
-        ITEM_FIRST,
         DB_FIRST,
     }
 
