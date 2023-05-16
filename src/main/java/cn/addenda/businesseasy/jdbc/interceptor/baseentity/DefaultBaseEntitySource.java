@@ -1,5 +1,7 @@
 package cn.addenda.businesseasy.jdbc.interceptor.baseentity;
 
+import java.time.LocalDateTime;
+
 /**
  * @author addenda
  * @since 2023/5/2 19:37

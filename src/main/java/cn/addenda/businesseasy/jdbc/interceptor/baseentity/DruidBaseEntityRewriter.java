@@ -1,26 +1,12 @@
 package cn.addenda.businesseasy.jdbc.interceptor.baseentity;
 
-import cn.addenda.businesseasy.jdbc.JdbcSQLUtils;
-import cn.addenda.businesseasy.jdbc.interceptor.AbstractDruidSqlRewriter;
-import cn.addenda.businesseasy.jdbc.interceptor.DruidSQLUtils;
-import com.alibaba.druid.DbType;
-import com.alibaba.druid.sql.SQLUtils;
-import com.alibaba.druid.sql.ast.SQLExpr;
-import com.alibaba.druid.sql.ast.SQLName;
+import cn.addenda.businesseasy.jdbc.interceptor.*;
 import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.sql.ast.statement.SQLInsertStatement;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
-import com.alibaba.druid.sql.ast.statement.SQLUpdateSetItem;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
-import com.alibaba.druid.sql.visitor.SchemaStatVisitor;
-import com.alibaba.druid.stat.TableStat;
+
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
+
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -28,9 +14,7 @@ import lombok.extern.slf4j.Slf4j;
  * @since 2023/5/2 19:35
  */
 @Slf4j
-public class DruidBaseEntityRewriter extends AbstractDruidSqlRewriter implements BaseEntityRewriter {
-
-    private final BaseEntitySource baseEntitySource;
+public class DruidBaseEntityRewriter extends AbstractBaseEntityRewriter {
 
     /**
      * 需要基础字段的表
@@ -40,61 +24,64 @@ public class DruidBaseEntityRewriter extends AbstractDruidSqlRewriter implements
     /**
      * 不需要基础字段的表
      */
-    private final List<String> notIncluded = new ArrayList<>(Arrays.asList("dual"));
+    private final List<String> notIncluded;
+
+    private final boolean hideBaseEntity;
+
+    private InsertOrUpdateAddItemVisitor.AddItemMode addItemMode;
 
     private static final List<String> INSERT_COLUMN_NAME_LIST;
     private static final List<String> INSERT_FIELD_NAME_LIST;
     private static final List<String> UPDATE_COLUMN_NAME_LIST;
     private static final List<String> UPDATE_FIELD_NAME_LIST;
+    private final List<InsertOrUpdateAddItemVisitor> insertVisitorList = new ArrayList<>();
+    private final List<InsertOrUpdateAddItemVisitor> updateVisitorList = new ArrayList<>();
 
     static {
         INSERT_COLUMN_NAME_LIST = BaseEntity.getAllColumnNameList();
         INSERT_FIELD_NAME_LIST = BaseEntity.getAllFieldNameList();
         UPDATE_COLUMN_NAME_LIST = BaseEntity.getUpdateColumnNameList();
         UPDATE_FIELD_NAME_LIST = BaseEntity.getUpdateFieldNameList();
+
     }
 
-    public DruidBaseEntityRewriter(List<String> included, BaseEntitySource baseEntitySource) {
-        this.baseEntitySource = baseEntitySource;
+    public DruidBaseEntityRewriter(List<String> included, List<String> notIncluded, BaseEntitySource baseEntitySource, boolean hideBaseEntity, InsertOrUpdateAddItemVisitor.AddItemMode addItemMode) {
+        super(baseEntitySource);
         this.included = included;
+        this.notIncluded = notIncluded;
+        this.hideBaseEntity = hideBaseEntity;
+        this.addItemMode = addItemMode;
         if (included == null) {
             log.warn("未声明需填充的基础字段的表集合，所有的表都会进行基础字段填充改写！");
         }
+
+        for (int i = 0; i < UPDATE_COLUMN_NAME_LIST.size(); i++) {
+            String columnName = UPDATE_COLUMN_NAME_LIST.get(i);
+            String fieldName = UPDATE_FIELD_NAME_LIST.get(i);
+            Item item = new Item(columnName, baseEntitySource.get(fieldName));
+            updateVisitorList.add(new InsertOrUpdateAddItemVisitor(included, notIncluded, item, hideBaseEntity, addItemMode));
+        }
+        for (int i = 0; i < INSERT_COLUMN_NAME_LIST.size(); i++) {
+            String columnName = INSERT_COLUMN_NAME_LIST.get(i);
+            String fieldName = INSERT_FIELD_NAME_LIST.get(i);
+            Item item = new Item(columnName, baseEntitySource.get(fieldName));
+            insertVisitorList.add(new InsertOrUpdateAddItemVisitor(included, notIncluded, item, hideBaseEntity, addItemMode));
+        }
+    }
+
+    public DruidBaseEntityRewriter() {
+        this(null, null, new DefaultBaseEntitySource(), false, InsertOrUpdateAddItemVisitor.AddItemMode.ITEM);
     }
 
     @Override
     public String rewriteInsertSql(String sql) {
-        return singleRewriteSql(sql, this::doRewriteInsertSql);
+        return DruidSQLUtils.statementMerge(sql, this::doRewriteInsertSql);
     }
 
     private String doRewriteInsertSql(SQLStatement sqlStatement) {
-        MySqlInsertStatement mySqlInsertStatement = (MySqlInsertStatement) sqlStatement;
-        SQLName tableName = mySqlInsertStatement.getTableName();
-        if (!JdbcSQLUtils.include(tableName.toString(), included, notIncluded)) {
-            return DruidSQLUtils.toLowerCaseSQL(sqlStatement);
-        }
-        byte[] injects = new byte[INSERT_COLUMN_NAME_LIST.size()];
-        List<SQLExpr> columnList = mySqlInsertStatement.getColumns();
-        List<String> columnNameList = columnList.stream().map(i -> i.toString().toLowerCase()).collect(Collectors.toList());
-        for (int i = 0; i < INSERT_COLUMN_NAME_LIST.size(); i++) {
-            String column = INSERT_COLUMN_NAME_LIST.get(i);
-            if (columnNameList.contains(column.toLowerCase())) {
-                injects[i] = 1;
-            } else {
-                injects[i] = 0;
-                columnList.add(SQLUtils.toSQLExpr(column));
-            }
-        }
-
-        List<SQLInsertStatement.ValuesClause> valuesList = mySqlInsertStatement.getValuesList();
-        for (SQLInsertStatement.ValuesClause values : valuesList) {
-            for (int i = 0; i < INSERT_FIELD_NAME_LIST.size(); i++) {
-                if (injects[i] == 0) {
-                    String field = INSERT_FIELD_NAME_LIST.get(i);
-                    Object o = baseEntitySource.get(field);
-                    values.addValue(DruidSQLUtils.objectToSQLExpr(o));
-                }
-            }
+        sqlStatement.accept(new ViewToTableVisitor());
+        for (InsertOrUpdateAddItemVisitor insertOrUpdateAddItemVisitor : insertVisitorList) {
+            sqlStatement.accept(insertOrUpdateAddItemVisitor);
         }
 
         return DruidSQLUtils.toLowerCaseSQL(sqlStatement);
@@ -107,55 +94,28 @@ public class DruidBaseEntityRewriter extends AbstractDruidSqlRewriter implements
 
     @Override
     public String rewriteSelectSql(String sql, String masterView) {
-        List<SQLStatement> stmtList = SQLUtils.parseStatements(sql, DbType.mysql);
-        StringBuilder stringBuilder = new StringBuilder();
-        for (SQLStatement sqlStatement : stmtList) {
-            stringBuilder.append(doRewriteSelectSql(sqlStatement, masterView)).append("\n");
-        }
-        return stringBuilder.toString().trim();
+        return DruidSQLUtils.statementMerge(sql,
+                sqlStatement -> doRewriteSelectSql(sqlStatement, masterView));
     }
 
     private String doRewriteSelectSql(SQLStatement sqlStatement, String masterView) {
-        SQLSelectStatement sqlSelectStatement = (SQLSelectStatement) sqlStatement;
-        SchemaStatVisitor schemaStatVisitor = new SchemaStatVisitor();
-        sqlSelectStatement.accept(schemaStatVisitor);
-        Map<TableStat.Name, TableStat> tables = schemaStatVisitor.getTables();
-        Set<String> collect = tables.keySet().stream().map(TableStat.Name::getName).collect(Collectors.toSet());
-        for (String table : collect) {
-            if (JdbcSQLUtils.include(table, included, notIncluded)) {
-                sqlSelectStatement = new DruidSelectAddBaseEntityVisitor(sqlSelectStatement,
-                    included, notIncluded, masterView).visitAndOutputAst();
-            }
+        for (String column : INSERT_COLUMN_NAME_LIST) {
+            new SelectResultAddItemNameVisitor(
+                    (SQLSelectStatement) sqlStatement, included, notIncluded, masterView, column).visit();
         }
         return DruidSQLUtils.toLowerCaseSQL(sqlStatement);
     }
 
     @Override
     public String rewriteUpdateSql(String sql) {
-        return singleRewriteSql(sql, this::doRewriteUpdateSql);
+        return DruidSQLUtils.statementMerge(sql, this::doRewriteUpdateSql);
     }
 
     private String doRewriteUpdateSql(SQLStatement sqlStatement) {
-        MySqlUpdateStatement mySqlUpdateStatement = (MySqlUpdateStatement) sqlStatement;
-        SQLName tableName = mySqlUpdateStatement.getTableName();
-        if (!JdbcSQLUtils.include(tableName.toString(), included, notIncluded)) {
-            return DruidSQLUtils.toLowerCaseSQL(sqlStatement);
+        sqlStatement.accept(new ViewToTableVisitor());
+        for (InsertOrUpdateAddItemVisitor insertOrUpdateAddItemVisitor : updateVisitorList) {
+            sqlStatement.accept(insertOrUpdateAddItemVisitor);
         }
-
-        List<SQLUpdateSetItem> items = mySqlUpdateStatement.getItems();
-        List<String> columnList = items.stream().map(i -> i.getColumn().toString()).collect(Collectors.toList());
-
-        for (int i = 0; i < UPDATE_COLUMN_NAME_LIST.size(); i++) {
-            String column = UPDATE_COLUMN_NAME_LIST.get(i);
-            String field = UPDATE_FIELD_NAME_LIST.get(i);
-            if (!columnList.contains(column)) {
-                SQLUpdateSetItem item = new SQLUpdateSetItem();
-                item.setColumn(SQLUtils.toSQLExpr(column));
-                item.setValue(DruidSQLUtils.objectToSQLExpr(baseEntitySource.get(field)));
-                items.add(item);
-            }
-        }
-
         return DruidSQLUtils.toLowerCaseSQL(sqlStatement);
     }
 }

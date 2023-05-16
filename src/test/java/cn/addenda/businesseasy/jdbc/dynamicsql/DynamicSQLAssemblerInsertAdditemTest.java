@@ -24,7 +24,7 @@ public class DynamicSQLAssemblerInsertAdditemTest {
 
     @Test
     public void test1() {
-        String[] read = SqlReader.read("src/test/resources/sqlassemblerinsertadditem.test", sqls);
+        String[] read = SqlReader.read("src/test/resources/cn/addenda/businesseasy/jdbc/interceptor/dynamicsql/sqlassemblerinsertadditem.test", sqls);
         for (int line = 0; line < read.length; line++) {
             String sql = read[line];
             String source = sql;

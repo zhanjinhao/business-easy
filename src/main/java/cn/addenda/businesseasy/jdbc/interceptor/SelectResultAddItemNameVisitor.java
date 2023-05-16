@@ -1,10 +1,8 @@
-package cn.addenda.businesseasy.jdbc.interceptor.baseentity;
+package cn.addenda.businesseasy.jdbc.interceptor;
 
 import cn.addenda.businesseasy.jdbc.JdbcException;
 import cn.addenda.businesseasy.jdbc.JdbcSQLUtils;
-import cn.addenda.businesseasy.jdbc.interceptor.DruidSQLUtils;
-import cn.addenda.businesseasy.jdbc.interceptor.SQLBoundVisitor;
-import cn.addenda.businesseasy.jdbc.interceptor.ViewToTableVisitor;
+import cn.addenda.businesseasy.util.BEArrayUtils;
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLObject;
@@ -28,11 +26,13 @@ import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
 /**
+ *
+ * todo 不遍历where和selectItem
  * @author addenda
  * @since 2023/5/1 13:28
  */
 @Slf4j
-public class DruidSelectAddBaseEntityVisitor extends SQLBoundVisitor<SQLSelectStatement> {
+public class SelectResultAddItemNameVisitor extends SQLBoundVisitor<SQLSelectStatement> {
 
     private static final String ITEM_KEY = "BaseEntitySelectItemList";
 
@@ -43,39 +43,43 @@ public class DruidSelectAddBaseEntityVisitor extends SQLBoundVisitor<SQLSelectSt
 
     private final boolean reportAmbiguous;
 
+    private final String itemName;
+
     private String ambiguousInfo;
 
-    private static final List<String> COLUMN_NAME_LIST;
+    private String resultItemName;
 
-    static {
-        COLUMN_NAME_LIST = BaseEntity.getAllColumnNameList();
-    }
-
-    public DruidSelectAddBaseEntityVisitor(String sql,
-                                           List<String> included, List<String> notIncluded, String masterView, boolean reportAmbiguous) {
+    public SelectResultAddItemNameVisitor(
+            String sql, List<String> included, List<String> notIncluded, String masterView,
+            String itemName, boolean reportAmbiguous) {
         super(sql);
         this.included = included;
         this.notIncluded = notIncluded;
         this.masterView = masterView;
+        this.itemName = itemName;
         this.reportAmbiguous = reportAmbiguous;
     }
 
-    public DruidSelectAddBaseEntityVisitor(SQLSelectStatement sqlSelectStatement,
-                                           List<String> included, List<String> notIncluded, String masterView, boolean reportAmbiguous) {
+    public SelectResultAddItemNameVisitor(
+            String sql, List<String> included, List<String> notIncluded, String masterView, String itemName) {
+        this(sql, included, notIncluded, masterView, itemName, false);
+    }
+
+    public SelectResultAddItemNameVisitor(
+            SQLSelectStatement sqlSelectStatement, List<String> included, List<String> notIncluded,
+            String masterView, String itemName, boolean reportAmbiguous) {
         super(sqlSelectStatement);
         this.included = included;
         this.notIncluded = notIncluded;
         this.masterView = masterView;
+        this.itemName = itemName;
         this.reportAmbiguous = reportAmbiguous;
     }
 
-    public DruidSelectAddBaseEntityVisitor(SQLSelectStatement sqlSelectStatement,
-                                           List<String> included, List<String> notIncluded, String masterView) {
-        super(sqlSelectStatement);
-        this.included = included;
-        this.notIncluded = notIncluded;
-        this.masterView = masterView;
-        this.reportAmbiguous = false;
+    public SelectResultAddItemNameVisitor(
+            SQLSelectStatement sqlSelectStatement, List<String> included, List<String> notIncluded,
+            String masterView, String itemName) {
+        this(sqlSelectStatement, included, notIncluded, masterView, itemName, false);
     }
 
     @Override
@@ -85,7 +89,7 @@ public class DruidSelectAddBaseEntityVisitor extends SQLBoundVisitor<SQLSelectSt
         return sqlStatement;
     }
 
-    private int deepth = 0;
+    private int depth = 0;
 
     @Override
     public void endVisit(SQLSelectGroupByClause x) {
@@ -94,7 +98,7 @@ public class DruidSelectAddBaseEntityVisitor extends SQLBoundVisitor<SQLSelectSt
         // items 里面存在的基础列才能被注入到返回值
         List<SQLExpr> injectedList = new ArrayList<>();
         for (SQLExpr sqlExpr : items) {
-            if (JdbcSQLUtils.include(JdbcSQLUtils.extractColumnName(sqlExpr.toString()), COLUMN_NAME_LIST, null)) {
+            if (JdbcSQLUtils.include(JdbcSQLUtils.extractColumnName(sqlExpr.toString()), BEArrayUtils.asArrayList(itemName), null)) {
                 injectedList.add(sqlExpr);
             }
         }
@@ -104,7 +108,7 @@ public class DruidSelectAddBaseEntityVisitor extends SQLBoundVisitor<SQLSelectSt
         }
 
         Map<String, String> viewToTableMap = ViewToTableVisitor.getViewToTableMap(x.getParent());
-        List<BaseEntitySelectItem> baseEntitySelectItemList = new ArrayList<>();
+        List<SelectResultSelectItem> selectResultSelectItemList = new ArrayList<>();
         for (SQLExpr sqlExpr : injectedList) {
             String owner = JdbcSQLUtils.extractColumnOwner(sqlExpr.toString());
             if (owner == null) {
@@ -117,11 +121,11 @@ public class DruidSelectAddBaseEntityVisitor extends SQLBoundVisitor<SQLSelectSt
 
                 if (declaredTableList.size() == 1) {
                     String view = declaredTableList.get(0);
-                    baseEntitySelectItemList.add(new BaseEntitySelectItem(SQLUtils.toSQLExpr(view + "." + sqlExpr), view + "_" + sqlExpr));
+                    selectResultSelectItemList.add(new SelectResultSelectItem(SQLUtils.toSQLExpr(view + "." + sqlExpr), view + "_" + sqlExpr));
                 } else if (declaredTableList.size() > 1) {
                     ambiguousInfo =
                             "SQLObject: [" + DruidSQLUtils.toLowerCaseSQL(x) + "], Ambiguous identifier: [" + DruidSQLUtils.toLowerCaseSQL(sqlExpr) + "], declaredTableList: [" + declaredTableList + "].";
-                    baseEntitySelectItemList.add(new BaseEntitySelectItem(sqlExpr, sqlExpr.toString()));
+                    selectResultSelectItemList.add(new SelectResultSelectItem(sqlExpr, sqlExpr.toString()));
                     if (reportAmbiguous) {
                         throw new JdbcException(ambiguousInfo);
                     } else {
@@ -134,11 +138,11 @@ public class DruidSelectAddBaseEntityVisitor extends SQLBoundVisitor<SQLSelectSt
             } else {
                 String tableName = viewToTableMap.get(owner);
                 if (tableName != null && JdbcSQLUtils.include(tableName, included, notIncluded)) {
-                    baseEntitySelectItemList.add(new BaseEntitySelectItem(sqlExpr, sqlExpr.toString().replace(".", "_")));
+                    selectResultSelectItemList.add(new SelectResultSelectItem(sqlExpr, sqlExpr.toString().replace(".", "_")));
                 }
             }
         }
-        putItemList(x, baseEntitySelectItemList);
+        putItemList(x, selectResultSelectItemList);
     }
 
     @Override
@@ -149,26 +153,24 @@ public class DruidSelectAddBaseEntityVisitor extends SQLBoundVisitor<SQLSelectSt
         if (!JdbcSQLUtils.include(tableName, included, notIncluded)) {
             return;
         }
-        List<BaseEntitySelectItem> baseEntitySelectItemList = new ArrayList<>();
-        for (String item : COLUMN_NAME_LIST) {
-            baseEntitySelectItemList.add(
-                    new BaseEntitySelectItem(SQLUtils.toSQLExpr(view + "." + item), view + "_" + item));
-        }
-        putItemList(x, baseEntitySelectItemList);
+        List<SelectResultSelectItem> selectResultSelectItemList = new ArrayList<>();
+        selectResultSelectItemList.add(
+                new SelectResultSelectItem(SQLUtils.toSQLExpr(view + "." + itemName), view + "_" + itemName));
+        putItemList(x, selectResultSelectItemList);
     }
 
     @Override
     public void endVisit(SQLSubqueryTableSource x) {
         SQLSelect select = x.getSelect();
         String alias = x.getAlias();
-        List<BaseEntitySelectItem> baseEntitySelectItemList = getItemList(select);
-        if (baseEntitySelectItemList != null) {
-            List<BaseEntitySelectItem> xBaseEntitySelectItemList = new ArrayList<>();
-            for (BaseEntitySelectItem item : baseEntitySelectItemList) {
-                xBaseEntitySelectItemList.add(new BaseEntitySelectItem(
+        List<SelectResultSelectItem> selectResultSelectItemList = getItemList(select);
+        if (selectResultSelectItemList != null) {
+            List<SelectResultSelectItem> xSelectResultSelectItemList = new ArrayList<>();
+            for (SelectResultSelectItem item : selectResultSelectItemList) {
+                xSelectResultSelectItemList.add(new SelectResultSelectItem(
                         SQLUtils.toSQLExpr(alias + "." + item.getAlias()), alias + "_" + item.getAlias()));
             }
-            putItemList(x, xBaseEntitySelectItemList);
+            putItemList(x, xSelectResultSelectItemList);
         }
     }
 
@@ -176,16 +178,16 @@ public class DruidSelectAddBaseEntityVisitor extends SQLBoundVisitor<SQLSelectSt
     public void endVisit(SQLJoinTableSource x) {
         SQLTableSource left = x.getLeft();
         SQLTableSource right = x.getRight();
-        List<BaseEntitySelectItem> baseEntitySelectItemList = new ArrayList<>();
-        List<BaseEntitySelectItem> leftBaseEntitySelectItemList = getItemList(left);
-        if (leftBaseEntitySelectItemList != null) {
-            baseEntitySelectItemList.addAll(leftBaseEntitySelectItemList);
+        List<SelectResultSelectItem> selectResultSelectItemList = new ArrayList<>();
+        List<SelectResultSelectItem> leftSelectResultSelectItemList = getItemList(left);
+        if (leftSelectResultSelectItemList != null) {
+            selectResultSelectItemList.addAll(leftSelectResultSelectItemList);
         }
-        List<BaseEntitySelectItem> rightBaseEntitySelectItemList = getItemList(right);
-        if (rightBaseEntitySelectItemList != null) {
-            baseEntitySelectItemList.addAll(rightBaseEntitySelectItemList);
+        List<SelectResultSelectItem> rightSelectResultSelectItemList = getItemList(right);
+        if (rightSelectResultSelectItemList != null) {
+            selectResultSelectItemList.addAll(rightSelectResultSelectItemList);
         }
-        putItemList(x, baseEntitySelectItemList);
+        putItemList(x, selectResultSelectItemList);
     }
 
 
@@ -193,34 +195,34 @@ public class DruidSelectAddBaseEntityVisitor extends SQLBoundVisitor<SQLSelectSt
     public void endVisit(SQLUnionQueryTableSource x) {
         SQLUnionQuery union = x.getUnion();
         String alias = x.getAlias();
-        List<BaseEntitySelectItem> baseEntitySelectItemList = getItemList(union);
-        List<BaseEntitySelectItem> xBaseEntitySelectItemList = new ArrayList<>();
-        for (BaseEntitySelectItem item : baseEntitySelectItemList) {
-            xBaseEntitySelectItemList.add(new BaseEntitySelectItem(
+        List<SelectResultSelectItem> selectResultSelectItemList = getItemList(union);
+        List<SelectResultSelectItem> xSelectResultSelectItemList = new ArrayList<>();
+        for (SelectResultSelectItem item : selectResultSelectItemList) {
+            xSelectResultSelectItemList.add(new SelectResultSelectItem(
                     SQLUtils.toSQLExpr(alias + "." + item.getAlias()), alias + "_" + item.getAlias()));
         }
-        putItemList(x, xBaseEntitySelectItemList);
+        putItemList(x, xSelectResultSelectItemList);
     }
 
     @Override
     public void endVisit(SQLUnionQuery x) {
         List<SQLSelectQuery> relations = x.getRelations();
-        List<BaseEntitySelectItem> list = getItemList(relations.get(0));
+        List<SelectResultSelectItem> list = getItemList(relations.get(0));
         boolean flag = true;
         for (int i = 1; i < relations.size(); i++) {
             SQLSelectQuery relation = relations.get(i);
-            List<BaseEntitySelectItem> relationBaseEntitySelectItemList = getItemList(relation);
-            if (relationBaseEntitySelectItemList == null) {
+            List<SelectResultSelectItem> relationSelectResultSelectItemList = getItemList(relation);
+            if (relationSelectResultSelectItemList == null) {
                 flag = false;
                 break;
             }
-            if (list.size() != relationBaseEntitySelectItemList.size()) {
+            if (list.size() != relationSelectResultSelectItemList.size()) {
                 flag = false;
                 break;
             }
             for (int j = 0; j < list.size(); j++) {
-                BaseEntitySelectItem o1 = list.get(j);
-                BaseEntitySelectItem o2 = relationBaseEntitySelectItemList.get(j);
+                SelectResultSelectItem o1 = list.get(j);
+                SelectResultSelectItem o2 = relationSelectResultSelectItemList.get(j);
                 if (!o1.equals(o2)) {
                     flag = false;
                     break;
@@ -241,7 +243,7 @@ public class DruidSelectAddBaseEntityVisitor extends SQLBoundVisitor<SQLSelectSt
         if (sqlSelectQuery instanceof SQLSelectQueryBlock) {
             SQLSelectQueryBlock sqlSelectQueryBlock = (SQLSelectQueryBlock) sqlSelectQuery;
             List<SQLSelectItem> selectList = sqlSelectQueryBlock.getSelectList();
-            selectList.removeIf(BaseEntitySelectItem.class::isInstance);
+            selectList.removeIf(SelectResultSelectItem.class::isInstance);
         } else if (sqlSelectQuery instanceof SQLUnionQuery) {
             SQLUnionQuery sqlUnionQuery = (SQLUnionQuery) sqlSelectQuery;
             List<SQLSelectQuery> relations = sqlUnionQuery.getRelations();
@@ -256,28 +258,29 @@ public class DruidSelectAddBaseEntityVisitor extends SQLBoundVisitor<SQLSelectSt
         SQLTableSource from = x.getFrom();
         SQLSelectGroupByClause groupBy = x.getGroupBy();
         List<SQLSelectItem> selectList = x.getSelectList();
+        // todo *和A.* 场景处理
         Set<SQLExpr> selectExprSet = selectList.stream().map(SQLSelectItem::getExpr).collect(Collectors.toSet());
 
-        List<BaseEntitySelectItem> baseEntitySelectItemList;
+        List<SelectResultSelectItem> selectResultSelectItemList;
         if (groupBy != null) {
-            baseEntitySelectItemList = getItemList(groupBy);
+            selectResultSelectItemList = getItemList(groupBy);
         } else {
-            baseEntitySelectItemList = getItemList(from);
+            selectResultSelectItemList = getItemList(from);
         }
-        if (baseEntitySelectItemList != null) {
-            putItemList(x, new ArrayList<>(baseEntitySelectItemList));
+        if (selectResultSelectItemList != null) {
+            putItemList(x, new ArrayList<>(selectResultSelectItemList));
             List<String> debugInfo = new ArrayList<>();
-            for (BaseEntitySelectItem baseEntitySelectItem : baseEntitySelectItemList) {
-                SQLExpr expr = baseEntitySelectItem.getExpr();
+            for (SelectResultSelectItem selectResultSelectItem : selectResultSelectItemList) {
+                SQLExpr expr = selectResultSelectItem.getExpr();
                 if (!selectExprSet.contains(expr)) {
-                    debugInfo.add(DruidSQLUtils.toLowerCaseSQL(baseEntitySelectItem));
-                    x.addSelectItem(baseEntitySelectItem);
+                    debugInfo.add(DruidSQLUtils.toLowerCaseSQL(selectResultSelectItem));
+                    x.addSelectItem(selectResultSelectItem);
                 }
             }
             log.debug("SQLObject: [{}], 注入列：[{}].", DruidSQLUtils.toLowerCaseSQL(x), debugInfo);
         }
 
-        if (deepth == 1) {
+        if (depth == 1) {
             boolean flag = false;
             if (masterView == null) {
                 flag = true;
@@ -285,32 +288,31 @@ public class DruidSelectAddBaseEntityVisitor extends SQLBoundVisitor<SQLSelectSt
                     SQLExprTableSource sqlExprTableSource = (SQLExprTableSource) from;
                     String tableName = sqlExprTableSource.getTableName();
                     String alias = sqlExprTableSource.getAlias();
-                    masterView = tableName == null ? alias : tableName;
+                    masterView = alias == null ? tableName : alias;
                 } else if (from instanceof SQLSubqueryTableSource) {
                     SQLSubqueryTableSource sqlSubqueryTableSource = (SQLSubqueryTableSource) from;
                     masterView = sqlSubqueryTableSource.getAlias();
                 } else if (from instanceof SQLUnionQueryTableSource) {
                     SQLUnionQueryTableSource sqlUnionQueryTableSource = (SQLUnionQueryTableSource) from;
                     masterView = sqlUnionQueryTableSource.getAlias();
+                } else if (from instanceof SQLJoinTableSource) {
+                    // todo left join/right join 取主表作为masterView
                 }
             }
 
             if (masterView == null) {
                 // no-op
             } else {
-                for (SQLSelectItem selectItem : selectList) {
-                    if (!(selectItem instanceof BaseEntitySelectItem)) {
-                        continue;
-                    }
-                    String alias = selectItem.getAlias();
-                    if (!alias.toLowerCase().startsWith(masterView.toLowerCase() + "_")) {
-                        continue;
-                    }
-                    for (String columnName : COLUMN_NAME_LIST) {
-                        if (alias.endsWith(columnName)) {
-                            selectItem.setAlias(columnName);
-                        }
-                    }
+                // 获取到masterView下注入的字段
+                List<SQLSelectItem> injected = selectList.stream()
+                        .filter(SelectResultSelectItem.class::isInstance)
+                        .filter(f -> f.getAlias().toLowerCase().startsWith(masterView.toLowerCase() + "_"))
+                        .filter(f -> f.getAlias().endsWith(itemName)).collect(Collectors.toList());
+
+                // 只有当masterView注入的字段个数为1时才进行masterView改写
+                if (injected.size() == 1) {
+                    injected.get(0).setAlias(itemName);
+                    resultItemName = itemName;
                 }
             }
 
@@ -322,31 +324,31 @@ public class DruidSelectAddBaseEntityVisitor extends SQLBoundVisitor<SQLSelectSt
 
     @Override
     public boolean visit(SQLSelect x) {
-        deepth++;
+        depth++;
         return true;
     }
 
     @Override
     public void endVisit(SQLSelect select) {
         SQLSelectQuery query = select.getQuery();
-        List<BaseEntitySelectItem> itemList = getItemList(query);
+        List<SelectResultSelectItem> itemList = getItemList(query);
         if (itemList != null) {
             putItemList(select, new ArrayList<>(itemList));
         }
-        deepth--;
+        depth--;
     }
 
     @Override
     public void endVisit(SQLValuesQuery x) {
     }
 
-    private List<BaseEntitySelectItem> getItemList(SQLObject sqlObject) {
-        return (List<BaseEntitySelectItem>) sqlObject.getAttribute(ITEM_KEY);
+    private List<SelectResultSelectItem> getItemList(SQLObject sqlObject) {
+        return (List<SelectResultSelectItem>) sqlObject.getAttribute(ITEM_KEY);
     }
 
-    private void putItemList(SQLObject sqlObject, List<BaseEntitySelectItem> baseEntitySelectItemList) {
-        if (baseEntitySelectItemList != null && !baseEntitySelectItemList.isEmpty()) {
-            sqlObject.putAttribute(ITEM_KEY, baseEntitySelectItemList);
+    private void putItemList(SQLObject sqlObject, List<SelectResultSelectItem> selectResultSelectItemList) {
+        if (selectResultSelectItemList != null && !selectResultSelectItemList.isEmpty()) {
+            sqlObject.putAttribute(ITEM_KEY, selectResultSelectItemList);
         }
     }
 
@@ -354,28 +356,32 @@ public class DruidSelectAddBaseEntityVisitor extends SQLBoundVisitor<SQLSelectSt
         return ambiguousInfo;
     }
 
-    private class BaseEntitySelectItem extends SQLSelectItem {
+    public String getResultItemName() {
+        return resultItemName;
+    }
 
-        public BaseEntitySelectItem() {
+    public static class SelectResultSelectItem extends SQLSelectItem {
+
+        public SelectResultSelectItem() {
         }
 
-        public BaseEntitySelectItem(SQLExpr expr) {
+        public SelectResultSelectItem(SQLExpr expr) {
             super(expr);
         }
 
-        public BaseEntitySelectItem(int value) {
+        public SelectResultSelectItem(int value) {
             super(value);
         }
 
-        public BaseEntitySelectItem(SQLExpr expr, String alias) {
+        public SelectResultSelectItem(SQLExpr expr, String alias) {
             super(expr, alias);
         }
 
-        public BaseEntitySelectItem(SQLExpr expr, String alias, boolean connectByRoot) {
+        public SelectResultSelectItem(SQLExpr expr, String alias, boolean connectByRoot) {
             super(expr, alias, connectByRoot);
         }
 
-        public BaseEntitySelectItem(SQLExpr expr, List<String> aliasList, boolean connectByRoot) {
+        public SelectResultSelectItem(SQLExpr expr, List<String> aliasList, boolean connectByRoot) {
             super(expr, aliasList, connectByRoot);
         }
 
@@ -383,11 +389,12 @@ public class DruidSelectAddBaseEntityVisitor extends SQLBoundVisitor<SQLSelectSt
 
     @Override
     public String toString() {
-        return "DruidSelectAddBaseEntityVisitor{" +
+        return "SelectResultAddItemNameVisitor{" +
                 "included=" + included +
                 ", notIncluded=" + notIncluded +
                 ", masterView='" + masterView + '\'' +
                 ", reportAmbiguous=" + reportAmbiguous +
+                ", itemName='" + itemName + '\'' +
                 "} " + super.toString();
     }
 }

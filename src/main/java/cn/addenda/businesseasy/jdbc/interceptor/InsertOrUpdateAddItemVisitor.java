@@ -5,12 +5,9 @@ import cn.addenda.businesseasy.jdbc.JdbcSQLUtils;
 import cn.addenda.businesseasy.util.BEArrayUtils;
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.ast.SQLObject;
+import com.alibaba.druid.sql.ast.statement.*;
 import com.alibaba.druid.sql.ast.statement.SQLInsertStatement.ValuesClause;
-import com.alibaba.druid.sql.ast.statement.SQLSelect;
-import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
-import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
-import com.alibaba.druid.sql.ast.statement.SQLUnionQuery;
-import com.alibaba.druid.sql.ast.statement.SQLUpdateSetItem;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
@@ -20,7 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * @author addenda
@@ -34,21 +31,26 @@ public class InsertOrUpdateAddItemVisitor extends MySqlASTVisitorAdapter {
     private final Item item;
     private final String itemName;
     private final Object itemValue;
+    private final boolean reportItemNameExists;
+    private final AddItemMode mode;
 
-    public InsertOrUpdateAddItemVisitor(String tableName, Item item) {
-        this.included = tableName == null ? null : BEArrayUtils.asArrayList(tableName);
-        this.notIncluded = null;
-        this.item = item;
-        this.itemName = item.getItemName();
-        this.itemValue = item.getItemValue();
+    public InsertOrUpdateAddItemVisitor(Item item) {
+        this(null, null, item, false, AddItemMode.ITEM);
     }
 
-    public InsertOrUpdateAddItemVisitor(List<String> included, List<String> notIncluded, Item item) {
+    public InsertOrUpdateAddItemVisitor(String tableName, Item item, boolean reportItemNameExists) {
+        this(tableName == null ? null : BEArrayUtils.asArrayList(tableName),
+                null, item, reportItemNameExists, AddItemMode.ITEM);
+    }
+
+    public InsertOrUpdateAddItemVisitor(List<String> included, List<String> notIncluded, Item item, boolean reportItemNameExists, AddItemMode mode) {
         this.included = included;
         this.notIncluded = notIncluded;
         this.item = item;
         this.itemName = item.getItemName();
         this.itemValue = item.getItemValue();
+        this.reportItemNameExists = reportItemNameExists;
+        this.mode = mode;
     }
 
     @Override
@@ -57,13 +59,9 @@ public class InsertOrUpdateAddItemVisitor extends MySqlASTVisitorAdapter {
 
         List<SQLUpdateSetItem> items = x.getItems();
 
-        // 如果 itemName 存在了
-        for (SQLUpdateSetItem sqlUpdateSetItem : items) {
-            SQLExpr column = sqlUpdateSetItem.getColumn();
-            if (DruidSQLUtils.toLowerCaseSQL(column).equalsIgnoreCase(itemName)) {
-                String msg = String.format("SQLObject：[%s]种已经存在[%s]，无法新增！", DruidSQLUtils.toLowerCaseSQL(x), itemName);
-                throw new JdbcException(msg);
-            }
+        List<SQLExpr> columns = items.stream().map(SQLUpdateSetItem::getColumn).collect(Collectors.toList());
+        if (!checkItemNameExists(x, columns)) {
+            return;
         }
 
         boolean prefix = viewToTableMap.size() != 1;
@@ -108,12 +106,8 @@ public class InsertOrUpdateAddItemVisitor extends MySqlASTVisitorAdapter {
 
         List<SQLExpr> columns = x.getColumns();
 
-        // 如果 itemName 存在了
-        for (SQLExpr column : columns) {
-            if (DruidSQLUtils.toLowerCaseSQL(column).equalsIgnoreCase(itemName)) {
-                String msg = String.format("SQLObject：[%s]种已经存在[%s]，无法新增！", DruidSQLUtils.toLowerCaseSQL(x), itemName);
-                throw new JdbcException(msg);
-            }
+        if (!checkItemNameExists(x, columns)) {
+            return;
         }
 
         log.debug("SQLObject: [{}], 增加 itemName：[{}]。", DruidSQLUtils.toLowerCaseSQL(x), itemName);
@@ -137,11 +131,36 @@ public class InsertOrUpdateAddItemVisitor extends MySqlASTVisitorAdapter {
     private void sqlSelectQueryAddSelectItem(SQLSelectQuery query) {
         if (query instanceof MySqlSelectQueryBlock) {
             MySqlSelectQueryBlock mySqlSelectQueryBlock = (MySqlSelectQueryBlock) query;
-            SQLSelectItem sqlSelectItem = new SQLSelectItem();
-            sqlSelectItem.setAlias(itemName);
-            sqlSelectItem.setExpr(DruidSQLUtils.objectToSQLExpr(0));
-            log.debug("SQLObject: [{}], 增加 itemValue：[{}]。", DruidSQLUtils.toLowerCaseSQL(query), sqlSelectItem);
-            mySqlSelectQueryBlock.addSelectItem(sqlSelectItem);
+            if (mode == AddItemMode.DB || mode == AddItemMode.DB_FIRST) {
+                // 优先从数据库取数
+                Map<String, String> viewToTableMap = ViewToTableVisitor.getViewToTableMap(mySqlSelectQueryBlock.getFrom());
+                if (viewToTableMap.size() > 1) {
+                    if (mode == AddItemMode.DB) {
+                        String msg = String.format("无法从SQL中推断出来需要增加的itemName，SQL：[%s]，item：[%s]。",
+                                DruidSQLUtils.toLowerCaseSQL(query), item);
+                        throw new JdbcException(msg);
+                    } else if (mode == AddItemMode.DB_FIRST) {
+                        addItemFromItem(mySqlSelectQueryBlock);
+                    }
+                }
+
+                // 单表场景下，也会存在无resultItem的场景。
+                // eg: select 1 from  (  select a  from dual  d1 join dual  d2 on d1.id  = d2.outer_id    )  t1
+                String resultItemName = addItemFromDb(viewToTableMap, mySqlSelectQueryBlock);
+                if (resultItemName == null) {
+                    // 如果从数据库取不到数据
+                    if (mode == AddItemMode.DB) {
+                        String msg = String.format("SQL无法增加itemName，SQL：[%s]，item：[%s]。",
+                                DruidSQLUtils.toLowerCaseSQL(query), item);
+                        throw new JdbcException(msg);
+                    } else if (mode == AddItemMode.DB_FIRST) {
+                        addItemFromItem(mySqlSelectQueryBlock);
+                    }
+                }
+
+            } else if (mode == AddItemMode.ITEM || mode == AddItemMode.ITEM_FIRST) {
+                addItemFromItem(mySqlSelectQueryBlock);
+            }
         } else if (query instanceof SQLUnionQuery) {
             SQLUnionQuery sqlUnionQuery = (SQLUnionQuery) query;
             List<SQLSelectQuery> relations = sqlUnionQuery.getRelations();
@@ -151,18 +170,57 @@ public class InsertOrUpdateAddItemVisitor extends MySqlASTVisitorAdapter {
         }
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        InsertOrUpdateAddItemVisitor that = (InsertOrUpdateAddItemVisitor) o;
-        return Objects.equals(included, that.included) &&
-                Objects.equals(notIncluded, that.notIncluded) && Objects.equals(item, that.item);
+    private void addItemFromItem(MySqlSelectQueryBlock mySqlSelectQueryBlock) {
+        SQLSelectItem sqlSelectItem = new SQLSelectItem();
+        sqlSelectItem.setAlias(itemName);
+        sqlSelectItem.setExpr(DruidSQLUtils.objectToSQLExpr(0));
+        mySqlSelectQueryBlock.addSelectItem(sqlSelectItem);
+        log.debug("SQLObject: [{}], 增加 item：[{}]。", DruidSQLUtils.toLowerCaseSQL(mySqlSelectQueryBlock), itemName);
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(included, notIncluded, item);
+    /**
+     * @param viewToTableMap size()确定是1
+     * @return 数据库的数据为1
+     */
+    private String addItemFromDb(Map<String, String> viewToTableMap, MySqlSelectQueryBlock mySqlSelectQueryBlock) {
+        String view = null;
+        for (Entry<String, String> entry : viewToTableMap.entrySet()) {
+            view = entry.getKey();
+        }
+        SQLSelectStatement sqlSelectStatement = wrapSQLSelectQuery(mySqlSelectQueryBlock);
+        SelectResultAddItemNameVisitor visitor = new SelectResultAddItemNameVisitor(
+                sqlSelectStatement, included, notIncluded, view, itemName);
+        visitor.visit();
+
+        return visitor.getResultItemName();
+    }
+
+    private SQLSelectStatement wrapSQLSelectQuery(SQLSelectQuery query) {
+        SQLSelectStatement sqlSelectStatement = new SQLSelectStatement();
+        SQLSelect sqlSelect = new SQLSelect();
+        sqlSelectStatement.setSelect(sqlSelect);
+        sqlSelect.setParent(sqlSelectStatement);
+        sqlSelect.setQuery(query);
+        query.setParent(sqlSelect);
+        return sqlSelectStatement;
+    }
+
+    /**
+     * @return 是否注入item
+     */
+    private boolean checkItemNameExists(SQLObject x, List<SQLExpr> columnList) {
+        for (SQLExpr column : columnList) {
+            if (DruidSQLUtils.toLowerCaseSQL(column).equalsIgnoreCase(itemName)) {
+                if (reportItemNameExists) {
+                    String msg = String.format("SQLObject：[%s]种已经存在[%s]，无法新增！", DruidSQLUtils.toLowerCaseSQL(x), itemName);
+                    throw new JdbcException(msg);
+                } else {
+                    // 不能新增，否则SQL执行时会报错
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     @Override
@@ -173,4 +231,13 @@ public class InsertOrUpdateAddItemVisitor extends MySqlASTVisitorAdapter {
                 ", item=" + item +
                 "} " + super.toString();
     }
+
+
+    public enum AddItemMode {
+        ITEM,
+        DB,
+        ITEM_FIRST,
+        DB_FIRST,
+    }
+
 }

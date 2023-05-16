@@ -1,5 +1,6 @@
 package cn.addenda.businesseasy.jdbc.interceptor;
 
+import cn.addenda.businesseasy.jdbc.JdbcSQLUtils;
 import cn.addenda.businesseasy.util.BEDateUtils;
 import com.alibaba.druid.DbType;
 import com.alibaba.druid.sql.SQLUtils;
@@ -16,6 +17,7 @@ import java.time.LocalTime;
 import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
+import java.util.function.Function;
 
 import static com.alibaba.druid.sql.visitor.VisitorFeature.OutputUCase;
 
@@ -76,7 +78,12 @@ public class DruidSQLUtils extends SQLUtils {
         } else if (o instanceof Number) {
             return new SQLNumberExpr((Number) o);
         } else if (o instanceof CharSequence) {
-            return new SQLCharExpr(String.valueOf(o));
+            String text = String.valueOf(o);
+            if (text.length() >= 3 && JdbcSQLUtils.isCurd(text, "now")) {
+                SQLExpr param = objectToSQLExpr(Integer.valueOf(text.substring(4, text.length() - 1)));
+                return new SQLMethodInvokeExpr("now", null, param);
+            }
+            return new SQLCharExpr(text);
         } else if (o instanceof Character) {
             return new SQLCharExpr(String.valueOf(o));
         }
@@ -88,6 +95,15 @@ public class DruidSQLUtils extends SQLUtils {
         List<SQLStatement> sqlStatements = SQLUtils.parseStatements(sql, DbType.mysql);
         for (SQLStatement statement : sqlStatements) {
             stringBuilder.append(DruidSQLUtils.toLowerCaseSQL(statement)).append("\n");
+        }
+        return stringBuilder.toString().trim();
+    }
+
+    public static String statementMerge(String sql, Function<SQLStatement, String> function) {
+        List<SQLStatement> stmtList = SQLUtils.parseStatements(sql, DbType.mysql);
+        StringBuilder stringBuilder = new StringBuilder();
+        for (SQLStatement sqlStatement : stmtList) {
+            stringBuilder.append(function.apply(sqlStatement)).append("\n");
         }
         return stringBuilder.toString().trim();
     }

@@ -21,7 +21,7 @@ public class DruidTombstoneConvertorUpdateTest {
 
     @Test
     public void test1() {
-        for (String sql : SqlReader.read("src/test/resources/tombstoneupdate.test", sqls)) {
+        for (String sql : SqlReader.read("src/test/resources/cn/addenda/businesseasy/jdbc/interceptor/tombstone/tombstoneupdate.test", sqls)) {
             String source = sql;
             int i = source.lastIndexOf(";");
             sql = source.substring(0, i);

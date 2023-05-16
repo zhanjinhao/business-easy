@@ -23,7 +23,7 @@ public class DruidTombstoneConvertorSelectTest {
 
     @Test
     public void test1() {
-        String[] read = SqlReader.read("src/test/resources/tombstoneselect.test", sqls);
+        String[] read = SqlReader.read("src/test/resources/cn/addenda/businesseasy/jdbc/interceptor/tombstone/tombstoneselect.test", sqls);
         for (int line = 0; line < read.length; line++) {
             String sql = read[line];
             String source = sql;

@@ -21,7 +21,7 @@ public class DruidTombstoneConvertorInsertTest {
 
     @Test
     public void test1() {
-        String[] read = SqlReader.read("src/test/resources/tombstoneinsert.test", sqls);
+        String[] read = SqlReader.read("src/test/resources/cn/addenda/businesseasy/jdbc/interceptor/tombstone/tombstoneinsert.test", sqls);
         for (int line = 0; line < read.length; line++) {
             String sql = read[line];
             String source = sql;
@@ -37,8 +37,8 @@ public class DruidTombstoneConvertorInsertTest {
             String s = druidTombstoneSqlRewriter.rewriteInsertSql(DruidSQLUtils.toLowerCaseSQL(sqlStatements.get(0)));
             sqlStatements = SQLUtils.parseStatements(s, DbType.mysql);
             List<SQLStatement> expectSqlStatements = SQLUtils.parseStatements(expect, DbType.mysql);
-            Assert.assertEquals(DruidSQLUtils.toLowerCaseSQL(expectSqlStatements.get(0)).replaceAll("\\s+", ""),
-                DruidSQLUtils.toLowerCaseSQL(sqlStatements.get(0)).replaceAll("\\s+", ""));
+            Assert.assertEquals(DruidSQLUtils.toLowerCaseSQL(expectSqlStatements.get(0)).replaceAll("\\s+", " "),
+                DruidSQLUtils.toLowerCaseSQL(sqlStatements.get(0)).replaceAll("\\s+", " "));
 
         }
     }

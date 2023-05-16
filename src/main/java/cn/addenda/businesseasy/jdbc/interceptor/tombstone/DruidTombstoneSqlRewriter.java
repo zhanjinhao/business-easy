@@ -20,7 +20,7 @@ import lombok.extern.slf4j.Slf4j;
  * @since 2023/4/30 19:42
  */
 @Slf4j
-public class DruidTombstoneSqlRewriter extends AbstractDruidSqlRewriter implements TombstoneSqlRewriter {
+public class DruidTombstoneSqlRewriter implements TombstoneSqlRewriter {
 
     private static final String TOMBSTONE_NAME = "if_del";
     private static final Integer NON_TOMBSTONE_VALUE = 0;
@@ -60,7 +60,7 @@ public class DruidTombstoneSqlRewriter extends AbstractDruidSqlRewriter implemen
 
     @Override
     public String rewriteInsertSql(String sql) {
-        return singleRewriteSql(sql, this::doRewriteInsertSql);
+        return DruidSQLUtils.statementMerge(sql, this::doRewriteInsertSql);
     }
 
     /**
@@ -69,7 +69,8 @@ public class DruidTombstoneSqlRewriter extends AbstractDruidSqlRewriter implemen
     private String doRewriteInsertSql(SQLStatement sqlStatement) {
         doRewriteSql(sqlStatement, sql -> {
             // insert into A(..., if_del) values(..., 0)
-            sql.accept(new InsertOrUpdateAddItemVisitor(included, notIncluded, TOMBSTONE_ITEM));
+            // 新增的数据if_del都为0，所以用ITEM模式
+            sql.accept(new InsertOrUpdateAddItemVisitor(included, notIncluded, TOMBSTONE_ITEM, hideTombstone, InsertOrUpdateAddItemVisitor.AddItemMode.ITEM));
             // 处理 insert A (...) select ... from B
             sql.accept(new TableAddJoinConditionVisitor(included, notIncluded, NON_TOMBSTONE, useSubQuery, rewriteCommaToJoin));
         });
@@ -78,7 +79,7 @@ public class DruidTombstoneSqlRewriter extends AbstractDruidSqlRewriter implemen
 
     @Override
     public String rewriteDeleteSql(String sql) {
-        return singleRewriteSql(sql, this::doRewriteDeleteSql);
+        return DruidSQLUtils.statementMerge(sql, this::doRewriteDeleteSql);
     }
 
     private String doRewriteDeleteSql(SQLStatement sqlStatement) {
@@ -98,7 +99,7 @@ public class DruidTombstoneSqlRewriter extends AbstractDruidSqlRewriter implemen
 
     @Override
     public String rewriteSelectSql(String sql) {
-        return singleRewriteSql(sql, this::doRewriteSelectSql);
+        return DruidSQLUtils.statementMerge(sql, this::doRewriteSelectSql);
     }
 
     /**
@@ -114,7 +115,7 @@ public class DruidTombstoneSqlRewriter extends AbstractDruidSqlRewriter implemen
 
     @Override
     public String rewriteUpdateSql(String sql) {
-        return singleRewriteSql(sql, this::doRewriteUpdateSql);
+        return DruidSQLUtils.statementMerge(sql, this::doRewriteUpdateSql);
     }
 
     /**

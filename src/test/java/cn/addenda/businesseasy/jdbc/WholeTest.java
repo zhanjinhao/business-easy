@@ -1,9 +1,13 @@
 package cn.addenda.businesseasy.jdbc;
 
+import cn.addenda.businesseasy.jdbc.baseentity.DruidBaseEntityRewriterInsertTest;
+import cn.addenda.businesseasy.jdbc.baseentity.DruidBaseEntityRewriterSelectTest;
+import cn.addenda.businesseasy.jdbc.baseentity.DruidBaseEntityRewriterUpdateTest;
 import cn.addenda.businesseasy.jdbc.dynamicsql.DynamicSQLAssemblerInsertAdditemTest;
 import cn.addenda.businesseasy.jdbc.dynamicsql.DynamicSQLAssemblerTableAddWhereConditionTest;
 import cn.addenda.businesseasy.jdbc.dynamicsql.DynamicSQLAssemblerUpdateAdditemTest;
 import cn.addenda.businesseasy.jdbc.tombstone.*;
+import org.junit.Test;
 
 /**
  * @author addenda
@@ -11,7 +15,8 @@ import cn.addenda.businesseasy.jdbc.tombstone.*;
  */
 public class WholeTest {
 
-    public static void main(String[] args) {
+    @Test
+    public void main() {
         new ViewToTableVisitorTest().test1();
         new SelectItemStarExistsVisitorTest().test1();
         new SelectItemIdentifierExistsVisitorTest().test1();
@@ -26,6 +31,9 @@ public class WholeTest {
         new DynamicSQLAssemblerInsertAdditemTest().test1();
         new DynamicSQLAssemblerTableAddWhereConditionTest().test1();
         new DynamicSQLAssemblerUpdateAdditemTest().test1();
+        new DruidBaseEntityRewriterInsertTest().test1();
+        new DruidBaseEntityRewriterUpdateTest().test1();
+        new DruidBaseEntityRewriterSelectTest().test1();
     }
 
 }

@@ -16,9 +16,11 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlASTVisitorAdapter;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -36,6 +38,10 @@ import lombok.extern.slf4j.Slf4j;
 public class ViewToTableVisitor extends MySqlASTVisitorAdapter {
 
     public static final String VIEW_TO_TABLE_KEY = "view_to_table_key";
+
+    public ViewToTableVisitor() {
+        // todo: 单例
+    }
 
     /**
      * <pre>{@code

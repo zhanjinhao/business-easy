@@ -25,7 +25,7 @@ public class DynamicSQLAssemblerTableAddWhereConditionTest {
 
     @Test
     public void test1() {
-        String[] read = SqlReader.read("src/test/resources/sqlassemblertableaddwherecondition.test", sqls);
+        String[] read = SqlReader.read("src/test/resources/cn/addenda/businesseasy/jdbc/interceptor/dynamicsql/sqlassemblertableaddwherecondition.test", sqls);
         for (int line = 0; line < read.length; line++) {
             String sql = read[line];
             String source = sql;

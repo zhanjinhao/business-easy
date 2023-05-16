@@ -1,6 +1,7 @@
 package cn.addenda.businesseasy.jdbc.interceptor.baseentity;
 
 import cn.addenda.businesseasy.jdbc.interceptor.ConnectionPrepareStatementInterceptor;
+import cn.addenda.businesseasy.jdbc.interceptor.InsertOrUpdateAddItemVisitor;
 import cn.addenda.businesseasy.jdbc.interceptor.tombstone.TombstoneException;
 import cn.addenda.businesseasy.util.ExceptionUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -14,14 +15,25 @@ import java.util.List;
 @Slf4j
 public class BaseEntityInterceptor extends ConnectionPrepareStatementInterceptor {
 
-    private BaseEntityRewriter baseEntityRewriter;
+    private final BaseEntityRewriter baseEntityRewriter;
 
-    public BaseEntityInterceptor(List<String> baseEntityTableNameList, BaseEntitySource baseEntitySource) {
-        this.baseEntityRewriter = new DruidBaseEntityRewriter(baseEntityTableNameList, baseEntitySource);
+    private final boolean hideBaseEntity;
+
+    private final BaseEntitySource baseEntitySource;
+
+    public BaseEntityInterceptor(
+            BaseEntityRewriter baseEntityRewriter, BaseEntitySource baseEntitySource, boolean hideBaseEntity) {
+        this.baseEntityRewriter = baseEntityRewriter;
+        this.baseEntitySource = baseEntitySource;
+        this.hideBaseEntity = hideBaseEntity;
     }
 
-    public BaseEntityInterceptor(BaseEntityRewriter baseEntityRewriter) {
-        this.baseEntityRewriter = baseEntityRewriter;
+    public BaseEntityInterceptor(
+            List<String> included, List<String> notInclude, BaseEntitySource baseEntitySource,
+            boolean hideBaseEntity, InsertOrUpdateAddItemVisitor.AddItemMode addItemMode) {
+        this.baseEntityRewriter = new DruidBaseEntityRewriter(included, notInclude, baseEntitySource, hideBaseEntity, addItemMode);
+        this.baseEntitySource = baseEntitySource;
+        this.hideBaseEntity = hideBaseEntity;
     }
 
     @Override
