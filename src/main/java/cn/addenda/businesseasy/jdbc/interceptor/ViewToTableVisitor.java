@@ -160,24 +160,45 @@ public class ViewToTableVisitor extends MySqlASTVisitorAdapter {
 
     @Override
     public void endVisit(SQLSelectQueryBlock x) {
+        if (checkVisited(x)) {
+            return;
+        }
         Map<String, String> viewToTableMap = getViewToTableMap(x.getFrom());
         baseEndVisit(x, viewToTableMap);
     }
 
+    private boolean checkVisited(SQLObject x) {
+        Object visited = x.getAttribute("visited");
+        if (visited == null) {
+            x.putAttribute("visited", true);
+            return false;
+        }
+        return true;
+    }
+
     @Override
     public void endVisit(MySqlUpdateStatement x) {
+        if (checkVisited(x)) {
+            return;
+        }
         Map<String, String> viewToTableMap = getViewToTableMap(x.getTableSource());
         baseEndVisit(x, viewToTableMap);
     }
 
     @Override
     public void endVisit(MySqlDeleteStatement x) {
+        if (checkVisited(x)) {
+            return;
+        }
         Map<String, String> viewToTableMap = getViewToTableMap(x.getTableSource());
         baseEndVisit(x, viewToTableMap);
     }
 
     @Override
     public void endVisit(MySqlInsertStatement x) {
+        if (checkVisited(x)) {
+            return;
+        }
         Map<String, String> viewToTableMap = getViewToTableMap(x.getTableSource());
         baseEndVisit(x, viewToTableMap);
     }
