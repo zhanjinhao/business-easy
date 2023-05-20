@@ -1,6 +1,7 @@
 package cn.addenda.businesseasy.jdbc.interceptor;
 
 import cn.addenda.businesseasy.jdbc.JdbcSQLUtils;
+import cn.addenda.businesseasy.util.BEArrayUtils;
 import cn.addenda.businesseasy.util.BEDateUtils;
 import com.alibaba.druid.DbType;
 import com.alibaba.druid.sql.SQLUtils;
@@ -78,17 +79,28 @@ public class DruidSQLUtils extends SQLUtils {
         } else if (o instanceof Number) {
             return new SQLNumberExpr((Number) o);
         } else if (o instanceof CharSequence) {
-            // todo 支持函数的集合
             String text = String.valueOf(o);
-            if (text.length() >= 3 && JdbcSQLUtils.isCurd(text, "now")) {
-                SQLExpr param = objectToSQLExpr(Integer.valueOf(text.substring(4, text.length() - 1)));
-                return new SQLMethodInvokeExpr("now", null, param);
+            SQLMethodInvokeExpr methodInvokeExpr = extractDateFunction(text);
+            if (methodInvokeExpr != null) {
+                return methodInvokeExpr;
             }
             return new SQLCharExpr(text);
         } else if (o instanceof Character) {
             return new SQLCharExpr(String.valueOf(o));
         }
         throw new UnsupportedOperationException("不支持的数据类型，class：" + o.getClass() + "， object：" + o + "。");
+    }
+
+    private static final List<String> dateFunctionList = BEArrayUtils.asArrayList("now", "sysdate", "current_timestamp");
+
+    private static SQLMethodInvokeExpr extractDateFunction(String text) {
+        for (String dateFunction : dateFunctionList) {
+            if (text.length() > dateFunction.length() && JdbcSQLUtils.hasPrefix(text, dateFunction)) {
+                SQLExpr param = objectToSQLExpr(Integer.valueOf(text.substring(dateFunction.length() + 1, text.length() - 1)));
+                return new SQLMethodInvokeExpr(dateFunction, null, param);
+            }
+        }
+        return null;
     }
 
     public static String removeEnter(String sql) {

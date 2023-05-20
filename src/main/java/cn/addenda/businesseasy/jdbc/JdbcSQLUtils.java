@@ -12,22 +12,22 @@ public class JdbcSQLUtils {
     }
 
     public static boolean isSelect(String sql) {
-        return isCurd(sql, "select");
+        return hasPrefix(sql, "select");
     }
 
     public static boolean isUpdate(String sql) {
-        return isCurd(sql, "update");
+        return hasPrefix(sql, "update");
     }
 
     public static boolean isDelete(String sql) {
-        return isCurd(sql, "delete");
+        return hasPrefix(sql, "delete");
     }
 
     public static boolean isInsert(String sql) {
-        return isCurd(sql, "isnert");
+        return hasPrefix(sql, "isnert");
     }
 
-    public static boolean isCurd(String sql, String base) {
+    public static boolean hasPrefix(String sql, String base) {
         int length = sql.length();
         int st = 0;
         while ((st < length) && (sql.charAt(st) <= ' ')) {
