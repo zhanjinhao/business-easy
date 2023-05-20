@@ -1,7 +1,7 @@
 package cn.addenda.businesseasy.jdbc.interceptor.dynamicsql;
 
-import cn.addenda.businesseasy.jdbc.interceptor.ConnectionPrepareStatementInterceptor;
-import cn.addenda.businesseasy.jdbc.interceptor.Item;
+import cn.addenda.businesseasy.jdbc.JdbcSQLUtils;
+import cn.addenda.businesseasy.jdbc.interceptor.*;
 import cn.addenda.businesseasy.util.ExceptionUtil;
 import lombok.extern.slf4j.Slf4j;
 
@@ -15,14 +15,26 @@ import java.util.Map;
 @Slf4j
 public class DynamicSQLInterceptor extends ConnectionPrepareStatementInterceptor {
 
-    private DynamicSQLAssembler dynamicSQLAssembler;
+    private final DynamicSQLAssembler dynamicSQLAssembler;
 
-    public DynamicSQLInterceptor(DynamicSQLAssembler dynamicSQLAssembler) {
+    private final boolean defaultJoinUseSubQuery;
+    private final boolean defaultDuplicateKeyUpdate;
+    private final InsertSelectAddItemMode defaultInsertSelectAddItemMode;
+    private final UpdateItemMode defaultUpdateItemMode;
+
+    public DynamicSQLInterceptor(DynamicSQLAssembler dynamicSQLAssembler, boolean duplicateKeyUpdate,
+                                 InsertSelectAddItemMode insertSelectAddItemMode,
+                                 UpdateItemMode updateItemMode, boolean useSubQuery) {
         this.dynamicSQLAssembler = dynamicSQLAssembler;
+        this.defaultDuplicateKeyUpdate = duplicateKeyUpdate;
+        this.defaultInsertSelectAddItemMode = insertSelectAddItemMode == null ? InsertSelectAddItemMode.ITEM : insertSelectAddItemMode;
+        this.defaultUpdateItemMode = updateItemMode == null ? UpdateItemMode.NOT_NULL : updateItemMode;
+        this.defaultJoinUseSubQuery = useSubQuery;
     }
 
     public DynamicSQLInterceptor() {
-        this.dynamicSQLAssembler = new DruidDynamicSQLAssembler();
+        this(new DruidDynamicSQLAssembler(), false,
+                InsertSelectAddItemMode.ITEM, UpdateItemMode.NOT_NULL, false);
     }
 
     protected String process(String sql) {
@@ -58,13 +70,17 @@ public class DynamicSQLInterceptor extends ConnectionPrepareStatementInterceptor
                 for (Map.Entry<String, String> operationEntry : tableEntry.getValue()) {
                     String operation = operationEntry.getKey();
                     String condition = operationEntry.getValue();
-                    if (DynamicSQLContext.TABLE_ADD_JOIN_CONDITION.equals(operation)) {
-                        newSql = dynamicSQLAssembler.tableAddJoinCondition(newSql, tableName, condition);
-                    } else if (DynamicSQLContext.VIEW_ADD_JOIN_CONDITION.equals(operation)) {
-                        newSql = dynamicSQLAssembler.viewAddJoinCondition(newSql, tableName, condition);
-                    } else if (DynamicSQLContext.TABLE_ADD_WHERE_CONDITION.equals(operation)) {
+                    if (DynamicSQLContext.TABLE_ADD_JOIN_CONDITION.equals(operation) && !JdbcSQLUtils.isInsert(newSql)) {
+                        Boolean useSubQuery =
+                                JdbcSQLUtils.getOrDefault(DynamicSQLContext.getJoinUseSubQuery(), defaultJoinUseSubQuery);
+                        newSql = dynamicSQLAssembler.tableAddJoinCondition(newSql, tableName, condition, useSubQuery);
+                    } else if (DynamicSQLContext.VIEW_ADD_JOIN_CONDITION.equals(operation) && !JdbcSQLUtils.isInsert(newSql)) {
+                        Boolean useSubQuery =
+                                JdbcSQLUtils.getOrDefault(DynamicSQLContext.getJoinUseSubQuery(), defaultJoinUseSubQuery);
+                        newSql = dynamicSQLAssembler.viewAddJoinCondition(newSql, tableName, condition, useSubQuery);
+                    } else if (DynamicSQLContext.TABLE_ADD_WHERE_CONDITION.equals(operation) && !JdbcSQLUtils.isInsert(newSql)) {
                         newSql = dynamicSQLAssembler.tableAddWhereCondition(newSql, tableName, condition);
-                    } else if (DynamicSQLContext.VIEW_ADD_WHERE_CONDITION.equals(operation)) {
+                    } else if (DynamicSQLContext.VIEW_ADD_WHERE_CONDITION.equals(operation) && !JdbcSQLUtils.isInsert(newSql)) {
                         newSql = dynamicSQLAssembler.viewAddWhereCondition(newSql, tableName, condition);
                     } else {
                         String msg = String.format("不支持的SQL添加条件操作类型：[%s]，SQL：[%s]。", operation, removeEnter(sql));
@@ -84,10 +100,16 @@ public class DynamicSQLInterceptor extends ConnectionPrepareStatementInterceptor
                 for (Map.Entry<String, Item> operationEntry : tableEntry.getValue()) {
                     String operation = operationEntry.getKey();
                     Item item = operationEntry.getValue();
-                    if (DynamicSQLContext.INSERT_ADD_ITEM.equals(operation)) {
-                        newSql = dynamicSQLAssembler.insertAddItem(newSql, tableName, item);
-                    } else if (DynamicSQLContext.UPDATE_ADD_ITEM.equals(operation)) {
-                        newSql = dynamicSQLAssembler.updateAddItem(newSql, tableName, item);
+                    UpdateItemMode updateItemMode =
+                            JdbcSQLUtils.getOrDefault(DynamicSQLContext.getUpdateItemMode(), defaultUpdateItemMode);
+                    if (DynamicSQLContext.INSERT_ADD_ITEM.equals(operation) && JdbcSQLUtils.isInsert(newSql)) {
+                        Boolean duplicateKeyUpdate =
+                                JdbcSQLUtils.getOrDefault(DynamicSQLContext.getDuplicateKeyUpdate(), defaultDuplicateKeyUpdate);
+                        InsertSelectAddItemMode insertSelectAddItemMode =
+                                JdbcSQLUtils.getOrDefault(DynamicSQLContext.getInsertSelectAddItemMode(), defaultInsertSelectAddItemMode);
+                        newSql = dynamicSQLAssembler.insertAddItem(newSql, tableName, item, insertSelectAddItemMode, duplicateKeyUpdate, updateItemMode);
+                    } else if (DynamicSQLContext.UPDATE_ADD_ITEM.equals(operation) && JdbcSQLUtils.isUpdate(newSql)) {
+                        newSql = dynamicSQLAssembler.updateAddItem(newSql, tableName, item, updateItemMode);
                     } else {
                         String msg = String.format("不支持的SQL添加item作类型：[%s]，SQL：[%s]。", operation, removeEnter(sql));
                         throw new UnsupportedOperationException(msg);

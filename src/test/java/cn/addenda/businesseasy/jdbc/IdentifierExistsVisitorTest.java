@@ -4,7 +4,9 @@ import cn.addenda.businesseasy.jdbc.interceptor.IdentifierExistsVisitor;
 import com.alibaba.druid.DbType;
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLStatement;
+
 import java.util.List;
+
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -19,16 +21,17 @@ public class IdentifierExistsVisitorTest {
 
     @Test
     public void test1() {
-        for (String sql : SqlReader.read("src/test/resources/identifierexistsvisitor.test", sqls)) {
-            String source = sql;
+        String[] read = SqlReader.read("src/test/resources/identifierexistsvisitor.test", sqls);
+        for (int line = 0; line < read.length; line++) {
+            String source = read[line];
             int i = source.lastIndexOf(";");
-            sql = source.substring(0, i);
+            String sql = source.substring(0, i);
             boolean flag = Boolean.parseBoolean(source.substring(i + 1));
             List<SQLStatement> sqlStatements = SQLUtils.parseStatements(sql, DbType.mysql);
             if (sqlStatements.size() == 0) {
                 continue;
             }
-            System.out.println("------------------------------------------------------------------------------------");
+            System.out.println(line + " : ------------------------------------------------------------------------------------");
             System.out.println();
             IdentifierExistsVisitor identifierExistsVisitor = new IdentifierExistsVisitor(sql, "a");
             identifierExistsVisitor.visit();

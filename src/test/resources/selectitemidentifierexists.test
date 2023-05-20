@@ -51,7 +51,7 @@
  select SNO , SNAME , SBIRTHDAY , date_format( now(), 'yyyy' )  as anow from STUDENT   where date_format( SBIRTHDAY , 'yyyy' )  =  (  select date_format( SBIRTHDAY , 'yyyy' )  as t from STUDENT   where SNO  = '108'  );false
  select SNO , CNO  from SCORE   where DEGREE not in  (  select max( DEGREE  ) as maxd from SCORE   );false
  select a.SNO , a.CNO  from SCORE  a ,  (  select max( DEGREE  ) as MAX from SCORE   )  b  where b.MAX  = SCORE.DEGREE;false
- select 1 from  (  select a  from dual  d1 join dual  d2 on d1.id  = d2.outer_id    )  t1  where  (  select 2 from dual   )  > t1.a;true
+ select 1 from  (  select a  from dual  d1 join dual  d2 on d1.id  = d2.outer_id    )  t1  where  (  select 2 from dual   )  > t1.a;false
  select 1 from dual   where  (  select c  as d from t1   where id  = 5  )  >  (  select a  from t2   where id  = 6  );true
  select 1 from dual  union  select 2 from dual  union  select 3 from dual  union  select 4 from dual  union  select 5 from dual;false
  select 1 from dual  minus  select 2 from dual  union  select 3 from dual;false

@@ -1,6 +1,8 @@
 package cn.addenda.businesseasy.jdbc.interceptor.dynamicsql;
 
+import cn.addenda.businesseasy.jdbc.interceptor.InsertSelectAddItemMode;
 import cn.addenda.businesseasy.jdbc.interceptor.Item;
+import cn.addenda.businesseasy.jdbc.interceptor.UpdateItemMode;
 
 /**
  * @author addenda
@@ -8,16 +10,17 @@ import cn.addenda.businesseasy.jdbc.interceptor.Item;
  */
 public interface DynamicSQLAssembler {
 
-    String tableAddJoinCondition(String sql, String tableName, String condition);
+    String tableAddJoinCondition(String sql, String tableName, String condition, boolean useSubQuery);
 
-    String viewAddJoinCondition(String sql, String tableName, String condition);
+    String viewAddJoinCondition(String sql, String tableName, String condition, boolean useSubQuery);
 
     String tableAddWhereCondition(String sql, String tableName, String condition);
 
     String viewAddWhereCondition(String sql, String tableName, String condition);
 
-    String insertAddItem(String sql, String tableName, Item item);
+    String insertAddItem(String sql, String tableName, Item item, InsertSelectAddItemMode insertSelectAddItemMode,
+                         boolean duplicateKeyUpdate, UpdateItemMode updateItemMode);
 
-    String updateAddItem(String sql, String tableName, Item item);
+    String updateAddItem(String sql, String tableName, Item item, UpdateItemMode updateItemMode);
 
 }

@@ -2,7 +2,8 @@ package cn.addenda.businesseasy.jdbc.baseentity;
 
 import cn.addenda.businesseasy.jdbc.SqlReader;
 import cn.addenda.businesseasy.jdbc.interceptor.DruidSQLUtils;
-import cn.addenda.businesseasy.jdbc.interceptor.InsertOrUpdateAddItemVisitor;
+import cn.addenda.businesseasy.jdbc.interceptor.InsertSelectAddItemMode;
+import cn.addenda.businesseasy.jdbc.interceptor.UpdateItemMode;
 import cn.addenda.businesseasy.jdbc.interceptor.baseentity.BaseEntityRewriter;
 import cn.addenda.businesseasy.jdbc.interceptor.baseentity.DefaultBaseEntitySource;
 import cn.addenda.businesseasy.jdbc.interceptor.baseentity.DruidBaseEntityRewriter;
@@ -38,8 +39,9 @@ public class DruidBaseEntityRewriterInsertTest {
                 continue;
             }
             System.out.println(line + " : ------------------------------------------------------------------------------------");
-            BaseEntityRewriter baseEntityRewriter = new DruidBaseEntityRewriter(null, null, new DefaultBaseEntitySource(), false, InsertOrUpdateAddItemVisitor.AddItemMode.DB_FIRST);
-            String s = baseEntityRewriter.rewriteInsertSql(DruidSQLUtils.toLowerCaseSQL(sqlStatements.get(0)));
+            BaseEntityRewriter baseEntityRewriter = new DruidBaseEntityRewriter(null, null, new DefaultBaseEntitySource());
+            String s = baseEntityRewriter.rewriteInsertSql(DruidSQLUtils.toLowerCaseSQL(sqlStatements.get(0)),
+                    InsertSelectAddItemMode.DB_FIRST, false, UpdateItemMode.NOT_NULL, false);
             sqlStatements = SQLUtils.parseStatements(s, DbType.mysql);
             List<SQLStatement> expectSqlStatements = SQLUtils.parseStatements(expect, DbType.mysql);
             Assert.assertEquals(

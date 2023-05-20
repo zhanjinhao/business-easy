@@ -84,4 +84,15 @@ public class JdbcSQLUtils {
         return value.substring(0, i);
     }
 
+    public static boolean isEmpty(CharSequence value) {
+        return value == null || value.length() == 0;
+    }
+
+    public static <T> T getOrDefault(T get, T _default) {
+        if (get == null) {
+            return _default;
+        }
+        return get;
+    }
+
 }

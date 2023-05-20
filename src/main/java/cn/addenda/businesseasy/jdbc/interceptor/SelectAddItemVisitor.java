@@ -26,18 +26,15 @@ import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- *
  * todo 不遍历where和selectItem
+ *
  * @author addenda
  * @since 2023/5/1 13:28
  */
 @Slf4j
-public class SelectResultAddItemNameVisitor extends SQLBoundVisitor<SQLSelectStatement> {
+public class SelectAddItemVisitor extends AbstractAddItemVisitor<SQLSelectStatement, String> {
 
     private static final String ITEM_KEY = "BaseEntitySelectItemList";
-
-    private final List<String> included;
-    private final List<String> notIncluded;
 
     private String masterView;
 
@@ -47,39 +44,30 @@ public class SelectResultAddItemNameVisitor extends SQLBoundVisitor<SQLSelectSta
 
     private String ambiguousInfo;
 
-    private String resultItemName;
-
-    public SelectResultAddItemNameVisitor(
-            String sql, List<String> included, List<String> notIncluded, String masterView,
-            String itemName, boolean reportAmbiguous) {
-        super(sql);
-        this.included = included;
-        this.notIncluded = notIncluded;
+    public SelectAddItemVisitor(String sql, List<String> included, List<String> notIncluded,
+                                String masterView, String itemName, boolean reportAmbiguous) {
+        super(sql, included, notIncluded);
         this.masterView = masterView;
         this.itemName = itemName;
         this.reportAmbiguous = reportAmbiguous;
     }
 
-    public SelectResultAddItemNameVisitor(
-            String sql, List<String> included, List<String> notIncluded, String masterView, String itemName) {
-        this(sql, included, notIncluded, masterView, itemName, false);
+    public SelectAddItemVisitor(String sql, String masterView, String itemName) {
+        this(sql, null, null, masterView, itemName, false);
     }
 
-    public SelectResultAddItemNameVisitor(
+    public SelectAddItemVisitor(
             SQLSelectStatement sqlSelectStatement, List<String> included, List<String> notIncluded,
             String masterView, String itemName, boolean reportAmbiguous) {
-        super(sqlSelectStatement);
-        this.included = included;
-        this.notIncluded = notIncluded;
+        super(sqlSelectStatement, included, notIncluded);
         this.masterView = masterView;
         this.itemName = itemName;
         this.reportAmbiguous = reportAmbiguous;
     }
 
-    public SelectResultAddItemNameVisitor(
-            SQLSelectStatement sqlSelectStatement, List<String> included, List<String> notIncluded,
-            String masterView, String itemName) {
-        this(sqlSelectStatement, included, notIncluded, masterView, itemName, false);
+    public SelectAddItemVisitor(
+            SQLSelectStatement sqlSelectStatement, String masterView, String itemName) {
+        this(sqlSelectStatement, null, null, masterView, itemName, false);
     }
 
     @Override
@@ -123,13 +111,13 @@ public class SelectResultAddItemNameVisitor extends SQLBoundVisitor<SQLSelectSta
                     String view = declaredTableList.get(0);
                     selectResultSelectItemList.add(new SelectResultSelectItem(SQLUtils.toSQLExpr(view + "." + sqlExpr), view + "_" + sqlExpr));
                 } else if (declaredTableList.size() > 1) {
-                    ambiguousInfo =
-                            "SQLObject: [" + DruidSQLUtils.toLowerCaseSQL(x) + "], Ambiguous identifier: [" + DruidSQLUtils.toLowerCaseSQL(sqlExpr) + "], declaredTableList: [" + declaredTableList + "].";
+                    ambiguousInfo = String.format("SQLObject: [%s], Ambiguous identifier: [%s], declaredTableList: [%s].",
+                            DruidSQLUtils.toLowerCaseSQL(x), DruidSQLUtils.toLowerCaseSQL(sqlExpr), declaredTableList);
                     selectResultSelectItemList.add(new SelectResultSelectItem(sqlExpr, sqlExpr.toString()));
                     if (reportAmbiguous) {
                         throw new JdbcException(ambiguousInfo);
                     } else {
-                        log.debug(ambiguousInfo);
+                        log.warn(ambiguousInfo);
                     }
                 } else {
                     // no-op
@@ -312,7 +300,7 @@ public class SelectResultAddItemNameVisitor extends SQLBoundVisitor<SQLSelectSta
                 // 只有当masterView注入的字段个数为1时才进行masterView改写
                 if (injected.size() == 1) {
                     injected.get(0).setAlias(itemName);
-                    resultItemName = itemName;
+                    setResult(itemName);
                 }
             }
 
@@ -356,10 +344,6 @@ public class SelectResultAddItemNameVisitor extends SQLBoundVisitor<SQLSelectSta
         return ambiguousInfo;
     }
 
-    public String getResultItemName() {
-        return resultItemName;
-    }
-
     public static class SelectResultSelectItem extends SQLSelectItem {
 
         public SelectResultSelectItem() {
@@ -389,12 +373,11 @@ public class SelectResultAddItemNameVisitor extends SQLBoundVisitor<SQLSelectSta
 
     @Override
     public String toString() {
-        return "SelectResultAddItemNameVisitor{" +
-                "included=" + included +
-                ", notIncluded=" + notIncluded +
-                ", masterView='" + masterView + '\'' +
+        return "SelectAddItemVisitor{" +
+                "masterView='" + masterView + '\'' +
                 ", reportAmbiguous=" + reportAmbiguous +
                 ", itemName='" + itemName + '\'' +
                 "} " + super.toString();
     }
+
 }

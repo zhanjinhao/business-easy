@@ -2,6 +2,7 @@ package cn.addenda.businesseasy.jdbc.baseentity;
 
 import cn.addenda.businesseasy.jdbc.SqlReader;
 import cn.addenda.businesseasy.jdbc.interceptor.DruidSQLUtils;
+import cn.addenda.businesseasy.jdbc.interceptor.UpdateItemMode;
 import cn.addenda.businesseasy.jdbc.interceptor.baseentity.BaseEntityRewriter;
 import cn.addenda.businesseasy.jdbc.interceptor.baseentity.DruidBaseEntityRewriter;
 import com.alibaba.druid.DbType;
@@ -37,7 +38,8 @@ public class DruidBaseEntityRewriterUpdateTest {
             }
             System.out.println(line + " : ------------------------------------------------------------------------------------");
             BaseEntityRewriter baseEntityRewriter = new DruidBaseEntityRewriter();
-            String s = baseEntityRewriter.rewriteUpdateSql(DruidSQLUtils.toLowerCaseSQL(sqlStatements.get(0)));
+            String s = baseEntityRewriter.rewriteUpdateSql(DruidSQLUtils.toLowerCaseSQL(sqlStatements.get(0)),
+                    UpdateItemMode.NOT_NULL, false);
             sqlStatements = SQLUtils.parseStatements(s, DbType.mysql);
             List<SQLStatement> expectSqlStatements = SQLUtils.parseStatements(expect, DbType.mysql);
             Assert.assertEquals(

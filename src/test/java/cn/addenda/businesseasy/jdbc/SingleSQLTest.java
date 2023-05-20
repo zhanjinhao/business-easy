@@ -17,7 +17,8 @@ public class SingleSQLTest {
 //        test3();
 //        test4();
 //        test5();
-        test6();
+//        test6();
+        test7();
     }
 
     private static void test1() {
@@ -68,6 +69,15 @@ public class SingleSQLTest {
             + "                 from (select * from table_listnames where if_del = 0) table_listnames\n"
             + "                 where name = 'rupert')\n"
             + "limit 1";
+
+        List<SQLStatement> sqlStatements = SQLUtils.parseStatements(sql, DbType.mysql);
+        SQLStatement sqlStatement = sqlStatements.get(0);
+        System.out.println(sqlStatement);
+    }
+
+    private static void test7() {
+        String sql = "INSERT INTO AAA (a,b,c) VALUES (1,2,3)  \n" +
+                "  ON DUPLICATE KEY UPDATE a=1, c=c+1;  ";
 
         List<SQLStatement> sqlStatements = SQLUtils.parseStatements(sql, DbType.mysql);
         SQLStatement sqlStatement = sqlStatements.get(0);

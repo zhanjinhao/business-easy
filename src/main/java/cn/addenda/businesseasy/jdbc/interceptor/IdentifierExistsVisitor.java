@@ -2,6 +2,7 @@ package cn.addenda.businesseasy.jdbc.interceptor;
 
 import cn.addenda.businesseasy.jdbc.JdbcException;
 import cn.addenda.businesseasy.jdbc.JdbcSQLUtils;
+import cn.addenda.businesseasy.util.BEArrayUtils;
 import com.alibaba.druid.sql.ast.SQLObject;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQueryBlock;
@@ -10,7 +11,6 @@ import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
@@ -41,7 +41,7 @@ public class IdentifierExistsVisitor extends AbstractIdentifierVisitor {
                                    List<String> included, List<String> notIncluded, boolean reportAmbiguous) {
         super(sql, identifier);
         this.included = included;
-        this.notIncluded = notIncluded;
+        this.notIncluded = notIncluded == null ? BEArrayUtils.asArrayList("dual") : notIncluded;
         this.reportAmbiguous = reportAmbiguous;
     }
 
@@ -49,22 +49,16 @@ public class IdentifierExistsVisitor extends AbstractIdentifierVisitor {
                                    List<String> included, List<String> notIncluded, boolean reportAmbiguous) {
         super(sql, identifier);
         this.included = included;
-        this.notIncluded = notIncluded;
+        this.notIncluded = notIncluded == null ? BEArrayUtils.asArrayList("dual") : notIncluded;
         this.reportAmbiguous = reportAmbiguous;
     }
 
     public IdentifierExistsVisitor(String sql, String identifier) {
-        super(sql, identifier);
-        this.included = null;
-        this.notIncluded = null;
-        this.reportAmbiguous = false;
+        this(sql, identifier, null, null, false);
     }
 
     public IdentifierExistsVisitor(SQLStatement sql, String identifier) {
-        super(sql, identifier);
-        this.included = null;
-        this.notIncluded = null;
-        this.reportAmbiguous = false;
+        this(sql, identifier, null, null, false);
     }
 
     @Override
@@ -112,7 +106,7 @@ public class IdentifierExistsVisitor extends AbstractIdentifierVisitor {
                     if (reportAmbiguous) {
                         throw new JdbcException(ambiguousInfo);
                     } else {
-                        log.debug(ambiguousInfo);
+                        log.warn(ambiguousInfo);
                     }
                     break;
                 }

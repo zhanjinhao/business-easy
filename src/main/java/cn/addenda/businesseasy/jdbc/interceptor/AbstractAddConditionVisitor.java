@@ -15,6 +15,7 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlASTVisitorAdapter;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -34,7 +35,7 @@ public abstract class AbstractAddConditionVisitor extends MySqlASTVisitorAdapter
 
     protected AbstractAddConditionVisitor(List<String> included, List<String> notIncluded, String condition) {
         this.included = included;
-        this.notIncluded = notIncluded;
+        this.notIncluded = notIncluded == null ? BEArrayUtils.asArrayList("dual") : notIncluded;
         this.condition = condition;
     }
 
@@ -42,11 +43,11 @@ public abstract class AbstractAddConditionVisitor extends MySqlASTVisitorAdapter
     public void endVisit(SQLExprTableSource x) {
         String aAlias = x.getAlias();
         String aTableName = x.getTableName();
-        if (included != null && !JdbcSQLUtils.include(determineTableName(aTableName, aAlias), included, notIncluded)) {
+        if (!JdbcSQLUtils.include(determineTableName(aTableName, aAlias), included, notIncluded)) {
             return;
         }
-        x.putAttribute(TABLE_NAME_KEY, BEArrayUtils.asArrayList(aTableName));
-        x.putAttribute(ALIAS_KEY, BEArrayUtils.asArrayList(aAlias));
+        addTableName(x, aTableName);
+        addAlias(x, aAlias);
     }
 
     @Override
@@ -102,6 +103,24 @@ public abstract class AbstractAddConditionVisitor extends MySqlASTVisitorAdapter
 
     protected List<String> getAliasList(SQLObject sqlObject) {
         return (List<String>) sqlObject.getAttribute(ALIAS_KEY);
+    }
+
+    protected void addTableName(SQLObject sqlObject, String tableName) {
+        List<String> attribute = (List<String>) sqlObject.getAttribute(TABLE_NAME_KEY);
+        if (attribute == null) {
+            attribute = new ArrayList<>();
+            sqlObject.putAttribute(TABLE_NAME_KEY, attribute);
+        }
+        attribute.add(tableName);
+    }
+
+    protected void addAlias(SQLObject sqlObject, String alias) {
+        List<String> attribute = (List<String>) sqlObject.getAttribute(ALIAS_KEY);
+        if (attribute == null) {
+            attribute = new ArrayList<>();
+            sqlObject.putAttribute(ALIAS_KEY, attribute);
+        }
+        attribute.add(alias);
     }
 
     protected void clear(SQLObject sqlObject) {

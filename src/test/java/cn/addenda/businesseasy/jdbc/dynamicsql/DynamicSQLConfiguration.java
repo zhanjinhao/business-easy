@@ -1,7 +1,6 @@
 package cn.addenda.businesseasy.jdbc.dynamicsql;
 
-import cn.addenda.businesseasy.jdbc.interceptor.InterceptedDataSource;
-import cn.addenda.businesseasy.jdbc.interceptor.Interceptor;
+import cn.addenda.businesseasy.jdbc.interceptor.*;
 import cn.addenda.businesseasy.jdbc.interceptor.dynamicsql.DruidDynamicSQLAssembler;
 import cn.addenda.businesseasy.jdbc.interceptor.dynamicsql.DynamicSQLInterceptor;
 import cn.addenda.businesseasy.jdbc.interceptor.lockingreads.LockingReadsInterceptor;
@@ -50,7 +49,8 @@ public class DynamicSQLConfiguration implements EmbeddedValueResolverAware {
 
         List<Interceptor> filterList = new ArrayList<>();
         filterList.add(new LockingReadsInterceptor());
-        filterList.add(new DynamicSQLInterceptor(new DruidDynamicSQLAssembler(false)));
+        filterList.add(new DynamicSQLInterceptor(new DruidDynamicSQLAssembler(), false,
+                InsertSelectAddItemMode.ITEM, UpdateItemMode.NOT_NULL, false));
         return new InterceptedDataSource(druidDataSource, filterList);
     }
 

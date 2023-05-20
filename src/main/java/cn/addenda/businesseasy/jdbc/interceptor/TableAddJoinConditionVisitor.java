@@ -2,6 +2,8 @@ package cn.addenda.businesseasy.jdbc.interceptor;
 
 import cn.addenda.businesseasy.util.BEArrayUtils;
 import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.ast.SQLObject;
+import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource.JoinType;
 import com.alibaba.druid.sql.ast.statement.SQLTableSource;
@@ -9,6 +11,7 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -20,104 +23,152 @@ import java.util.List;
 @Slf4j
 public class TableAddJoinConditionVisitor extends AbstractAddConditionVisitor {
 
-    private final boolean useSubQuery;
+    private final boolean joinUseSubQuery;
 
     private final boolean rewriteCommaToJoin;
 
     public TableAddJoinConditionVisitor(String condition) {
         super(null, null, condition);
-        this.useSubQuery = false;
+        this.joinUseSubQuery = false;
         this.rewriteCommaToJoin = true;
     }
 
     public TableAddJoinConditionVisitor(String tableName, String condition) {
         super(tableName == null ? null : BEArrayUtils.asArrayList(tableName), null, condition);
-        this.useSubQuery = false;
+        this.joinUseSubQuery = false;
         this.rewriteCommaToJoin = true;
     }
 
-    public TableAddJoinConditionVisitor(String tableName, String condition, boolean useSubQuery) {
+    public TableAddJoinConditionVisitor(String tableName, String condition, boolean joinUseSubQuery) {
         super(tableName == null ? null : BEArrayUtils.asArrayList(tableName), null, condition);
-        this.useSubQuery = useSubQuery;
+        this.joinUseSubQuery = joinUseSubQuery;
         this.rewriteCommaToJoin = true;
     }
 
     public TableAddJoinConditionVisitor(
-            List<String> included, List<String> notIncluded, String condition, boolean useSubQuery, boolean rewriteCommaToJoin) {
+            List<String> included, List<String> notIncluded, String condition, boolean joinUseSubQuery, boolean rewriteCommaToJoin) {
         super(included, notIncluded, condition);
-        this.useSubQuery = useSubQuery;
+        this.joinUseSubQuery = joinUseSubQuery;
         this.rewriteCommaToJoin = rewriteCommaToJoin;
     }
 
     @Override
     public void endVisit(SQLJoinTableSource x) {
-        SQLTableSource left = x.getLeft();
-        String leftTableName = getTableName(left);
-        String leftAlias = getAlias(left);
         JoinType joinType = x.getJoinType();
-
         if (joinType == JoinType.COMMA && rewriteCommaToJoin) {
             // A,B -> 改写为 A JOIN B
             x.setJoinType(JoinType.JOIN);
             joinType = JoinType.JOIN;
         }
 
+        SQLTableSource left = x.getLeft();
+        inherit(x, left);
+
+        String leftTableName = getTableName(left);
+        String leftAlias = getAlias(left);
         if (leftTableName != null) {
-            // A, B 场景下，只能使用子表，不能添加join条件
-            if (useSubQuery || JoinType.COMMA == joinType) {
+            if (joinUseSubQuery) {
                 SQLTableSource tableSource = newFrom(leftTableName, leftAlias);
                 log.debug("SQLObject: [{}]，旧的tableSource：[{}]，新的tableSource：[{}]。",
                         DruidSQLUtils.toLowerCaseSQL(x), DruidSQLUtils.toLowerCaseSQL(x.getLeft()), DruidSQLUtils.toLowerCaseSQL(tableSource));
                 x.setLeft(tableSource);
             } else {
-                SQLExpr condition = newWhere(x.getCondition(), leftTableName, leftAlias);
-                log.debug("SQLObject: [{}]，旧的join condition：[{}]，新的join condition：[{}]。",
-                        DruidSQLUtils.toLowerCaseSQL(x), DruidSQLUtils.toLowerCaseSQL(x.getCondition()), DruidSQLUtils.toLowerCaseSQL(condition));
-                x.setCondition(condition);
+                if (JoinType.COMMA == joinType || JoinType.LEFT_OUTER_JOIN == joinType) {
+                    // 上升到where
+                    addWhereTableName(x, leftTableName);
+                    addWhereAlias(x, leftAlias);
+                } else if (JoinType.RIGHT_OUTER_JOIN == joinType || JoinType.JOIN == joinType || JoinType.INNER_JOIN == joinType) {
+                    // 条件加在on上
+                    SQLExpr condition = newWhere(x.getCondition(), leftTableName, leftAlias);
+                    log.debug("SQLObject: [{}]，旧的join condition：[{}]，新的join condition：[{}]。",
+                            DruidSQLUtils.toLowerCaseSQL(x), DruidSQLUtils.toLowerCaseSQL(x.getCondition()), DruidSQLUtils.toLowerCaseSQL(condition));
+                    x.setCondition(condition);
+                } else {
+                    // cross join 、nature join 等其他场景，使用子查询
+                    SQLTableSource tableSource = newFrom(leftTableName, leftAlias);
+                    log.debug("SQLObject: [{}]，旧的tableSource：[{}]，新的tableSource：[{}]。",
+                            DruidSQLUtils.toLowerCaseSQL(x), DruidSQLUtils.toLowerCaseSQL(x.getLeft()), DruidSQLUtils.toLowerCaseSQL(tableSource));
+                    x.setLeft(tableSource);
+                }
             }
             clear(left);
         }
 
         SQLTableSource right = x.getRight();
+        inherit(x, right);
+
         String rightTableName = getTableName(right);
         String rightAlias = getAlias(right);
         if (rightTableName != null) {
-            // A, B 场景下，只能使用子表，不能添加join条件
-            if (useSubQuery || JoinType.COMMA == joinType) {
+            if (joinUseSubQuery) {
                 SQLTableSource tableSource = newFrom(rightTableName, rightAlias);
                 log.debug("SQLObject: [{}]，旧的tableSource：[{}]，新的tableSource：[{}]。",
                         DruidSQLUtils.toLowerCaseSQL(x), DruidSQLUtils.toLowerCaseSQL(x.getRight()), DruidSQLUtils.toLowerCaseSQL(tableSource));
                 x.setRight(tableSource);
             } else {
-                SQLExpr condition = newWhere(x.getCondition(), rightTableName, rightAlias);
-                log.debug("SQLObject: [{}]，旧的join condition：[{}]，新的join condition：[{}]。",
-                        DruidSQLUtils.toLowerCaseSQL(x), DruidSQLUtils.toLowerCaseSQL(x.getCondition()), DruidSQLUtils.toLowerCaseSQL(condition));
-                x.setCondition(condition);
+                if (JoinType.COMMA == joinType || JoinType.RIGHT_OUTER_JOIN == joinType) {
+                    // 上升到where
+                    addWhereTableName(x, rightTableName);
+                    addWhereAlias(x, rightAlias);
+                } else if (JoinType.LEFT_OUTER_JOIN == joinType || JoinType.JOIN == joinType || JoinType.INNER_JOIN == joinType) {
+                    // 条件加在on上
+                    SQLExpr condition = newWhere(x.getCondition(), rightTableName, rightAlias);
+                    log.debug("SQLObject: [{}]，旧的join condition：[{}]，新的join condition：[{}]。",
+                            DruidSQLUtils.toLowerCaseSQL(x), DruidSQLUtils.toLowerCaseSQL(x.getCondition()), DruidSQLUtils.toLowerCaseSQL(condition));
+                    x.setCondition(condition);
+                } else {
+                    // cross join 、nature join 等其他场景，使用子查询
+                    SQLTableSource tableSource = newFrom(rightTableName, rightAlias);
+                    log.debug("SQLObject: [{}]，旧的tableSource：[{}]，新的tableSource：[{}]。",
+                            DruidSQLUtils.toLowerCaseSQL(x), DruidSQLUtils.toLowerCaseSQL(x.getRight()), DruidSQLUtils.toLowerCaseSQL(tableSource));
+                    x.setRight(tableSource);
+                }
             }
             clear(right);
         }
     }
 
+    private void inherit(SQLObject x, SQLTableSource tableSource) {
+        List<String> whereRightTableNameList = getWhereTableNameList(tableSource);
+        List<String> whereRightAliasList = getWhereAliasList(tableSource);
+        if (whereRightTableNameList != null) {
+            for (int i = 0; i < whereRightTableNameList.size(); i++) {
+                addWhereTableName(x, whereRightTableNameList.get(i));
+                addWhereAlias(x, whereRightAliasList.get(i));
+            }
+        }
+    }
+
     @Override
     public void endVisit(MySqlSelectQueryBlock x) {
-        // 在 endVisit(SQLJoinTableSource x) 时处理了join场景，这里仅需要处理单表场景。
         SQLTableSource from = x.getFrom();
-        String aTableName = getTableName(from);
-        String aAlias = getAlias(from);
-        if (aTableName != null) {
-            if (useSubQuery) {
-                SQLTableSource tableSource = newFrom(aTableName, aAlias);
-                log.debug("SQLObject: [{}]，旧的tableSource：[{}]，新的tableSource：[{}]。",
-                        DruidSQLUtils.toLowerCaseSQL(x), DruidSQLUtils.toLowerCaseSQL(x.getFrom()), DruidSQLUtils.toLowerCaseSQL(tableSource));
-                x.setFrom(tableSource);
-            } else {
+
+        if (from instanceof SQLJoinTableSource) {
+            List<String> tableNameList = getWhereTableNameList(from);
+            List<String> aliasList = getWhereAliasList(from);
+            if (tableNameList != null && !tableNameList.isEmpty()) {
+                for (int i = 0; i < tableNameList.size(); i++) {
+                    String aTableName = tableNameList.get(i);
+                    String aAlias = aliasList.get(i);
+                    SQLExpr where = newWhere(x.getWhere(), aTableName, aAlias);
+                    log.debug("SQLObject: [{}]，旧的where：[{}]，新的where：[{}]。",
+                            DruidSQLUtils.toLowerCaseSQL(x), DruidSQLUtils.toLowerCaseSQL(x.getWhere()), DruidSQLUtils.toLowerCaseSQL(where));
+                    x.setWhere(where);
+                }
+            }
+        }
+        // SQLExprTableSource 处理单表场景
+        else if (from instanceof SQLExprTableSource) {
+            String aTableName = getTableName(from);
+            String aAlias = getAlias(from);
+            if (aTableName != null) {
                 SQLExpr where = newWhere(x.getWhere(), aTableName, aAlias);
                 log.debug("SQLObject: [{}]，旧的where：[{}]，新的where：[{}]。",
                         DruidSQLUtils.toLowerCaseSQL(x), DruidSQLUtils.toLowerCaseSQL(x.getWhere()), DruidSQLUtils.toLowerCaseSQL(where));
                 x.setWhere(where);
             }
-            clear(from);
         }
+        clear(from);
     }
 
     @Override
@@ -136,11 +187,41 @@ public class TableAddJoinConditionVisitor extends AbstractAddConditionVisitor {
         }
     }
 
+    private static final String WHERE_TABLE_NAME_KEY = "WHERE_TABLE_NAME_KEY";
+    private static final String WHERE_ALIAS_KEY = "WHERE_ALIAS_KEY";
+
+    protected List<String> getWhereTableNameList(SQLObject sqlObject) {
+        return (List<String>) sqlObject.getAttribute(WHERE_TABLE_NAME_KEY);
+    }
+
+    protected List<String> getWhereAliasList(SQLObject sqlObject) {
+        return (List<String>) sqlObject.getAttribute(WHERE_ALIAS_KEY);
+    }
+
+    protected void addWhereTableName(SQLObject sqlObject, String tableName) {
+        List<String> attribute = (List<String>) sqlObject.getAttribute(WHERE_TABLE_NAME_KEY);
+        if (attribute == null) {
+            attribute = new ArrayList<>();
+            sqlObject.putAttribute(WHERE_TABLE_NAME_KEY, attribute);
+        }
+        attribute.add(tableName);
+    }
+
+    protected void addWhereAlias(SQLObject sqlObject, String alias) {
+        List<String> attribute = (List<String>) sqlObject.getAttribute(WHERE_ALIAS_KEY);
+        if (attribute == null) {
+            attribute = new ArrayList<>();
+            sqlObject.putAttribute(WHERE_ALIAS_KEY, attribute);
+        }
+        attribute.add(alias);
+    }
+
     @Override
     public String toString() {
         return "TableAddJoinConditionVisitor{" +
-                "useSubQuery=" + useSubQuery +
+                "useSubQuery=" + joinUseSubQuery +
                 ", rewriteCommaToJoin=" + rewriteCommaToJoin +
                 "} " + super.toString();
     }
+
 }

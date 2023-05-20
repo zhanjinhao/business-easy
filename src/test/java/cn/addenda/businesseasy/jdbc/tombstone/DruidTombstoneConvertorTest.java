@@ -14,7 +14,7 @@ public class DruidTombstoneConvertorTest {
         String sql = "insert into A(name, age) values (a, 1)";
 //        DruidTombstoneConvertor druidTombstoneConvertor = new DruidTombstoneConvertor(Arrays.asList("B"));
         DruidTombstoneSqlRewriter druidTombstoneConvertor = new DruidTombstoneSqlRewriter();
-        String s = druidTombstoneConvertor.rewriteInsertSql(sql);
+        String s = druidTombstoneConvertor.rewriteInsertSql(sql, false);
         System.out.println(s);
     }
 
@@ -39,7 +39,7 @@ public class DruidTombstoneConvertorTest {
         String sql = "select * from (select a from A union select a from B) t";
 //        DruidTombstoneConvertor druidTombstoneConvertor = new DruidTombstoneConvertor(Arrays.asList("a", "B"));
         DruidTombstoneSqlRewriter druidTombstoneConvertor = new DruidTombstoneSqlRewriter();
-        String s = druidTombstoneConvertor.rewriteSelectSql(sql);
+        String s = druidTombstoneConvertor.rewriteSelectSql(sql, false);
         System.out.println(s);
     }
 

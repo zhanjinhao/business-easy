@@ -5,7 +5,9 @@ import cn.addenda.businesseasy.jdbc.interceptor.SelectItemIdentifierExistsVisito
 import com.alibaba.druid.DbType;
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLStatement;
+
 import java.util.List;
+
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -20,7 +22,9 @@ public class SelectItemIdentifierExistsVisitorTest {
 
     @Test
     public void test1() {
-        for (String sql : SqlReader.read("src/test/resources/selectitemidentifierexists.test", sqls)) {
+        String[] read = SqlReader.read("src/test/resources/selectitemidentifierexists.test", sqls);
+        for (int line = 0; line < read.length; line++) {
+            String sql = read[line];
             String source = sql;
             int i = source.lastIndexOf(";");
             sql = source.substring(0, i);
@@ -29,7 +33,7 @@ public class SelectItemIdentifierExistsVisitorTest {
             if (sqlStatements.size() == 0) {
                 continue;
             }
-            System.out.println("------------------------------------------------------------------------------------");
+            System.out.println(line + " : ------------------------------------------------------------------------------------");
             System.out.println();
             IdentifierExistsVisitor identifierExistsVisitor = new SelectItemIdentifierExistsVisitor(sql, "a");
             identifierExistsVisitor.visit();

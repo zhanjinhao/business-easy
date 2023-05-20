@@ -1,6 +1,8 @@
 package cn.addenda.businesseasy.jdbc.interceptor.dynamicsql;
 
+import cn.addenda.businesseasy.jdbc.interceptor.InsertSelectAddItemMode;
 import cn.addenda.businesseasy.jdbc.interceptor.Item;
+import cn.addenda.businesseasy.jdbc.interceptor.UpdateItemMode;
 
 import java.util.*;
 
@@ -15,6 +17,7 @@ public class DynamicSQLContext {
 
     public static final String ALL_TABLE = "ALL@ALL";
 
+    // todo 改成枚举
     public static final String TABLE_ADD_JOIN_CONDITION = "TABLE_ADD_JOIN_CONDITION";
     public static final String VIEW_ADD_JOIN_CONDITION = "VIEW_ADD_JOIN_CONDITION";
     public static final String TABLE_ADD_WHERE_CONDITION = "TABLE_ADD_WHERE_CONDITION";
@@ -22,8 +25,8 @@ public class DynamicSQLContext {
     public static final String INSERT_ADD_ITEM = "ITEM_ADD_ITEM";
     public static final String UPDATE_ADD_ITEM = "UPDATE_ADD_ITEM";
 
-    private static final ThreadLocal<Map<String, List<Map.Entry<String, String>>>> CONDITION_THREAD_LOCAL = ThreadLocal.withInitial(LinkedHashMap::new);
-    private static final ThreadLocal<Map<String, List<Map.Entry<String, Item>>>> ITEM_THREAD_LOCAL = ThreadLocal.withInitial(LinkedHashMap::new);
+    private static final ThreadLocal<Map<String, List<Map.Entry<String, String>>>> CONDITION_TL = ThreadLocal.withInitial(LinkedHashMap::new);
+    private static final ThreadLocal<Map<String, List<Map.Entry<String, Item>>>> ITEM_TL = ThreadLocal.withInitial(LinkedHashMap::new);
 
     public static void tableAddJoinCondition(String tableName, String condition) {
         addCondition(TABLE_ADD_JOIN_CONDITION, tableName, condition);
@@ -42,7 +45,7 @@ public class DynamicSQLContext {
     }
 
     private static void addCondition(String operation, String name, String condition) {
-        Map<String, List<Map.Entry<String, String>>> stringListMap = CONDITION_THREAD_LOCAL.get();
+        Map<String, List<Map.Entry<String, String>>> stringListMap = CONDITION_TL.get();
         if (name == null) {
             name = DynamicSQLContext.ALL_TABLE;
         }
@@ -60,7 +63,7 @@ public class DynamicSQLContext {
     }
 
     private static void addItem(String operation, String name, String itemName, Object itemValue) {
-        Map<String, List<Map.Entry<String, Item>>> stringListMap = ITEM_THREAD_LOCAL.get();
+        Map<String, List<Map.Entry<String, Item>>> stringListMap = ITEM_TL.get();
         if (name == null) {
             name = DynamicSQLContext.ALL_TABLE;
         }
@@ -70,19 +73,79 @@ public class DynamicSQLContext {
     }
 
     public static Map<String, List<Map.Entry<String, String>>> getConditionMap() {
-        return CONDITION_THREAD_LOCAL.get();
+        return CONDITION_TL.get();
     }
 
     public static Map<String, List<Map.Entry<String, Item>>> getItemMap() {
-        return ITEM_THREAD_LOCAL.get();
+        return ITEM_TL.get();
+    }
+
+    private static final ThreadLocal<Boolean> JOIN_USE_SUB_QUERY_TL = ThreadLocal.withInitial(() -> null);
+
+    public static void setJoinUseSubQuery(boolean flag) {
+        JOIN_USE_SUB_QUERY_TL.set(flag);
+    }
+
+    public static Boolean getJoinUseSubQuery() {
+        return JOIN_USE_SUB_QUERY_TL.get();
+    }
+
+    public static void clearJoinUseSubQuery() {
+        JOIN_USE_SUB_QUERY_TL.remove();
+    }
+
+    private static final ThreadLocal<Boolean> DUPLICATE_KEY_UPDATE_TL = ThreadLocal.withInitial(() -> null);
+
+    public static void setDuplicateKeyUpdate(boolean flag) {
+        DUPLICATE_KEY_UPDATE_TL.set(flag);
+    }
+
+    public static Boolean getDuplicateKeyUpdate() {
+        return DUPLICATE_KEY_UPDATE_TL.get();
+    }
+
+    public static void clearDuplicateKeyUpdate() {
+        DUPLICATE_KEY_UPDATE_TL.remove();
+    }
+
+    private static final ThreadLocal<InsertSelectAddItemMode> INSERT_SELECT_ADD_ITEM_MODE_TL = ThreadLocal.withInitial(() -> null);
+
+    public static void setInsertSelectAddItemMode(InsertSelectAddItemMode flag) {
+        INSERT_SELECT_ADD_ITEM_MODE_TL.set(flag);
+    }
+
+    public static InsertSelectAddItemMode getInsertSelectAddItemMode() {
+        return INSERT_SELECT_ADD_ITEM_MODE_TL.get();
+    }
+
+    public static void clearInsertSelectAddItemMode() {
+        INSERT_SELECT_ADD_ITEM_MODE_TL.remove();
+    }
+
+    private static final ThreadLocal<UpdateItemMode> UPDATE_ITEM_MODE_TL = ThreadLocal.withInitial(() -> null);
+
+    public static void setUpdateItemMode(UpdateItemMode flag) {
+        UPDATE_ITEM_MODE_TL.set(flag);
+    }
+
+    public static UpdateItemMode getUpdateItemMode() {
+        return UPDATE_ITEM_MODE_TL.get();
+    }
+
+    public static void clearUpdateItemMode() {
+        UPDATE_ITEM_MODE_TL.remove();
     }
 
     public static void clearCondition() {
-        CONDITION_THREAD_LOCAL.remove();
+        CONDITION_TL.remove();
+        clearJoinUseSubQuery();
     }
 
     public static void clearItem() {
-        ITEM_THREAD_LOCAL.remove();
+        ITEM_TL.remove();
+        clearInsertSelectAddItemMode();
+        clearDuplicateKeyUpdate();
+        clearUpdateItemMode();
     }
 
     public static void clear() {

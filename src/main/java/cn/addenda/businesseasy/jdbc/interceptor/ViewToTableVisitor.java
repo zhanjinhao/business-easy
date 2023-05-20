@@ -159,21 +159,19 @@ public class ViewToTableVisitor extends MySqlASTVisitorAdapter {
     }
 
     @Override
+    public boolean visit(SQLSelectQueryBlock x) {
+        return !checkVisited(x);
+    }
+
+    @Override
     public void endVisit(SQLSelectQueryBlock x) {
-        if (checkVisited(x)) {
-            return;
-        }
         Map<String, String> viewToTableMap = getViewToTableMap(x.getFrom());
         baseEndVisit(x, viewToTableMap);
     }
 
-    private boolean checkVisited(SQLObject x) {
-        Object visited = x.getAttribute("visited");
-        if (visited == null) {
-            x.putAttribute("visited", true);
-            return false;
-        }
-        return true;
+    @Override
+    public boolean visit(MySqlUpdateStatement x) {
+        return !checkVisited(x);
     }
 
     @Override
@@ -186,6 +184,11 @@ public class ViewToTableVisitor extends MySqlASTVisitorAdapter {
     }
 
     @Override
+    public boolean visit(MySqlDeleteStatement x) {
+        return !checkVisited(x);
+    }
+
+    @Override
     public void endVisit(MySqlDeleteStatement x) {
         if (checkVisited(x)) {
             return;
@@ -195,10 +198,12 @@ public class ViewToTableVisitor extends MySqlASTVisitorAdapter {
     }
 
     @Override
+    public boolean visit(MySqlInsertStatement x) {
+        return !checkVisited(x);
+    }
+
+    @Override
     public void endVisit(MySqlInsertStatement x) {
-        if (checkVisited(x)) {
-            return;
-        }
         Map<String, String> viewToTableMap = getViewToTableMap(x.getTableSource());
         baseEndVisit(x, viewToTableMap);
     }
@@ -209,6 +214,16 @@ public class ViewToTableVisitor extends MySqlASTVisitorAdapter {
             x.putAttribute(VIEW_TO_TABLE_KEY, map);
             log.debug("SQLObject: [{}], viewToTableMap: [{}].", DruidSQLUtils.toLowerCaseSQL(x), map);
         }
+    }
+
+    private boolean checkVisited(SQLObject x) {
+        Object visited = x.getAttribute("visited");
+        if (visited == null) {
+            x.putAttribute("visited", true);
+            return false;
+        }
+        log.debug("SQLObject: [{}] 已经visit过，如果AST发生变更，请输出为SQL并重新生成AST后visit。", DruidSQLUtils.toLowerCaseSQL(x));
+        return true;
     }
 
     public static Map<String, String> getViewToTableMap(SQLObject sqlObject) {

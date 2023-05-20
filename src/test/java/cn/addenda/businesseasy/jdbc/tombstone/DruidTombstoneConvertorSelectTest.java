@@ -35,9 +35,12 @@ public class DruidTombstoneConvertorSelectTest {
                 continue;
             }
             System.out.println(line + " : ------------------------------------------------------------------------------------");
-            DruidTombstoneSqlRewriter druidTombstoneSqlRewriter = new DruidTombstoneSqlRewriter(null, false, false, false);
-            String s = druidTombstoneSqlRewriter.rewriteSelectSql(DruidSQLUtils.toLowerCaseSQL(sqlStatements.get(0)));
+            DruidTombstoneSqlRewriter druidTombstoneSqlRewriter = new DruidTombstoneSqlRewriter();
+            String s = druidTombstoneSqlRewriter.rewriteSelectSql(DruidSQLUtils.toLowerCaseSQL(sqlStatements.get(0)), true);
             sqlStatements = SQLUtils.parseStatements(s, DbType.mysql);
+
+            System.out.println("actual: " + s);
+            System.out.println("expect: " + expect);
             List<SQLStatement> expectSqlStatements = SQLUtils.parseStatements(expect, DbType.mysql);
 //            Assert.assertEquals(DruidSQLUtils.toLowerCaseSQL(expectSqlStatements.get(0)).replaceAll("\\s+", ""),
 //                DruidSQLUtils.toLowerCaseSQL(sqlStatements.get(0)).replaceAll("\\s+", ""));
