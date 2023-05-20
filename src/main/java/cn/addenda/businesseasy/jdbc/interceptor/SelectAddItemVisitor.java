@@ -71,7 +71,7 @@ public class SelectAddItemVisitor extends AbstractAddItemVisitor<SQLSelectStatem
 
     @Override
     public SQLSelectStatement visitAndOutputAst() {
-        sqlStatement.accept(new ViewToTableVisitor());
+        sqlStatement.accept(ViewToTableVisitor.getInstance());
         sqlStatement.accept(this);
         return sqlStatement;
     }

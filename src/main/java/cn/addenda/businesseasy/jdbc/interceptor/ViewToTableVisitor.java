@@ -39,8 +39,21 @@ public class ViewToTableVisitor extends MySqlASTVisitorAdapter {
 
     public static final String VIEW_TO_TABLE_KEY = "view_to_table_key";
 
-    public ViewToTableVisitor() {
-        // todo: 单例
+    private ViewToTableVisitor() {
+    }
+
+    private volatile static ViewToTableVisitor INSTANCE;
+
+    public static ViewToTableVisitor getInstance() {
+        if (INSTANCE != null) {
+            return INSTANCE;
+        }
+        synchronized (ViewToTableVisitor.class) {
+            if (INSTANCE == null) {
+                INSTANCE = new ViewToTableVisitor();
+            }
+        }
+        return INSTANCE;
     }
 
     /**

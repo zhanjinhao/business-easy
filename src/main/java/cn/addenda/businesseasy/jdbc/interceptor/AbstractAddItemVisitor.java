@@ -41,7 +41,7 @@ public abstract class AbstractAddItemVisitor<T extends SQLStatement, R> extends 
 
     @Override
     public T visitAndOutputAst() {
-        sqlStatement.accept(new ViewToTableVisitor());
+        sqlStatement.accept(ViewToTableVisitor.getInstance());
         sqlStatement.accept(this);
         return sqlStatement;
     }

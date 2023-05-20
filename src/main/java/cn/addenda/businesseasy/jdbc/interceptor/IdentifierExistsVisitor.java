@@ -63,7 +63,7 @@ public class IdentifierExistsVisitor extends AbstractIdentifierVisitor {
 
     @Override
     public SQLStatement visitAndOutputAst() {
-        sqlStatement.accept(new ViewToTableVisitor());
+        sqlStatement.accept(ViewToTableVisitor.getInstance());
         sqlStatement.accept(this);
         return sqlStatement;
     }

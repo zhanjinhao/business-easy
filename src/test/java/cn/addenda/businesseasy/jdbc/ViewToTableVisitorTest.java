@@ -23,7 +23,7 @@ public class ViewToTableVisitorTest {
             List<SQLStatement> sqlStatements = SQLUtils.parseStatements(sql, DbType.mysql);
             SQLStatement sqlStatement = sqlStatements.get(0);
             System.out.println(sql);
-            sqlStatement.accept(new ViewToTableVisitor());
+            sqlStatement.accept(ViewToTableVisitor.getInstance());
         }
     }
 
