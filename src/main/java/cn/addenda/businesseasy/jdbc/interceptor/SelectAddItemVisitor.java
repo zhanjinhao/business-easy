@@ -6,6 +6,7 @@ import cn.addenda.businesseasy.util.BEArrayUtils;
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLObject;
+import com.alibaba.druid.sql.ast.expr.*;
 import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLSelect;
@@ -26,8 +27,6 @@ import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * todo 不遍历where和selectItem
- *
  * @author addenda
  * @since 2023/5/1 13:28
  */
@@ -328,6 +327,36 @@ public class SelectAddItemVisitor extends AbstractAddItemVisitor<SQLSelectStatem
 
     @Override
     public void endVisit(SQLValuesQuery x) {
+    }
+
+    @Override
+    public boolean visit(SQLSelectItem x) {
+        return false;
+    }
+
+    @Override
+    public boolean visit(SQLBinaryOpExpr x) {
+        return false;
+    }
+
+    @Override
+    public boolean visit(SQLExistsExpr x) {
+        return false;
+    }
+
+    @Override
+    public boolean visit(SQLInSubQueryExpr x) {
+        return false;
+    }
+
+    @Override
+    public boolean visit(SQLContainsExpr x) {
+        return false;
+    }
+
+    @Override
+    public boolean visit(SQLBetweenExpr x) {
+        return false;
     }
 
     private List<SelectResultSelectItem> getItemList(SQLObject sqlObject) {

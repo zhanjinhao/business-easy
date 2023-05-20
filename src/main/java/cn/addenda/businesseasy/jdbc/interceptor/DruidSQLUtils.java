@@ -78,6 +78,7 @@ public class DruidSQLUtils extends SQLUtils {
         } else if (o instanceof Number) {
             return new SQLNumberExpr((Number) o);
         } else if (o instanceof CharSequence) {
+            // todo 支持函数的集合
             String text = String.valueOf(o);
             if (text.length() >= 3 && JdbcSQLUtils.isCurd(text, "now")) {
                 SQLExpr param = objectToSQLExpr(Integer.valueOf(text.substring(4, text.length() - 1)));

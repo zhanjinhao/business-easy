@@ -37,7 +37,8 @@ public class DruidBaseEntityRewriter extends AbstractBaseEntityRewriter {
                 String fieldName = INSERT_FIELD_NAME_LIST.get(i);
                 Item item = new Item(columnName, baseEntitySource.get(fieldName));
                 new InsertAddItemVisitor((MySqlInsertStatement) sqlStatement, included, notIncluded,
-                        item, reportItemNameExists, insertSelectAddItemMode, duplicateKeyUpdate, updateItemMode).visit();
+                        item, reportItemNameExists, insertSelectAddItemMode,
+                        duplicateKeyUpdate && UPDATE_FIELD_NAME_LIST.contains(fieldName), updateItemMode).visit();
             }
 
             return DruidSQLUtils.toLowerCaseSQL(sqlStatement);

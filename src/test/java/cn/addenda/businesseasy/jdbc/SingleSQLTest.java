@@ -18,7 +18,9 @@ public class SingleSQLTest {
 //        test4();
 //        test5();
 //        test6();
-        test7();
+//        test7();
+//        test8();
+        test9();
     }
 
     private static void test1() {
@@ -78,6 +80,24 @@ public class SingleSQLTest {
     private static void test7() {
         String sql = "INSERT INTO AAA (a,b,c) VALUES (1,2,3)  \n" +
                 "  ON DUPLICATE KEY UPDATE a=1, c=c+1;  ";
+
+        List<SQLStatement> sqlStatements = SQLUtils.parseStatements(sql, DbType.mysql);
+        SQLStatement sqlStatement = sqlStatements.get(0);
+        System.out.println(sqlStatement);
+    }
+
+    private static void test8() {
+        // SQLInList
+        String sql = "select * from a where a in ('a', 'b')";
+
+        List<SQLStatement> sqlStatements = SQLUtils.parseStatements(sql, DbType.mysql);
+        SQLStatement sqlStatement = sqlStatements.get(0);
+        System.out.println(sqlStatement);
+    }
+
+    private static void test9() {
+        // SQLInList
+        String sql = "select * from a where a in (select 'a' from dual, select 'b' from dual) group by a having count(a) > 1";
 
         List<SQLStatement> sqlStatements = SQLUtils.parseStatements(sql, DbType.mysql);
         SQLStatement sqlStatement = sqlStatements.get(0);
