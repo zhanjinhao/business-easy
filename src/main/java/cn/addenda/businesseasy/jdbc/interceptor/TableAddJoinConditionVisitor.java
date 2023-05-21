@@ -11,7 +11,6 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -129,13 +128,11 @@ public class TableAddJoinConditionVisitor extends AbstractAddConditionVisitor {
     }
 
     private void inherit(SQLObject x, SQLTableSource tableSource) {
-        List<String> whereRightTableNameList = getWhereTableNameList(tableSource);
-        List<String> whereRightAliasList = getWhereAliasList(tableSource);
-        if (whereRightTableNameList != null) {
-            for (int i = 0; i < whereRightTableNameList.size(); i++) {
-                addWhereTableName(x, whereRightTableNameList.get(i));
-                addWhereAlias(x, whereRightAliasList.get(i));
-            }
+        String whereRightTableName = getWhereTableName(tableSource);
+        String whereRightAlias = getWhereAlias(tableSource);
+        if (whereRightTableName != null) {
+            addWhereTableName(x, whereRightTableName);
+            addWhereAlias(x, whereRightAlias);
         }
     }
 
@@ -144,17 +141,13 @@ public class TableAddJoinConditionVisitor extends AbstractAddConditionVisitor {
         SQLTableSource from = x.getFrom();
 
         if (from instanceof SQLJoinTableSource) {
-            List<String> tableNameList = getWhereTableNameList(from);
-            List<String> aliasList = getWhereAliasList(from);
-            if (tableNameList != null && !tableNameList.isEmpty()) {
-                for (int i = 0; i < tableNameList.size(); i++) {
-                    String aTableName = tableNameList.get(i);
-                    String aAlias = aliasList.get(i);
-                    SQLExpr where = newWhere(x.getWhere(), aTableName, aAlias);
-                    log.debug("SQLObject: [{}]，旧的where：[{}]，新的where：[{}]。",
-                            DruidSQLUtils.toLowerCaseSQL(x), DruidSQLUtils.toLowerCaseSQL(x.getWhere()), DruidSQLUtils.toLowerCaseSQL(where));
-                    x.setWhere(where);
-                }
+            String whereTableName = getWhereTableName(from);
+            String whereAlias = getWhereAlias(from);
+            if (whereTableName != null) {
+                SQLExpr where = newWhere(x.getWhere(), whereTableName, whereAlias);
+                log.debug("SQLObject: [{}]，旧的where：[{}]，新的where：[{}]。",
+                        DruidSQLUtils.toLowerCaseSQL(x), DruidSQLUtils.toLowerCaseSQL(x.getWhere()), DruidSQLUtils.toLowerCaseSQL(where));
+                x.setWhere(where);
             }
         }
         // SQLExprTableSource 处理单表场景
@@ -190,30 +183,20 @@ public class TableAddJoinConditionVisitor extends AbstractAddConditionVisitor {
     private static final String WHERE_TABLE_NAME_KEY = "WHERE_TABLE_NAME_KEY";
     private static final String WHERE_ALIAS_KEY = "WHERE_ALIAS_KEY";
 
-    protected List<String> getWhereTableNameList(SQLObject sqlObject) {
-        return (List<String>) sqlObject.getAttribute(WHERE_TABLE_NAME_KEY);
+    protected String getWhereTableName(SQLObject sqlObject) {
+        return (String) sqlObject.getAttribute(WHERE_TABLE_NAME_KEY);
     }
 
-    protected List<String> getWhereAliasList(SQLObject sqlObject) {
-        return (List<String>) sqlObject.getAttribute(WHERE_ALIAS_KEY);
+    protected String getWhereAlias(SQLObject sqlObject) {
+        return (String) sqlObject.getAttribute(WHERE_ALIAS_KEY);
     }
 
     protected void addWhereTableName(SQLObject sqlObject, String tableName) {
-        List<String> attribute = (List<String>) sqlObject.getAttribute(WHERE_TABLE_NAME_KEY);
-        if (attribute == null) {
-            attribute = new ArrayList<>();
-            sqlObject.putAttribute(WHERE_TABLE_NAME_KEY, attribute);
-        }
-        attribute.add(tableName);
+        sqlObject.putAttribute(WHERE_TABLE_NAME_KEY, tableName);
     }
 
     protected void addWhereAlias(SQLObject sqlObject, String alias) {
-        List<String> attribute = (List<String>) sqlObject.getAttribute(WHERE_ALIAS_KEY);
-        if (attribute == null) {
-            attribute = new ArrayList<>();
-            sqlObject.putAttribute(WHERE_ALIAS_KEY, attribute);
-        }
-        attribute.add(alias);
+        sqlObject.putAttribute(WHERE_ALIAS_KEY, alias);
     }
 
     @Override

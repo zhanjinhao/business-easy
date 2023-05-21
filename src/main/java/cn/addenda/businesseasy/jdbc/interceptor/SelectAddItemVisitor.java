@@ -144,6 +144,9 @@ public class SelectAddItemVisitor extends AbstractAddItemVisitor<SQLSelectStatem
         selectResultSelectItemList.add(
                 new SelectResultSelectItem(SQLUtils.toSQLExpr(view + "." + itemName), view + "_" + itemName));
         putItemList(x, selectResultSelectItemList);
+
+        addMasterTableName(x, tableName);
+        addMasterAlias(x, alias);
     }
 
     @Override
@@ -163,8 +166,11 @@ public class SelectAddItemVisitor extends AbstractAddItemVisitor<SQLSelectStatem
 
     @Override
     public void endVisit(SQLJoinTableSource x) {
+        inherit(x);
+
         SQLTableSource left = x.getLeft();
         SQLTableSource right = x.getRight();
+
         List<SelectResultSelectItem> selectResultSelectItemList = new ArrayList<>();
         List<SelectResultSelectItem> leftSelectResultSelectItemList = getItemList(left);
         if (leftSelectResultSelectItemList != null) {
@@ -176,7 +182,6 @@ public class SelectAddItemVisitor extends AbstractAddItemVisitor<SQLSelectStatem
         }
         putItemList(x, selectResultSelectItemList);
     }
-
 
     @Override
     public void endVisit(SQLUnionQueryTableSource x) {
@@ -283,7 +288,11 @@ public class SelectAddItemVisitor extends AbstractAddItemVisitor<SQLSelectStatem
                     SQLUnionQueryTableSource sqlUnionQueryTableSource = (SQLUnionQueryTableSource) from;
                     masterView = sqlUnionQueryTableSource.getAlias();
                 } else if (from instanceof SQLJoinTableSource) {
-                    // todo left join/right join 取主表作为masterView
+                    String masterTableName = getMasterTableName(from);
+                    String masterAlias = getMasterAlias(from);
+                    if (masterTableName != null) {
+                        masterView = masterAlias == null ? masterTableName : masterAlias;
+                    }
                 }
             }
 
@@ -323,6 +332,50 @@ public class SelectAddItemVisitor extends AbstractAddItemVisitor<SQLSelectStatem
             putItemList(select, new ArrayList<>(itemList));
         }
         depth--;
+    }
+
+    private static final String MASTER_TABLE_NAME_KEY = "MASTER_TABLE_NAME_KEY";
+    private static final String MASTER_ALIAS_KEY = "MASTER_ALIAS_KEY";
+
+    protected String getMasterTableName(SQLObject sqlObject) {
+        return (String) sqlObject.getAttribute(MASTER_TABLE_NAME_KEY);
+    }
+
+    protected String getMasterAlias(SQLObject sqlObject) {
+        return (String) sqlObject.getAttribute(MASTER_ALIAS_KEY);
+    }
+
+    protected void addMasterTableName(SQLObject sqlObject, String tableName) {
+        if (tableName != null) {
+            sqlObject.putAttribute(MASTER_TABLE_NAME_KEY, tableName);
+        }
+    }
+
+    protected void addMasterAlias(SQLObject sqlObject, String alias) {
+        if (alias != null) {
+            sqlObject.putAttribute(MASTER_ALIAS_KEY, alias);
+        }
+    }
+
+    private void inherit(SQLObject x, SQLTableSource tableSource) {
+        String whereRightTableName = getMasterTableName(tableSource);
+        String whereRightAlias = getMasterAlias(tableSource);
+        if (whereRightTableName != null) {
+            addMasterTableName(x, whereRightTableName);
+            addMasterAlias(x, whereRightAlias);
+        }
+    }
+
+    private void inherit(SQLJoinTableSource x) {
+        SQLTableSource left = x.getLeft();
+        SQLTableSource right = x.getRight();
+
+        SQLJoinTableSource.JoinType joinType = x.getJoinType();
+        if (SQLJoinTableSource.JoinType.LEFT_OUTER_JOIN == joinType) {
+            inherit(x, left);
+        } else if (SQLJoinTableSource.JoinType.RIGHT_OUTER_JOIN == joinType) {
+            inherit(x, right);
+        }
     }
 
     @Override
