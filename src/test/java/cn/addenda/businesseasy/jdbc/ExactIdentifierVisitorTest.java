@@ -1,6 +1,6 @@
 package cn.addenda.businesseasy.jdbc;
 
-import cn.addenda.businesseasy.jdbc.interceptor.ExactIdentifierVisitor;
+import cn.addenda.businesseasy.jdbc.visitor.identifier.ExactIdentifierVisitor;
 import com.alibaba.druid.DbType;
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLStatement;

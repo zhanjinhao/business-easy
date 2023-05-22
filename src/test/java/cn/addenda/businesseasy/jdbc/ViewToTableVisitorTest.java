@@ -1,6 +1,6 @@
 package cn.addenda.businesseasy.jdbc;
 
-import cn.addenda.businesseasy.jdbc.interceptor.ViewToTableVisitor;
+import cn.addenda.businesseasy.jdbc.visitor.ViewToTableVisitor;
 import com.alibaba.druid.DbType;
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLStatement;

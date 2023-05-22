@@ -1,7 +1,7 @@
 package cn.addenda.businesseasy.jdbc;
 
-import cn.addenda.businesseasy.jdbc.interceptor.IdentifierExistsVisitor;
-import cn.addenda.businesseasy.jdbc.interceptor.InsertOrUpdateItemNameIdentifierExistsVisitor;
+import cn.addenda.businesseasy.jdbc.visitor.identifier.IdentifierExistsVisitor;
+import cn.addenda.businesseasy.jdbc.visitor.identifier.InsertOrUpdateItemNameIdentifierExistsVisitor;
 import com.alibaba.druid.DbType;
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLStatement;

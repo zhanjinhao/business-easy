@@ -4,6 +4,8 @@ import cn.addenda.businesseasy.jdbc.interceptor.*;
 import cn.addenda.businesseasy.jdbc.interceptor.dynamicsql.DruidDynamicSQLAssembler;
 import cn.addenda.businesseasy.jdbc.interceptor.dynamicsql.DynamicSQLInterceptor;
 import cn.addenda.businesseasy.jdbc.interceptor.lockingreads.LockingReadsInterceptor;
+import cn.addenda.businesseasy.jdbc.visitor.additem.InsertSelectAddItemMode;
+import cn.addenda.businesseasy.jdbc.visitor.additem.UpdateItemMode;
 import com.alibaba.druid.pool.DruidDataSource;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.SqlSessionFactoryBean;

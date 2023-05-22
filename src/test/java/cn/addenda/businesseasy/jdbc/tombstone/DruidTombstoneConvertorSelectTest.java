@@ -1,7 +1,7 @@
 package cn.addenda.businesseasy.jdbc.tombstone;
 
 import cn.addenda.businesseasy.jdbc.SqlReader;
-import cn.addenda.businesseasy.jdbc.interceptor.DruidSQLUtils;
+import cn.addenda.businesseasy.jdbc.DruidSQLUtils;
 import cn.addenda.businesseasy.jdbc.interceptor.tombstone.DruidTombstoneSqlRewriter;
 import com.alibaba.druid.DbType;
 import com.alibaba.druid.sql.SQLUtils;

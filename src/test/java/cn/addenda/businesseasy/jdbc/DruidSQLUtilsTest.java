@@ -1,6 +1,5 @@
 package cn.addenda.businesseasy.jdbc;
 
-import cn.addenda.businesseasy.jdbc.interceptor.DruidSQLUtils;
 import com.alibaba.druid.DbType;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLStatement;

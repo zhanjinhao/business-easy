@@ -1,7 +1,7 @@
 package cn.addenda.businesseasy.jdbc.interceptor.sqlcheck;
 
-import cn.addenda.businesseasy.jdbc.interceptor.ExactIdentifierVisitor;
-import cn.addenda.businesseasy.jdbc.interceptor.SelectItemStarExistsVisitor;
+import cn.addenda.businesseasy.jdbc.visitor.identifier.ExactIdentifierVisitor;
+import cn.addenda.businesseasy.jdbc.visitor.identifier.SelectItemStarExistsVisitor;
 
 /**
  * @author addenda

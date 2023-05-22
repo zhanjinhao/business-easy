@@ -1,6 +1,5 @@
-package cn.addenda.businesseasy.jdbc.interceptor;
+package cn.addenda.businesseasy.jdbc;
 
-import cn.addenda.businesseasy.jdbc.JdbcSQLUtils;
 import cn.addenda.businesseasy.util.BEArrayUtils;
 import cn.addenda.businesseasy.util.BEDateUtils;
 import com.alibaba.druid.DbType;

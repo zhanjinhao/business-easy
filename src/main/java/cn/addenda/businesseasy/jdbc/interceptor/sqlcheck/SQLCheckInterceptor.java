@@ -2,7 +2,6 @@ package cn.addenda.businesseasy.jdbc.interceptor.sqlcheck;
 
 import cn.addenda.businesseasy.jdbc.JdbcSQLUtils;
 import cn.addenda.businesseasy.jdbc.interceptor.ConnectionPrepareStatementInterceptor;
-import cn.addenda.businesseasy.jdbc.interceptor.DruidSQLUtils;
 
 /**
  * - 返回值为*或tableName.*检测 <br/>

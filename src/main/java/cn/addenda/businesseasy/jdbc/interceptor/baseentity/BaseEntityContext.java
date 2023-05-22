@@ -1,7 +1,7 @@
 package cn.addenda.businesseasy.jdbc.interceptor.baseentity;
 
-import cn.addenda.businesseasy.jdbc.interceptor.InsertSelectAddItemMode;
-import cn.addenda.businesseasy.jdbc.interceptor.UpdateItemMode;
+import cn.addenda.businesseasy.jdbc.visitor.additem.InsertSelectAddItemMode;
+import cn.addenda.businesseasy.jdbc.visitor.additem.UpdateItemMode;
 
 /**
  * @author addenda

@@ -1,6 +1,6 @@
 package cn.addenda.businesseasy.jdbc.interceptor.tombstone;
 
-import cn.addenda.businesseasy.jdbc.interceptor.Item;
+import cn.addenda.businesseasy.jdbc.visitor.additem.Item;
 
 import java.util.List;
 

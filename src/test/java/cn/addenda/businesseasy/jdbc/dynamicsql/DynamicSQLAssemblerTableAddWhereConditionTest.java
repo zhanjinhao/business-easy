@@ -1,7 +1,7 @@
 package cn.addenda.businesseasy.jdbc.dynamicsql;
 
 import cn.addenda.businesseasy.jdbc.SqlReader;
-import cn.addenda.businesseasy.jdbc.interceptor.DruidSQLUtils;
+import cn.addenda.businesseasy.jdbc.DruidSQLUtils;
 import cn.addenda.businesseasy.jdbc.interceptor.dynamicsql.DruidDynamicSQLAssembler;
 import cn.addenda.businesseasy.jdbc.interceptor.dynamicsql.DynamicSQLAssembler;
 import com.alibaba.druid.DbType;

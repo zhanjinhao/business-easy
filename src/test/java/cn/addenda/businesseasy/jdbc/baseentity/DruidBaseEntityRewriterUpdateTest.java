@@ -1,8 +1,8 @@
 package cn.addenda.businesseasy.jdbc.baseentity;
 
 import cn.addenda.businesseasy.jdbc.SqlReader;
-import cn.addenda.businesseasy.jdbc.interceptor.DruidSQLUtils;
-import cn.addenda.businesseasy.jdbc.interceptor.UpdateItemMode;
+import cn.addenda.businesseasy.jdbc.DruidSQLUtils;
+import cn.addenda.businesseasy.jdbc.visitor.additem.UpdateItemMode;
 import cn.addenda.businesseasy.jdbc.interceptor.baseentity.BaseEntityRewriter;
 import cn.addenda.businesseasy.jdbc.interceptor.baseentity.DruidBaseEntityRewriter;
 import com.alibaba.druid.DbType;
