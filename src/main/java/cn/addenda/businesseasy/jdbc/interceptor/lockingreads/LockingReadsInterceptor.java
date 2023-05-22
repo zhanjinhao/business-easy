@@ -18,11 +18,13 @@ public class LockingReadsInterceptor extends ConnectionPrepareStatementIntercept
     }
 
     protected String process(String sql) {
-        log.debug("Locking Reads, before sql rewriting: [{}].", removeEnter(sql));
         String lock = LockingReadsContext.getLock();
         if (lock == null) {
-            // no-op
-        } else if (LockingReadsContext.R_LOCK.equals(lock)) {
+            return sql;
+        }
+
+        log.debug("Locking Reads, before sql rewriting: [{}].", removeEnter(sql));
+        if (LockingReadsContext.R_LOCK.equals(lock)) {
             sql = sql + " lock in share mode";
         } else if (LockingReadsContext.W_LOCK.equals(lock)) {
             sql = sql + " for update";
