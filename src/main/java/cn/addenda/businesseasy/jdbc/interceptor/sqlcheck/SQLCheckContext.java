@@ -9,36 +9,50 @@ public class SQLCheckContext {
     private SQLCheckContext() {
     }
 
-    private static final ThreadLocal<Boolean> CHECK_ALL_COLUMN_THREAD_LOCAL = ThreadLocal.withInitial(() -> true);
-    private static final ThreadLocal<Boolean> CHECK_EXACT_IDENTIFIER_THREAD_LOCAL = ThreadLocal.withInitial(() -> true);
+    private static final ThreadLocal<Boolean> CHECK_ALL_COLUMN_TL = ThreadLocal.withInitial(() -> null);
+    private static final ThreadLocal<Boolean> CHECK_EXACT_IDENTIFIER_TL = ThreadLocal.withInitial(() -> null);
+    private static final ThreadLocal<Boolean> CHECK_DML_CONDITION_TL = ThreadLocal.withInitial(() -> null);
 
     public static void setCheckAllColumn(boolean check) {
-        CHECK_ALL_COLUMN_THREAD_LOCAL.set(check);
+        CHECK_ALL_COLUMN_TL.set(check);
     }
 
     public static void setCheckExactIdentifier(boolean check) {
-        CHECK_EXACT_IDENTIFIER_THREAD_LOCAL.set(check);
+        CHECK_EXACT_IDENTIFIER_TL.set(check);
     }
 
-    public static boolean getCheckAllColumn() {
-        return CHECK_ALL_COLUMN_THREAD_LOCAL.get();
+    public static void setCheckDmlCondition(boolean check) {
+        CHECK_DML_CONDITION_TL.set(check);
     }
 
-    public static boolean getCheckExactIdentifier() {
-        return CHECK_EXACT_IDENTIFIER_THREAD_LOCAL.get();
+    public static Boolean getCheckAllColumn() {
+        return CHECK_ALL_COLUMN_TL.get();
+    }
+
+    public static Boolean getCheckExactIdentifier() {
+        return CHECK_EXACT_IDENTIFIER_TL.get();
+    }
+
+    public static Boolean getCheckDmlCondition() {
+        return CHECK_DML_CONDITION_TL.get();
     }
 
     public static void clearCheckAllColumn() {
-        CHECK_ALL_COLUMN_THREAD_LOCAL.remove();
+        CHECK_ALL_COLUMN_TL.remove();
     }
 
     public static void clearCheckExactIdentifier() {
-        CHECK_EXACT_IDENTIFIER_THREAD_LOCAL.remove();
+        CHECK_EXACT_IDENTIFIER_TL.remove();
+    }
+
+    public static void clearCheckDmlCondition() {
+        CHECK_DML_CONDITION_TL.remove();
     }
 
     public static void clear() {
         clearCheckAllColumn();
         clearCheckExactIdentifier();
+        clearCheckDmlCondition();
     }
 
 }

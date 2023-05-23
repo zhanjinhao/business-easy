@@ -1,4 +1,4 @@
-package cn.addenda.businesseasy.jdbc.visitor.additem;
+package cn.addenda.businesseasy.jdbc.visitor.item;
 
 import lombok.*;
 

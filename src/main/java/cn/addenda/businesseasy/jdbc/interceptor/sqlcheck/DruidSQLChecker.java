@@ -1,5 +1,6 @@
 package cn.addenda.businesseasy.jdbc.interceptor.sqlcheck;
 
+import cn.addenda.businesseasy.jdbc.visitor.condition.DmlConditionExistsVisitor;
 import cn.addenda.businesseasy.jdbc.visitor.identifier.ExactIdentifierVisitor;
 import cn.addenda.businesseasy.jdbc.visitor.identifier.SelectItemStarExistsVisitor;
 
@@ -21,6 +22,13 @@ public class DruidSQLChecker implements SQLChecker {
         SelectItemStarExistsVisitor selectItemStarExistsVisitor = new SelectItemStarExistsVisitor(sql);
         selectItemStarExistsVisitor.visit();
         return selectItemStarExistsVisitor.isExists();
+    }
+
+    @Override
+    public boolean dmlConditionExists(String sql) {
+        DmlConditionExistsVisitor dmlConditionExistsVisitor = new DmlConditionExistsVisitor(sql);
+        dmlConditionExistsVisitor.visit();
+        return dmlConditionExistsVisitor.isExists();
     }
 
 }

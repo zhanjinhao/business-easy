@@ -1,7 +1,7 @@
 package cn.addenda.businesseasy.jdbc.interceptor.baseentity;
 
 import cn.addenda.businesseasy.jdbc.DruidSQLUtils;
-import cn.addenda.businesseasy.jdbc.visitor.additem.*;
+import cn.addenda.businesseasy.jdbc.visitor.item.*;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 
 import java.util.List;

@@ -2,10 +2,10 @@ package cn.addenda.businesseasy.jdbc.interceptor.tombstone;
 
 import cn.addenda.businesseasy.jdbc.DruidSQLUtils;
 import cn.addenda.businesseasy.jdbc.JdbcSQLUtils;
-import cn.addenda.businesseasy.jdbc.visitor.addcondition.TableAddJoinConditionVisitor;
-import cn.addenda.businesseasy.jdbc.visitor.additem.InsertAddItemVisitor;
-import cn.addenda.businesseasy.jdbc.visitor.additem.InsertSelectAddItemMode;
-import cn.addenda.businesseasy.jdbc.visitor.additem.UpdateItemMode;
+import cn.addenda.businesseasy.jdbc.visitor.condition.TableAddJoinConditionVisitor;
+import cn.addenda.businesseasy.jdbc.visitor.item.InsertAddItemVisitor;
+import cn.addenda.businesseasy.jdbc.visitor.item.InsertSelectAddItemMode;
+import cn.addenda.businesseasy.jdbc.visitor.item.UpdateItemMode;
 import cn.addenda.businesseasy.jdbc.visitor.identifier.IdentifierExistsVisitor;
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLName;

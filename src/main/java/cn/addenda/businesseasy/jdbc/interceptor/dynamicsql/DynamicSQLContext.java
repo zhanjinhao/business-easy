@@ -1,8 +1,8 @@
 package cn.addenda.businesseasy.jdbc.interceptor.dynamicsql;
 
-import cn.addenda.businesseasy.jdbc.visitor.additem.InsertSelectAddItemMode;
-import cn.addenda.businesseasy.jdbc.visitor.additem.Item;
-import cn.addenda.businesseasy.jdbc.visitor.additem.UpdateItemMode;
+import cn.addenda.businesseasy.jdbc.visitor.item.InsertSelectAddItemMode;
+import cn.addenda.businesseasy.jdbc.visitor.item.Item;
+import cn.addenda.businesseasy.jdbc.visitor.item.UpdateItemMode;
 
 import java.util.*;
 

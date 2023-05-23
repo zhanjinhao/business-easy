@@ -1,11 +1,11 @@
 package cn.addenda.businesseasy.jdbc.interceptor.dynamicsql;
 
 import cn.addenda.businesseasy.jdbc.DruidSQLUtils;
-import cn.addenda.businesseasy.jdbc.visitor.addcondition.TableAddJoinConditionVisitor;
-import cn.addenda.businesseasy.jdbc.visitor.addcondition.TableAddWhereConditionVisitor;
-import cn.addenda.businesseasy.jdbc.visitor.addcondition.ViewAddJoinConditionVisitor;
-import cn.addenda.businesseasy.jdbc.visitor.addcondition.ViewAddWhereConditionVisitor;
-import cn.addenda.businesseasy.jdbc.visitor.additem.*;
+import cn.addenda.businesseasy.jdbc.visitor.condition.TableAddJoinConditionVisitor;
+import cn.addenda.businesseasy.jdbc.visitor.condition.TableAddWhereConditionVisitor;
+import cn.addenda.businesseasy.jdbc.visitor.condition.ViewAddJoinConditionVisitor;
+import cn.addenda.businesseasy.jdbc.visitor.condition.ViewAddWhereConditionVisitor;
+import cn.addenda.businesseasy.jdbc.visitor.item.*;
 import cn.addenda.businesseasy.jdbc.visitor.identifier.IdentifierExistsVisitor;
 import cn.addenda.businesseasy.jdbc.visitor.identifier.InsertOrUpdateItemNameIdentifierExistsVisitor;
 import cn.addenda.businesseasy.util.BEArrayUtils;

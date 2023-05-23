@@ -39,10 +39,32 @@ public class SQLCheckUtils {
         }
     }
 
-    public static <T> T unCheck(boolean checkAllColumn, boolean checkExactIdentifier, SQLCheckExecutor<T> executor) {
+    public static <T> T unCheckDmlCondition(SQLCheckExecutor<T> executor) {
         try {
-            SQLCheckContext.setCheckAllColumn(checkAllColumn);
-            SQLCheckContext.setCheckExactIdentifier(checkExactIdentifier);
+            SQLCheckContext.setCheckDmlCondition(false);
+            return executor.execute();
+        } catch (Throwable e) {
+            reportAsRuntimeException(e);
+            // todo: SystemException 迁移过来
+            return null;
+        } finally {
+            SQLCheckContext.clearCheckDmlCondition();
+        }
+    }
+
+    public static <T> T config(SQLCheckExecutor<T> executor, boolean... unChecks) {
+        try {
+            if (unChecks != null) {
+                if (unChecks.length > 0) {
+                    SQLCheckContext.setCheckAllColumn(unChecks[0]);
+                }
+                if (unChecks.length > 1) {
+                    SQLCheckContext.setCheckExactIdentifier(unChecks[1]);
+                }
+                if (unChecks.length > 2) {
+                    SQLCheckContext.setCheckDmlCondition(unChecks[2]);
+                }
+            }
             return executor.execute();
         } catch (Throwable e) {
             reportAsRuntimeException(e);
@@ -75,10 +97,30 @@ public class SQLCheckUtils {
         }
     }
 
-    public static void unCheck(boolean checkAllColumn, boolean checkExactIdentifier, VoidSQLCheckExecutor executor) {
+    public static void unCheckDmlCondition(VoidSQLCheckExecutor executor) {
         try {
-            SQLCheckContext.setCheckAllColumn(checkAllColumn);
-            SQLCheckContext.setCheckExactIdentifier(checkExactIdentifier);
+            SQLCheckContext.setCheckDmlCondition(false);
+            executor.execute();
+        } catch (Throwable e) {
+            reportAsRuntimeException(e);
+        } finally {
+            SQLCheckContext.clearCheckDmlCondition();
+        }
+    }
+
+    public static void config(VoidSQLCheckExecutor executor, boolean... unChecks) {
+        try {
+            if (unChecks != null) {
+                if (unChecks.length > 0) {
+                    SQLCheckContext.setCheckAllColumn(unChecks[0]);
+                }
+                if (unChecks.length > 1) {
+                    SQLCheckContext.setCheckExactIdentifier(unChecks[1]);
+                }
+                if (unChecks.length > 2) {
+                    SQLCheckContext.setCheckDmlCondition(unChecks[2]);
+                }
+            }
             executor.execute();
         } catch (Throwable e) {
             reportAsRuntimeException(e);

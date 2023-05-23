@@ -1,4 +1,4 @@
-package cn.addenda.businesseasy.jdbc.visitor.additem;
+package cn.addenda.businesseasy.jdbc.visitor.item;
 
 import cn.addenda.businesseasy.jdbc.JdbcSQLUtils;
 import cn.addenda.businesseasy.jdbc.DruidSQLUtils;

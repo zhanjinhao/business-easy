@@ -1,4 +1,4 @@
-package cn.addenda.businesseasy.jdbc.visitor.addcondition;
+package cn.addenda.businesseasy.jdbc.visitor.condition;
 
 import java.util.List;
 
