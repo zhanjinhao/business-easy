@@ -110,6 +110,15 @@ public class TableAddJoinConditionVisitor extends AbstractAddConditionVisitor {
                     // 上升到where
                     addWhereTableName(x, rightTableName);
                     addWhereAlias(x, rightAlias);
+
+                    String leftWhereTableName = getWhereTableName(left);
+                    String leftWhereAlias = getWhereAlias(left);
+                    if (leftWhereTableName != null) {
+                        SQLExpr condition = newWhere(x.getCondition(), leftWhereTableName, leftWhereAlias);
+                        log.debug("SQLObject: [{}]，旧的join condition：[{}]，新的join condition：[{}]。",
+                                DruidSQLUtils.toLowerCaseSQL(x), DruidSQLUtils.toLowerCaseSQL(x.getCondition()), DruidSQLUtils.toLowerCaseSQL(condition));
+                        x.setCondition(condition);
+                    }
                 } else if (JoinType.LEFT_OUTER_JOIN == joinType || JoinType.JOIN == joinType || JoinType.INNER_JOIN == joinType) {
                     // 条件加在on上
                     SQLExpr condition = newWhere(x.getCondition(), rightTableName, rightAlias);
